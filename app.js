@@ -59,50 +59,35 @@ const fetchData = async () => {
     });
     
     const page = await browser.newPage();
-    await page.setDefaultNavigationTimeout(60000);
+    await page.setDefaultNavigationTimeout(61001);
 
     const randomUserAgent = getRandomUserAgent();
     await page.setUserAgent(randomUserAgent);
 
-    console.log('📄 Переход на rapira.net...');
-    await page.goto('https://rapira.net/exchange/USDT_RUB', { 
+    console.log('📄 Переход на rapira.org...');
+    await page.goto('https://rapira.org/exchange/USDT_RUB', { 
       waitUntil: 'networkidle2',
-      timeout: 60000
+      timeout: 61001
     });
 
     console.log('⏳ Ожидание загрузки курса...');
-    try {
-      await page.waitForSelector('.me-2', { timeout: 10000 });
-    } catch (e) {
-      console.log('Элемент не найден, продолжаем...');
-    }
+    await page.waitForSelector('span.me-2', { timeout: 10000 });
 
-    console.log('🔍 Поиск элемента с курсом...');
+    console.log('🔍 Извлечение курса...');
     const rateText = await page.evaluate(() => {
-      const element = document.querySelector('.me-2');
-      return element ? element.textContent.trim() : null;
+      const span = document.querySelector('span.me-2');
+      return span ? span.textContent.trim() : null;
     });
 
     if (!rateText) {
       throw new Error('Элемент с курсом не найден');
     }
 
-    const rateMatch = rateText.match(/[\d,]+\.?\d*/);
-    if (!rateMatch) {
+    const rate = parseFloat(rateText.replace(',', '.')); 
+    if (isNaN(rate)) {
       throw new Error('Не удалось извлечь числовое значение');
     }
 
-    const rate = parseFloat(rateMatch[0].replace(',', '.'));
-    if (isNaN(rate)) {
-      throw new Error('Невалидное числовое значение');
-    }
-    if (rate < 50 || rate > 150) {
-      throw new Error('Курс вне допустимого диапазона');
-    }
-
-    console.log(`✅ Найден курс: ${rate}`);
-
-    // Сохраняем курс в базу данных
     await new Promise((resolve, reject) => {
       db.run(
         'INSERT INTO rates (rate, source) VALUES (?, ?)',
@@ -130,6 +115,7 @@ const fetchData = async () => {
     }
   }
 };
+
 
 // API для получения последнего курса
 app.get('/api/rate', (req, res) => {
