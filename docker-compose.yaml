@@ -1,0 +1,28 @@
+version: '3.8'
+
+services:
+  telegram-bot:
+    build:
+      context: ./bot
+    restart: always
+    env_file:
+      - ./bot/.env
+    volumes:
+      - ./bot:/app
+  fastapi:
+    build:
+      context: ./main
+    restart: always
+    ports:
+      - "8080:8080"
+    env_file:
+      - ./main/.env
+    volumes:
+      - ./main:/app
+  backup:
+    build:
+      context: ./backup
+    volumes:
+      - ./bot:/app/bot
+      - ./main:/app/main
+      - ./backup:/app/backups
