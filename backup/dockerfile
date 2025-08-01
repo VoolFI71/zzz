@@ -3,21 +3,14 @@ FROM python:3.12.6-slim
 # Устанавливаем рабочую директорию
 WORKDIR /app
 
-# Копируем скрипт резервного копирования и crontab файл
+# Копируем скрипт резервного копирования
 COPY backup.sh .
-COPY crontab /etc/cron.d/backup-cron
-
-# Устанавливаем cron
-RUN apt-get update && apt-get install -y cron
-
-# Устанавливаем права на crontab файл
-RUN chmod 0644 /etc/cron.d/backup-cron
-
-# Применяем crontab
-RUN crontab /etc/cron.d/backup-cron
 
 # Создаем папку для резервных копий
 RUN mkdir -p /app/backups
 
-# Запускаем cron в фоновом режиме
-CMD ["cron", "-f"]
+# Делаем скрипт исполняемым
+RUN chmod +x backup.sh
+
+# Запускаем скрипт резервного копирования
+CMD ["./backup.sh"]

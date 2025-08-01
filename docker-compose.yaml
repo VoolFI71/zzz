@@ -25,4 +25,5 @@ services:
     volumes:
       - ./bot:/app/bot
       - ./main:/app/main
-      - ./backup:/app/backups
+      - ./backup:/app/backup    
+      - ./backups:/app/backups    
