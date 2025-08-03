@@ -1,53 +1,14 @@
-import logging
-from aiogram import Bot, Dispatcher, types
-from aiogram.types import Message, CallbackQuery
-from aiogram.filters import Command
-from aiogram.fsm.context import FSMContext
-from aiogram.fsm.state import State, StatesGroup
-import asyncio
-import uuid
-from email_validator import validate_email, EmailNotValidError
-import os
-
-from keyboards import keyboard
-from routes import guide, start, profile, invite
-from callback import callback
+from payment import payment
 from database import db
-from payment import payment as pay
-
 from yookassa import Configuration, Payment
+from aiogram import Router, F
+from aiogram.types import InlineKeyboardMarkup, ReplyKeyboardMarkup, InlineKeyboardButton, KeyboardButton, LabeledPrice, PreCheckoutQuery, Message, CallbackQuery
+from aiogram.fsm.context import FSMContext
+from aiogram import Bot, Dispatcher, types
 
-Configuration.account_id = os.getenv('ACCOUNT_ID')
-Configuration.secret_key = str(os.getenv('SECRET_KEY'))
-API_TOKEN = str(os.getenv('TELEGRAM_TOKEN'))
+callback_router = Router()
 
-urlupdate = "http://77.110.108.194:8080/giveconfig"
-#urlupdate = "http://fastapi:8080/giveconfig"
-
-logging.basicConfig(level=logging.INFO)
-
-bot = Bot(token=API_TOKEN)
-dp = Dispatcher()
-dp.include_routers(guide.router, start.router, profile.router, callback.callback_router, invite.router)
-
-class Form(StatesGroup):
-    waiting_for_email = State()
-
-@dp.message(Form.waiting_for_email)
-async def handle_email_input(message: Message, state: FSMContext) -> None:
-    tg_id = message.from_user.id
-    email_input = message.text
-    try:
-        valid = validate_email(email_input) 
-        email = valid.email
-        await db.insert_email(tg_id, email)  
-        await message.reply("Email успешно сохранен!", reply_markup=keyboard.create_tariff_keyboard())
-    except EmailNotValidError as e:
-        await message.reply(f"Ошибка: {str(e)}. Пожалуйста, введите корректный email, это необходимо для отправки чека на вашу почту.")
-        return
-    await state.set_state(None) 
-
-@dp.callback_query()
+@callback_router.callback_query()
 async def process_callback_query(callback_query: CallbackQuery, state: FSMContext, bot: Bot) -> None:
     logging.info(f"Callback query received: {callback_query.data}")
     tg_id = callback_query.from_user.id     
@@ -57,7 +18,7 @@ async def process_callback_query(callback_query: CallbackQuery, state: FSMContex
         await bot.send_message(
             chat_id=callback_query.from_user.id,
             text="Выберите опцию:",
-            reply_markup=keyboard.create_keyboard()  
+            reply_markup=create_keyboard()  
         )
         return 
 
@@ -146,11 +107,4 @@ async def process_callback_query(callback_query: CallbackQuery, state: FSMContex
 
         message = await callback_query.message.edit_text(text=f"{"Заказ на оплату успешно создан"}\n", reply_markup=reply_markup)
 
-        await pay.check_payment_status(confirmation_id, bot, callback_query.from_user.id, payment.description, message.message_id)
-
-async def main():
-    await db.init_db()
-    await dp.start_polling(bot)
-
-if __name__ == "__main__":
-    asyncio.run(main())
+        await payment.check_payment_status(confirmation_id, bot, callback_query.from_user.id, payment.description, message.message_id)
