@@ -27,20 +27,13 @@ async def insert_email(tg_id, email):
     """Сохранить email пользователя в базе данных."""
     try:
         async with aiosqlite.connect("users.db") as conn:
+            cursor = await conn.cursor()  # Создаем курсор
             await cursor.execute("SELECT * FROM users WHERE tg_id=?", (tg_id,))
             user_data = await cursor.fetchone()
             if user_data:
-                # Если запись существует, обновляем email
-                await cursor.execute(
-                    "UPDATE users SET email=? WHERE tg_id=?",
-                    (email, tg_id)
-                )
+                await cursor.execute("UPDATE users SET email=? WHERE tg_id=?", (email, tg_id))
             else:
-                # Если записи нет, вставляем новую
-                await cursor.execute(
-                    "INSERT INTO users (tg_id, email) VALUES (?, ?)",
-                    (tg_id, email)
-                )
+                await cursor.execute("INSERT INTO users (tg_id, email) VALUES (?, ?)", (tg_id, email))
             await conn.commit()
     except aiosqlite.IntegrityError:
         print(f"Ошибка: tg_id '{tg_id}' уже существует.")
