@@ -1,7 +1,10 @@
 import os
+import logging
+logger = logging.getLogger(__name__)
 import asyncio
 import aiohttp
 from yookassa import Configuration, Payment
+
 
 AUTH_CODE = os.getenv("AUTH_CODE")
 urlupdate = "http://fastapi:8080/giveconfig"
@@ -25,10 +28,10 @@ async def check_payment_status(payment_id, bot, user_id, description, message_id
                     chat_id=user_id,
                     text="Успешно! Ваш платеж был подтвержден."
                 )
-                data["auth"] = AUTH_CODE
+                
                 async with aiohttp.ClientSession() as session:
                     try:
-                        async with session.post(urlupdate, json=data) as response:
+                        async with session.post(urlupdate, json=data, headers={"X-API-Key": AUTH_CODE}) as response:
                             if response.status == 200:
                                 await bot.send_message(user_id, "Конфиг для подключения можно найти в личном кабинете.")
                             elif response.status == 409:
@@ -37,7 +40,7 @@ async def check_payment_status(payment_id, bot, user_id, description, message_id
                                 await bot.send_message(user_id, "Ошибка при получении конфига. Обратитесь в поддержку. Номер ошибки 1.")
                     except Exception as e:
                         await bot.send_message(user_id, "Ошибка при получении конфига. Обратитесь в поддержку. Номер ошибки 2.")
-                        print(f"Exception occurred: {e}")
+                        logger.error("Exception occurred while sending config: %s", e)
 
                 await bot.delete_message(chat_id=user_id, message_id=message_id)
                 break
@@ -56,5 +59,6 @@ async def check_payment_status(payment_id, bot, user_id, description, message_id
                 #     text="Ожидание оплаты."
                 # )
         except Exception as e:
-            print(e)
+            logger.error(f"Ошибка при проверке платежа {payment_id}: {e}")
+            # Возможно, добавить retry логику или уведомление администратору
         i+=1

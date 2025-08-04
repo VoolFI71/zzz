@@ -24,3 +24,7 @@ async def pc_guide_command(message: types.Message):
     parse_mode='Markdown',
     disable_web_page_preview=True
     )
+
+@router.message(F.text == "Назад")
+async def back_command(message: types.Message):
+    await message.answer("Выберите действие:", reply_markup=keyboard.create_keyboard())

@@ -1,11 +1,10 @@
 from pydantic import BaseModel
 
 class CreateData(BaseModel):
-    auth: str
+    pass
 
 class ClientData(BaseModel):
-    auth: str
-    time: int 
+    time: int
     id: str
 
 class AuthData(BaseModel):

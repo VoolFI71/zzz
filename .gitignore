@@ -1,2 +1,7 @@
 bot/.env
+bot/users.db
+
 main/.env   
+main/users.db
+
+backups

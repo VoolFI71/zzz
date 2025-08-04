@@ -1,16 +1,26 @@
-from payment import payment
+from payment import payment as pay
 from database import db
 from yookassa import Configuration, Payment
 from aiogram import Router, F
 from aiogram.types import InlineKeyboardMarkup, ReplyKeyboardMarkup, InlineKeyboardButton, KeyboardButton, LabeledPrice, PreCheckoutQuery, Message, CallbackQuery
 from aiogram.fsm.context import FSMContext
 from aiogram import Bot, Dispatcher, types
+import aiohttp
+import os
+import uuid
+import logging
+logger = logging.getLogger(__name__)
+from states import Form
+from keyboards.keyboard import create_keyboard
+from utils import check_available_configs
 
 callback_router = Router()
 
+AUTH_CODE = os.getenv("AUTH_CODE")
+
 @callback_router.callback_query()
 async def process_callback_query(callback_query: CallbackQuery, state: FSMContext, bot: Bot) -> None:
-    logging.info(f"Callback query received: {callback_query.data}")
+    logger.info(f"Callback query received: {callback_query.data}")
     tg_id = callback_query.from_user.id     
 
     if callback_query.data == "back":
@@ -27,13 +37,22 @@ async def process_callback_query(callback_query: CallbackQuery, state: FSMContex
         await bot.send_message(tg_id, "Пожалуйста, введите корректный email для отправки чеков на почту:")
         await state.set_state(Form.waiting_for_email)
     else:
+        # Проверяем наличие свободных конфигов только если у пользователя есть email
+        if callback_query.data in ["buy_1", "buy_2"]:
+            configs_available = await check_available_configs()
+            if not configs_available:
+                await bot.send_message(
+                    tg_id, 
+                    "К сожалению, в данный момент нет свободных конфигураций. Попробуйте позже или обратитесь в поддержку."
+                )
+                return
         confirmation_url = ""
         confirmation_id = ""
 
         uid = uuid.uuid4()
         if callback_query.data == "buy_1":
             description = "1m"
-            payment = Payment.create({
+            payment_resp = Payment.create({
                 "amount": {
                     "value": 99,
                     "currency": "RUB"
@@ -62,12 +81,12 @@ async def process_callback_query(callback_query: CallbackQuery, state: FSMContex
                 }
             }, uid)
 
-            confirmation_url = payment.confirmation.confirmation_url
-            confirmation_id = payment.id
+            confirmation_url = payment_resp.confirmation.confirmation_url
+            confirmation_id = payment_resp.id
 
         elif callback_query.data == "buy_2":
             description = "3m"
-            payment = Payment.create({
+            payment_resp = Payment.create({
                 "amount": {
                     "value": 199,
                     "currency": "RUB"
@@ -96,8 +115,8 @@ async def process_callback_query(callback_query: CallbackQuery, state: FSMContex
                 }
             }, uid)
 
-            confirmation_url = payment.confirmation.confirmation_url
-            confirmation_id = payment.id
+            confirmation_url = payment_resp.confirmation.confirmation_url
+            confirmation_id = payment_resp.id
 
         reply_markup = types.InlineKeyboardMarkup(
             inline_keyboard=[
@@ -107,4 +126,4 @@ async def process_callback_query(callback_query: CallbackQuery, state: FSMContex
 
         message = await callback_query.message.edit_text(text=f"{"Заказ на оплату успешно создан"}\n", reply_markup=reply_markup)
 
-        await payment.check_payment_status(confirmation_id, bot, callback_query.from_user.id, payment.description, message.message_id)
+        await pay.check_payment_status(confirmation_id, bot, callback_query.from_user.id, description, message.message_id)

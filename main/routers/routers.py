@@ -11,7 +11,9 @@ from fastapi import APIRouter
 from database import db
 from models import models
 import os
-from fastapi import Depends
+import logging
+logger = logging.getLogger(__name__)
+from fastapi import Depends, Header
 
 AUTH_CODE = os.getenv("AUTH_CODE")
 router = APIRouter()
@@ -25,8 +27,9 @@ headers = {
 }
 
 @router.post("/createconfig", response_model=str)
-async def create_config(client_data: models.CreateData):
-    if client_data.auth != str(AUTH_CODE):
+async def create_config(client_data: models.CreateData, x_api_key: str = Header(...)):
+    logger.info("/createconfig called")
+    if x_api_key != AUTH_CODE:
         raise HTTPException(status_code=403, detail="Нет доступа")
 
     id = str(uuid.uuid4())
@@ -57,8 +60,8 @@ async def create_config(client_data: models.CreateData):
         raise HTTPException(status_code=response.status_code, detail="Ошибка при создании конфигурации")
 
 @router.post("/giveconfig", response_model=str)
-async def create_config(client_data: models.ClientData):
-    if client_data.auth != AUTH_CODE:
+async def give_config(client_data: models.ClientData, x_api_key: str = Header(...)):
+    if x_api_key != AUTH_CODE:
         raise HTTPException(status_code=403, detail="Нет доступа")
         
     uid = await db.get_one_expired_client()
@@ -90,19 +93,32 @@ async def create_config(client_data: models.ClientData):
     response = requests.post(urlupdate+str(uid), json=data, headers=headers)
     if response.status_code == 200:
         await db.update_user_code(tg_id=client_data.id, user_code=uid, time_end=exptime)
-        print("Конфигурация успешно обновлена и готова к работа")
+        logger.info("Config %s activated for tg_id %s", uid, client_data.id)
         return str(uid)
     else:
         raise HTTPException(status_code=response.status_code, detail="Ошибка при обновлении конфигурации")
 
+@router.get("/check-available-configs")
+async def check_available_configs(x_api_key: str = Header(...)):
+    if x_api_key != AUTH_CODE:
+        raise HTTPException(status_code=403, detail="Нет доступа")
+    
+    # Проверяем наличие свободных конфигов
+    available_config = await db.get_one_expired_client()
+    
+    if available_config:
+        return JSONResponse(content={"available": True, "message": "Свободные конфиги доступны"})
+    else:
+        return JSONResponse(content={"available": False, "message": "Свободных конфигов в данный момент нет"})
+
 @router.get("/usercodes/{tg_id}")
-async def read_user(tg_id: int, auth: str = Depends(lambda: AUTH_CODE)):
-    if auth != AUTH_CODE:
+async def read_user(tg_id: int, x_api_key: str = Header(...)):
+    if x_api_key != AUTH_CODE:
         raise HTTPException(status_code=403, detail="Нет доступа")
 
     users = await db.get_codes_by_tg_id(tg_id)
     if not users:
-        raise HTTPException(status_code=404, detail="Конфигурации не найдены")
+        raise HTTPException(status_code=404, detail="У вас нет актвных конфигураций")
     
     result = [{"user_code": user[0], "time_end": user[1]} for user in users]
     return JSONResponse(content=result)

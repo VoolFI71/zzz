@@ -12,11 +12,11 @@ AUTH_CODE = os.getenv("AUTH_CODE")
 async def my_account(message: types.Message):
     user_id = message.from_user.id
     url = f"http://fastapi:8080/usercodes/{user_id}"
-    query_params = {'auth': AUTH_CODE}
+    headers = {"X-API-Key": AUTH_CODE}
 
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.get(url, params = query_params) as response:
+            async with session.get(url, headers=headers) as response:
                 if response.status == 200:
                     response_data = await response.json()
                     if response_data:
@@ -37,7 +37,7 @@ async def my_account(message: types.Message):
                         await message.answer("У вас нет конфигов")
                 else:
                     error_message = await response.json()
-                    await message.answer(f"Ошибка2: {error_message.get('detail', 'Неизвестная ошибка')}", reply_markup=keyboard.create_keyboard())
+                    await message.answer(f"{error_message.get('detail', 'Неизвестная ошибка')}", reply_markup=keyboard.create_keyboard())
     except aiohttp.ClientError as e:
         await message.answer(f"Ошибка соединения: {str(e)}", reply_markup=keyboard.create_keyboard())
     except Exception as e:
