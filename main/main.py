@@ -10,6 +10,8 @@ import os
 import aiosqlite
 from routers import routers
 from database import db
+import uvicorn
+
 app = FastAPI()
 app.include_router(routers.router)
 
@@ -19,6 +21,10 @@ async def start_application():
 @app.on_event("startup")
 async def startup_event():
     await start_application()  # Инициализация базы данных при старте приложения
+
+@app.get("/healthz", include_in_schema=False)
+async def healthz():
+    return {"status": "ok"}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8080)

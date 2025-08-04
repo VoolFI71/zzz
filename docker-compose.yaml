@@ -1,6 +1,17 @@
 version: '3.8'
 
 services:
+  # nginx:
+  #   image: nginx:1.25-alpine
+  #   restart: always
+  #   ports:
+  #     - "443:443"                # наружу – только 443
+  #   volumes:
+  #     - ./deploy/nginx.conf:/etc/nginx/nginx.conf:ro
+  #     - ./certs:/etc/nginx/certs:ro
+  #   depends_on: [fastapi]
+  #   networks: [web, internal]
+    
   telegram-bot:
     build:
       context: ./bot
@@ -9,9 +20,12 @@ services:
       - ./bot/.env
     volumes:
       - ./bot:/app
+    
+
   fastapi:
-    build:
-      context: ./main
+    build: ./main
+    # expose: ["8080"]             # НЕ ports
+    # networks: [internal]
     restart: always
     ports:
       - "8080:8080"
@@ -19,6 +33,12 @@ services:
       - ./main/.env
     volumes:
       - ./main:/app
+    healthcheck:
+      test: [ "CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1" ]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+      start_period: 10s
   backup:
     build:
       context: ./backup
@@ -27,3 +47,8 @@ services:
       - ./main:/app/main
       - ./backup:/app/backup    
       - ./backups:/app/backups    
+
+networks:
+  web:
+  internal:
+    internal: true

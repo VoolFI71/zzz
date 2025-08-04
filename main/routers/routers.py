@@ -122,3 +122,46 @@ async def read_user(tg_id: int, x_api_key: str = Header(...)):
     
     result = [{"user_code": user[0], "time_end": user[1]} for user in users]
     return JSONResponse(content=result)
+
+@router.get("/subscription/{tg_id}")
+async def get_subscription(tg_id: int):
+    """
+    Возвращает подписку с конфигами пользователя для V2rayTun
+    Формат: plain text с VLESS-ссылками, разделенными переносами строк
+    """
+    logger.info(f"Subscription request for tg_id: {tg_id}")
+    
+    users = await db.get_codes_by_tg_id(tg_id)
+    logger.info(f"Found users data: {users}")
+    
+    if not users:
+        logger.warning(f"No configurations found for tg_id: {tg_id}")
+        raise HTTPException(status_code=404, detail="У вас нет активных конфигураций")
+    
+    # Фильтруем только активные конфиги
+    current_time = int(time.time())
+    active_configs = []
+    
+    for user_code, time_end in users:
+        if time_end > current_time:  # Конфиг еще активен
+            vless_config = (
+                f"vless://{user_code}@77.110.108.194:443?"
+                "security=reality&encryption=none&pbk=bMhOMGZho4aXhfoxyu7D9ZjVnM-02bR9dKBfIMMTVlc&"
+                "headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&sni=google.com&sid=094e39c18a0e44#godnetvpn"
+            )
+            active_configs.append(vless_config)
+    
+    if not active_configs:
+        raise HTTPException(status_code=404, detail="У вас нет активных конфигураций")
+    
+    # Возвращаем конфиги как plain text, разделенные переносами строк
+    subscription_content = "\n".join(active_configs)
+    logger.info(f"Returning {len(active_configs)} active configs for tg_id: {tg_id}")
+    
+    from fastapi.responses import PlainTextResponse
+    return PlainTextResponse(
+        content=subscription_content,
+        headers={
+            "Content-Type": "text/plain; charset=utf-8"
+        }
+    )
