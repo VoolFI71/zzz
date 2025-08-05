@@ -228,21 +228,97 @@
             
             try {
                 const decodedConfig = atob(config);
-                navigator.clipboard.writeText(decodedConfig).then(() => {
-                    alert('Конфиг скопирован в буфер обмена!');
-                }).catch(() => {
-                    // Fallback для старых браузеров
-                    const textArea = document.createElement('textarea');
-                    textArea.value = decodedConfig;
-                    document.body.appendChild(textArea);
-                    textArea.select();
-                    document.execCommand('copy');
-                    document.body.removeChild(textArea);
-                    alert('Конфиг скопирован в буфер обмена!');
-                });
+                
+                // Проверяем поддержку современного Clipboard API
+                if (navigator.clipboard && window.isSecureContext) {
+                    // Современный способ (HTTPS)
+                    navigator.clipboard.writeText(decodedConfig).then(() => {
+                        alert('✅ Конфиг скопирован в буфер обмена!');
+                    }).catch((err) => {
+                        console.error('Clipboard API failed:', err);
+                        fallbackCopy(decodedConfig);
+                    });
+                } else {
+                    // Fallback для HTTP или старых браузеров
+                    fallbackCopy(decodedConfig);
+                }
             } catch (e) {
-                alert('Ошибка копирования конфига');
+                console.error('Copy error:', e);
+                alert('❌ Ошибка при копировании конфига: ' + e.message);
             }
+        }
+
+        function fallbackCopy(text) {
+            try {
+                const textArea = document.createElement('textarea');
+                textArea.value = text;
+                
+                // Стили для невидимости
+                textArea.style.position = 'fixed';
+                textArea.style.left = '-999999px';
+                textArea.style.top = '-999999px';
+                textArea.style.opacity = '0';
+                
+                document.body.appendChild(textArea);
+                textArea.focus();
+                textArea.select();
+                
+                // Пробуем скопировать
+                const successful = document.execCommand('copy');
+                document.body.removeChild(textArea);
+                
+                if (successful) {
+                    alert('✅ Конфиг скопирован в буфер обмена!');
+                } else {
+                    // Последний вариант - показываем текст для ручного копирования
+                    showManualCopy(text);
+                }
+            } catch (err) {
+                console.error('Fallback copy failed:', err);
+                showManualCopy(text);
+            }
+        }
+
+        function showManualCopy(text) {
+            // Создаем модальное окно для ручного копирования
+            const modal = document.createElement('div');
+            modal.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background: rgba(0,0,0,0.5);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 9999;
+            `;
+            
+            const content = document.createElement('div');
+            content.style.cssText = `
+                background: white;
+                padding: 20px;
+                border-radius: 10px;
+                max-width: 90%;
+                max-height: 80%;
+                overflow: auto;
+            `;
+            
+            content.innerHTML = `
+                <h3>📋 Скопируйте конфиг вручную:</h3>
+                <textarea readonly style="width: 100%; height: 200px; font-family: monospace; font-size: 12px;">${text}</textarea>
+                <br><br>
+                <button onclick="this.parentElement.parentElement.remove()" style="padding: 10px 20px; background: #667eea; color: white; border: none; border-radius: 5px; cursor: pointer;">Закрыть</button>
+            `;
+            
+            modal.appendChild(content);
+            document.body.appendChild(modal);
+            
+            // Автоматически выделяем текст
+            const textarea = content.querySelector('textarea');
+            textarea.focus();
+            textarea.select();
         }
     </script>
 </body>
