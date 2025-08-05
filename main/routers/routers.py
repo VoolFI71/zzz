@@ -4,7 +4,9 @@ import uuid
 import time
 import requests
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, HTMLResponse
+from fastapi.templating import Jinja2Templates
+from fastapi import Request
 import aiosqlite
 from pydantic import BaseModel
 from fastapi import APIRouter
@@ -17,6 +19,7 @@ from fastapi import Depends, Header
 
 AUTH_CODE = os.getenv("AUTH_CODE")
 router = APIRouter()
+templates = Jinja2Templates(directory="templates")
 
 urlcreate = "http://77.110.108.194:5580/hj0pGaxiL1U2cNG7bo/panel/inbound/addClient"
 urlupdate = "http://77.110.108.194:5580/hj0pGaxiL1U2cNG7bo/panel/inbound/updateClient/"
@@ -165,3 +168,14 @@ async def get_subscription(tg_id: int):
             "Content-Type": "text/plain; charset=utf-8"
         }
     )
+
+@router.get("/add-config", response_class=HTMLResponse)
+async def add_config_page(request: Request, config: str = None, expiry: int = None):
+    """
+    Веб-страница для добавления конфига в V2rayTun
+    """
+    return templates.TemplateResponse("add_config.html", {
+        "request": request,
+        "config": config,
+        "expiry": expiry
+    })
