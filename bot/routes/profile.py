@@ -40,7 +40,7 @@ async def my_account(message: types.Message):
                             import base64
                             encoded_config = base64.b64encode(vless_config.encode()).decode()
                             remaining_seconds = user['time_end'] - int(time.time())
-                            web_url = f"http://127.0.0.1:8080/add-config?config={encoded_config}&expiry={remaining_seconds}"
+                            web_url = f"http://77.110.108.194:8080/add-config?config={encoded_config}&expiry={remaining_seconds}"
                             
                             # Создаем inline клавиатуру с кнопкой для V2rayTun
                             inline_kb = InlineKeyboardMarkup(inline_keyboard=[
@@ -51,9 +51,13 @@ async def my_account(message: types.Message):
                             # Создаем красивое сообщение вместо огромного конфига
                             remaining_hours = remaining_seconds // 3600
                             remaining_days = remaining_hours // 24
+                            hours_left = remaining_hours % 24
                             
                             if remaining_days > 0:
-                                time_text = f"{remaining_days} дн. {remaining_hours % 24} ч."
+                                if hours_left > 0:
+                                    time_text = f"{remaining_days} дн. {hours_left} ч."
+                                else:
+                                    time_text = f"{remaining_days} дн."
                             else:
                                 time_text = f"{remaining_hours} ч."
                             
