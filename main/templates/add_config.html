@@ -141,26 +141,42 @@
                 return;
             }
             
-            // URL схемы для V2rayTun (Android)
-            const schemes = [
-                `v2raytun://import/${config}`,
-                `v2ray://import/${config}`,
-                `clash://install-config/?url=data:text/plain;base64,${config}`
-            ];
+            // Определяем устройство
+            const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
+            const isAndroid = /Android/.test(navigator.userAgent);
+            
+            // V2rayTun для всех устройств
+            let prioritySchemes = [];
+            if (isIOS || isAndroid) {
+                prioritySchemes = [
+                    `v2raytun://import/${config}`,
+                    `v2ray://import/${config}`
+                ];
+            } else {
+                // Если не мобильное устройство, показываем сообщение
+                alert('Эта функция работает только на мобильных устройствах. Скопируйте конфиг вручную.');
+                return;
+            }
             
             // Пробуем открыть первую схему
             const link = document.createElement('a');
-            link.href = schemes[0];
+            link.href = prioritySchemes[0];
             link.click();
             
-            // Если через 2 секунды пользователь все еще на странице, показываем альтернативы
+            // Если через 2 секунды пользователь все еще на странице, пробуем запасной вариант
             setTimeout(() => {
                 if (document.hasFocus()) {
-                    if (confirm('Приложение не открылось автоматически. Попробовать другой способ?')) {
-                        // Пробуем вторую схему
+                    if (confirm('V2rayTun не открылось автоматически. Попробовать универсальную схему?')) {
                         const link2 = document.createElement('a');
-                        link2.href = schemes[1];
+                        link2.href = prioritySchemes[1];
                         link2.click();
+                        
+                        // Если и это не сработало
+                        setTimeout(() => {
+                            if (document.hasFocus()) {
+                                alert('Не удалось открыть приложение автоматически. Скопируйте конфиг кнопкой ниже и добавьте в V2rayTun вручную.');
+                            }
+                        }, 2000);
                     }
                 }
             }, 2000);
