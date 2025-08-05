@@ -57,3 +57,28 @@ async def update_user_code(tg_id: str, user_code: str, time_end: int):
             updated_rows = cursor.rowcount
     
     return updated_rows
+
+async def get_time_end_by_code(user_code: str):
+    """
+    Возвращает текущее значение time_end для указанного user_code.
+    """
+    async with aiosqlite.connect("users.db") as conn:
+        async with conn.cursor() as cursor:
+            await cursor.execute('SELECT time_end FROM users WHERE user_code = ?', (user_code,))
+            row = await cursor.fetchone()
+            return row[0] if row else None
+
+
+async def set_time_end(user_code: str, new_time_end: int):
+    """
+    Устанавливает конкретное значение time_end.
+    """
+    async with aiosqlite.connect("users.db") as conn:
+        async with conn.cursor() as cursor:
+            await cursor.execute('''
+                UPDATE users
+                SET time_end = ?
+                WHERE user_code = ?
+            ''', (new_time_end, user_code))
+            await conn.commit()
+            return cursor.rowcount

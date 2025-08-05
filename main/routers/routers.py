@@ -42,13 +42,13 @@ async def create_config(client_data: models.CreateData, x_api_key: str = Header(
             "clients": [{
                 "id": id,
                 "flow": "xtls-rprx-vision",
-                "email": str(random.randint(1000000, 10000000)),
+                "email": str(random.randint(10000000, 100000000)),
                 "limitIp": 1,
                 "totalGB": 0,
                 "expiryTime": 0,
                 "enable": False,
                 "tgId": "",
-                "subId": str(random.randint(1000000, 10000000)),
+                "subId": str(random.randint(10000000, 100000000)),
                 "comment": "",
                 "reset": 0
             }]
@@ -80,13 +80,13 @@ async def give_config(client_data: models.ClientData, x_api_key: str = Header(..
             "clients": [{
                 "id": uid,
                 "flow": "xtls-rprx-vision",
-                "email": str(random.randint(1000000, 10000000)),
+                "email": str(random.randint(10000000, 100000000)),
                 "limitIp": 1,
                 "totalGB": 0,
                 "expiryTime": exptime * 1000,
                 "enable": True,
                 "tgId": "",
-                "subId": str(random.randint(1000000, 10000000)),
+                "subId": str(random.randint(10000000, 100000000)),
                 "comment": "",
                 "reset": 0
             }]
@@ -100,6 +100,54 @@ async def give_config(client_data: models.ClientData, x_api_key: str = Header(..
         return str(uid)
     else:
         raise HTTPException(status_code=response.status_code, detail="Ошибка при обновлении конфигурации")
+
+@router.post("/extendconfig", response_model=str)
+async def extend_config(update_data: models.ExtendConfig, x_api_key: str = Header(...)):
+    """
+    Продлевает срок действия конфига на `update_data.time` суток. При продлении время
+    добавляется к текущему `time_end`, а не перезаписывает его.
+    """
+    if x_api_key != AUTH_CODE:
+        raise HTTPException(status_code=403, detail="Нет доступа")
+
+    uid = update_data.uid
+    added_seconds = update_data.time * 60 * 60 * 24
+
+    # Текущее значение time_end из базы
+    current_time_end = await db.get_time_end_by_code(uid)
+    if current_time_end is None:
+        raise HTTPException(status_code=404, detail="Конфигурация не найдена")
+
+    # Если конфиг уже истёк, начинаем отсчёт от текущего времени
+    base_time = max(current_time_end, int(time.time()))
+    new_time_end = base_time + added_seconds
+
+    data = {
+        "id": 1,
+        "settings": json.dumps({
+            "clients": [{
+                "id": uid,
+                "flow": "xtls-rprx-vision",
+                "email": str(random.randint(10_000_000, 100_000_000)),
+                "limitIp": 1,
+                "totalGB": 0,
+                "expiryTime": new_time_end * 1000,  # миллисекунды
+                "enable": True,
+                "tgId": "",
+                "subId": str(random.randint(10_000_000, 100_000_000)),
+                "comment": "",
+                "reset": 0
+            }]
+        })
+    }
+
+    response = requests.post(f"{urlupdate}{uid}", json=data, headers=headers)
+    if response.status_code == 200:
+        await db.set_time_end(uid, new_time_end)  # сохраняем новое время окончания
+        logger.info("Config %s extended till %s (unix)", uid, new_time_end)
+        return "Конфиг успешно продлён"
+    else:
+        raise HTTPException(status_code=response.status_code, detail="Ошибка при продлении конфигурации")
 
 @router.get("/check-available-configs")
 async def check_available_configs(x_api_key: str = Header(...)):

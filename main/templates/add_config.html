@@ -151,8 +151,9 @@
                 // Для iOS пробуем разные варианты V2rayTun
                 const decodedConfig = atob(config);
                 prioritySchemes = [
+                    `v2raytun://import/${config}`,
                     // `v2raytun://add?config=${encodeURIComponent(decodedConfig)}`,
-                    `v2raytun://import?config=${config}`,
+                    // `v2raytun://import?config=${config}`,
                     // `v2raytun://add/${config}`,
                     // `v2raytun://import/${config}`,
                     // `v2ray://import/${config}`
