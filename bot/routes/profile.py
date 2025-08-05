@@ -24,11 +24,10 @@ async def my_account(message: types.Message):
                     if response_data:
                         for i, user in enumerate(response_data, start=1):
                             remaining_seconds = user['time_end'] - int(time.time()) 
-                            if remaining_seconds <= 0 :
-                                await message.answer(f"Время действия конфига истекло \n")
-                            else: 
-                                exptime = remaining_seconds / 3600
-                                await message.answer(f"Конфиг {i}. Оставшееся время действия: {exptime:.2f} часов \n")
+                            
+                            # Пропускаем истекшие конфиги
+                            if remaining_seconds <= 0:
+                                continue
                             
                             # Создаем VLESS конфиг
                             vless_config = (
