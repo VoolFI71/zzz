@@ -49,8 +49,24 @@ async def my_account(message: types.Message):
                                 [InlineKeyboardButton(text="📋 Копировать конфиг", callback_data=f"copy_config_{i}")]
                             ])
                             
+                            # Создаем красивое сообщение вместо огромного конфига
+                            remaining_hours = remaining_seconds // 3600
+                            remaining_days = remaining_hours // 24
+                            
+                            if remaining_days > 0:
+                                time_text = f"{remaining_days} дн. {remaining_hours % 24} ч."
+                            else:
+                                time_text = f"{remaining_hours} ч."
+                            
+                            config_message = (
+                                f"🔐 <b>Конфиг #{i}</b>\n"
+                                f"⏰ Действует: <b>{time_text}</b>\n"
+                                f"🌐 Сервер: <code>Финляндия 🇫🇮</code>\n\n"
+                                f"💡 <i>Нажмите кнопку ниже для добавления в приложение</i>"
+                            )
+                            
                             await message.answer(
-                                f"<code>{vless_config}</code>", 
+                                config_message,
                                 parse_mode="HTML",
                                 reply_markup=inline_kb
                             )
