@@ -82,3 +82,12 @@ async def set_time_end(user_code: str, new_time_end: int):
             ''', (new_time_end, user_code))
             await conn.commit()
             return cursor.rowcount
+
+
+async def delete_user_code(user_code: str):
+    """Удаляет запись конфига из БД по его uid."""
+    async with aiosqlite.connect("users.db") as conn:
+        async with conn.cursor() as cursor:
+            await cursor.execute('DELETE FROM users WHERE user_code = ?', (user_code,))
+            await conn.commit()
+            return cursor.rowcount

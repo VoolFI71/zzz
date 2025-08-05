@@ -26,6 +26,7 @@ templates = Jinja2Templates(directory="templates")
 
 urlcreate = "http://77.110.108.194:5580/hj0pGaxiL1U2cNG7bo/panel/inbound/addClient"
 urlupdate = "http://77.110.108.194:5580/hj0pGaxiL1U2cNG7bo/panel/inbound/updateClient/"
+urldelete = "http://77.110.108.194:5580/hj0pGaxiL1U2cNG7bo/panel/inbound/1/delClient/"
 
 headers = {
     "Content-Type": "application/json",
@@ -162,6 +163,34 @@ async def extend_config(update_data: models.ExtendConfig, x_api_key: str = Heade
         return "Конфиг успешно продлён"
     else:
         raise HTTPException(status_code=response.status_code, detail="Ошибка при продлении конфигурации")
+
+
+@router.delete("/deleteconfig", response_model=str)
+async def delete_config(data: models.DeleteConfig, x_api_key: str = Header(...)):
+    """Удаляет конфигурацию по её `id`, переданному в теле запроса."""
+    if x_api_key != AUTH_CODE:
+        raise HTTPException(status_code=403, detail="Нет доступа")
+
+    uid = data.id
+
+    # Проверяем, есть ли такой конфиг в БД
+    if await db.get_time_end_by_code(uid) is None:
+        raise HTTPException(status_code=404, detail="Конфиг не найден или уже удалён")
+
+    # Пытаемся удалить на панели
+    response = requests.post(f"{urldelete}{uid}", headers=headers)
+    if response.status_code != 200:
+        logger.error("Failed to delete config %s on panel: %s/%s", uid, response.status_code, response.text)
+        raise HTTPException(status_code=response.status_code, detail="Ошибка при удалении конфигурации на панели")
+
+    # Удаляем запись из базы
+    rows = await db.delete_user_code(uid)
+    if rows == 0:
+        # Теоретически не должно произойти – запись проверяли выше
+        raise HTTPException(status_code=404, detail="Конфиг не найден в БД")
+
+    logger.info("Config %s deleted", uid)
+    return "Конфиг успешно удалён"
 
 @router.get("/check-available-configs")
 async def check_available_configs(x_api_key: str = Header(...)):

@@ -14,3 +14,6 @@ class ClientData(BaseModel):
     time: int
     id: str
 
+class DeleteConfig(BaseModel):
+    id: str
+
