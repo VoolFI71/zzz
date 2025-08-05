@@ -21,6 +21,9 @@ AUTH_CODE = os.getenv("AUTH_CODE")
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
 
+# urlcreate = "http://89.111.142.122:5580/yCovzGorXa84wzvrpX/panel/inbound/addClient"
+# urlupdate = "http://89.111.142.122:5580/yCovzGorXa84wzvrpX/panel/inbound/updateClient/"
+
 urlcreate = "http://77.110.108.194:5580/hj0pGaxiL1U2cNG7bo/panel/inbound/addClient"
 urlupdate = "http://77.110.108.194:5580/hj0pGaxiL1U2cNG7bo/panel/inbound/updateClient/"
 
@@ -29,38 +32,49 @@ headers = {
     "Cookie": os.getenv("COOKIE")
 }
 
-@router.post("/createconfig", response_model=str)
+@router.post("/createconfig", response_model=list[str])
 async def create_config(client_data: models.CreateData, x_api_key: str = Header(...)):
-    logger.info("/createconfig called")
+    """
+    Создаёт `client_data.count` новых конфигураций и сохраняет их в базе.
+    Возвращает список созданных `uid`.
+    """
+    logger.info("/createconfig called, count=%s", client_data.count)
     if x_api_key != AUTH_CODE:
         raise HTTPException(status_code=403, detail="Нет доступа")
 
-    id = str(uuid.uuid4())
-    data = {
-        "id": 1,
-        "settings": json.dumps({
-            "clients": [{
-                "id": id,
-                "flow": "xtls-rprx-vision",
-                "email": str(random.randint(10000000, 100000000)),
-                "limitIp": 1,
-                "totalGB": 0,
-                "expiryTime": 0,
-                "enable": False,
-                "tgId": "",
-                "subId": str(random.randint(10000000, 100000000)),
-                "comment": "",
-                "reset": 0
-            }]
-        })
-    }
+    created_ids: list[str] = []
 
-    response = requests.post(urlcreate, json=data, headers=headers)
-    if response.status_code == 200:
-        await db.insert_into_db(tg_id=None, user_code=id, time_end=0)
-        return "Конфигурация создана успешно"
-    else:
-        raise HTTPException(status_code=response.status_code, detail="Ошибка при создании конфигурации")
+    for _ in range(client_data.count):
+        uid = str(uuid.uuid4())
+        payload = {
+            "id": 1,
+            "settings": json.dumps({
+                "clients": [{
+                    "id": uid,
+                    "flow": "xtls-rprx-vision",
+                    "email": str(random.randint(10_000_000, 100_000_000)),
+                    "limitIp": 1,
+                    "totalGB": 0,
+                    "expiryTime": 0,
+                    "enable": False,
+                    "tgId": "",
+                    "subId": str(random.randint(10_000_000, 100_000_000)),
+                    "comment": "",
+                    "reset": 0
+                }]
+            })
+        }
+
+        response = requests.post(urlcreate, json=payload, headers=headers)
+        if response.status_code == 200:
+            await db.insert_into_db(tg_id=None, user_code=uid, time_end=0)
+            created_ids.append(uid)
+            logger.info("Config %s created", uid)
+        else:
+            logger.error("Failed to create config, status=%s, body=%s", response.status_code, response.text)
+            raise HTTPException(status_code=response.status_code, detail="Ошибка при создании конфигурации")
+
+    return created_ids
 
 @router.post("/giveconfig", response_model=str)
 async def give_config(client_data: models.ClientData, x_api_key: str = Header(...)):

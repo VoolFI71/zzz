@@ -1,8 +1,10 @@
 from pydantic import BaseModel
 
 class CreateData(BaseModel):
-    """Пустая модель-заглушка для /createconfig (тело запроса не используется)."""
-    pass
+    """Данные для создания конфигураций.
+    count — сколько новых конфигов создать (по умолчанию 1).
+    """
+    count: int = 1
 
 class ExtendConfig(BaseModel):
     time: int
