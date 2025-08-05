@@ -145,15 +145,25 @@
             const isIOS = /iPad|iPhone|iPod/.test(navigator.userAgent);
             const isAndroid = /Android/.test(navigator.userAgent);
             
-            // V2rayTun для всех устройств
+            // Разные схемы для iOS и Android
             let prioritySchemes = [];
-            if (isIOS || isAndroid) {
+            if (isIOS) {
+                // Для iOS пробуем разные варианты V2rayTun
+                const decodedConfig = atob(config);
+                prioritySchemes = [
+                    `v2raytun://add?config=${encodeURIComponent(decodedConfig)}`,
+                    `v2raytun://import?config=${config}`,
+                    `v2raytun://add/${config}`,
+                    `v2raytun://import/${config}`,
+                    `v2ray://import/${config}`
+                ];
+            } else if (isAndroid) {
+                // Для Android используем проверенный вариант
                 prioritySchemes = [
                     `v2raytun://import/${config}`,
                     `v2ray://import/${config}`
                 ];
             } else {
-                // Если не мобильное устройство, показываем сообщение
                 alert('Эта функция работает только на мобильных устройствах. Скопируйте конфиг вручную.');
                 return;
             }
@@ -163,23 +173,51 @@
             link.href = prioritySchemes[0];
             link.click();
             
-            // Если через 2 секунды пользователь все еще на странице, пробуем запасной вариант
-            setTimeout(() => {
-                if (document.hasFocus()) {
-                    if (confirm('V2rayTun не открылось автоматически. Попробовать универсальную схему?')) {
-                        const link2 = document.createElement('a');
-                        link2.href = prioritySchemes[1];
-                        link2.click();
+            // Для iOS пробуем все варианты автоматически, для Android - простая логика
+            if (isIOS) {
+                let currentIndex = 0;
+                const tryNextiOSScheme = () => {
+                    currentIndex++;
+                    if (currentIndex < prioritySchemes.length) {
+                        console.log(`Пробуем iOS схему ${currentIndex + 1}: ${prioritySchemes[currentIndex]}`);
+                        const nextLink = document.createElement('a');
+                        nextLink.href = prioritySchemes[currentIndex];
+                        nextLink.click();
                         
-                        // Если и это не сработало
                         setTimeout(() => {
                             if (document.hasFocus()) {
-                                alert('Не удалось открыть приложение автоматически. Скопируйте конфиг кнопкой ниже и добавьте в V2rayTun вручную.');
+                                tryNextiOSScheme();
                             }
-                        }, 2000);
+                        }, 1500);
+                    } else {
+                        alert('Не удалось автоматически добавить конфиг в V2rayTun. Попробуйте скопировать конфиг и добавить вручную.');
                     }
-                }
-            }, 2000);
+                };
+                
+                // Начинаем цепочку попыток для iOS
+                setTimeout(() => {
+                    if (document.hasFocus()) {
+                        tryNextiOSScheme();
+                    }
+                }, 1500);
+            } else {
+                // Для Android простая логика
+                setTimeout(() => {
+                    if (document.hasFocus()) {
+                        if (confirm('V2rayTun не открылось автоматически. Попробовать универсальную схему?')) {
+                            const link2 = document.createElement('a');
+                            link2.href = prioritySchemes[1];
+                            link2.click();
+                            
+                            setTimeout(() => {
+                                if (document.hasFocus()) {
+                                    alert('Не удалось открыть приложение автоматически. Скопируйте конфиг кнопкой ниже и добавьте в V2rayTun вручную.');
+                                }
+                            }, 2000);
+                        }
+                    }
+                }, 2000);
+            }
         }
 
         function copyConfig() {
