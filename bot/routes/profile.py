@@ -10,6 +10,16 @@ router = Router()
 
 AUTH_CODE = os.getenv("AUTH_CODE")
 
+countryies_settings = {
+    "fi": {
+        "ip": "77.110.108.194:443",
+        "pbk": "bMhOMGZho4aXhfoxyu7D9ZjVnM-02bR9dKBfIMMTVlc",
+        "sni": "google.com",
+        "sid": "094e39c18a0e44",
+        "country": "Финляндия 🇫🇮"
+    }
+}
+
 @router.message(F.text == "Личный кабинет")
 async def my_account(message: types.Message):
     user_id = message.from_user.id
@@ -28,12 +38,12 @@ async def my_account(message: types.Message):
                             # Пропускаем истекшие конфиги
                             if remaining_seconds <= 0:
                                 continue
-                            
+    
                             # Создаем VLESS конфиг
                             vless_config = (
-                                f"vless://{user['user_code']}@77.110.108.194:443?"
-                                "security=reality&encryption=none&pbk=bMhOMGZho4aXhfoxyu7D9ZjVnM-02bR9dKBfIMMTVlc&"
-                                "headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&sni=google.com&sid=094e39c18a0e44#godnetvpn"
+                                    f"vless://{user['user_code']}@{countryies_settings[user['server']]['ip']}:443?"
+                                "security=reality&encryption=none&pbk={countryies_settings[user['server']]['pbk']}&"
+                                f"headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&sni={countryies_settings[user['server']]['sni']}&sid={countryies_settings[user['server']]['sid']}#godnetvpn"
                             )
                             
                             # Создаем URL для веб-страницы добавления конфига
@@ -64,7 +74,7 @@ async def my_account(message: types.Message):
                             config_message = (
                                 f"🔐 <b>Конфиг #{i}</b>\n"
                                 f"⏰ Действует: <b>{time_text}</b>\n"
-                                f"🌐 Сервер: <code>Финляндия 🇫🇮</code>\n\n"
+                                f"🌐 Сервер: <code>{countryies_settings[user['server']]['country']}</code>\n\n"
                                 f"💡 <i>Нажмите кнопку ниже для добавления в приложение</i>"
                             )
                             

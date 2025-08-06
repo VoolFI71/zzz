@@ -6,9 +6,11 @@ AUTH_CODE = os.getenv("AUTH_CODE")
 
 logger = logging.getLogger(__name__)
 
-async def check_available_configs() -> bool:
-    """Запрашивает FastAPI-сервис и возвращает True, если есть свободные конфиги."""
+async def check_available_configs(server: str | None = None) -> bool:
+    """Возвращает True, если есть свободные конфиги. При указании `server` проверяется только эта страна."""
     url = "http://fastapi:8080/check-available-configs"
+    if server is not None:
+        url += f"?server={server}"
     headers = {"X-API-Key": AUTH_CODE}
 
     try:

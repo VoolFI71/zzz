@@ -1,17 +1,6 @@
 version: '3.8'
 
 services:
-  # nginx:
-  #   image: nginx:1.25-alpine
-  #   restart: always
-  #   ports:
-  #     - "443:443"                # наружу – только 443
-  #   volumes:
-  #     - ./deploy/nginx.conf:/etc/nginx/nginx.conf:ro
-  #     - ./certs:/etc/nginx/certs:ro
-  #   depends_on: [fastapi]
-  #   networks: [web, internal]
-    
   telegram-bot:
     build:
       context: ./bot
@@ -24,8 +13,6 @@ services:
 
   fastapi:
     build: ./main
-    # expose: ["8080"]             # НЕ ports
-    # networks: [internal]
     restart: always
     ports:
       - "8080:8080"

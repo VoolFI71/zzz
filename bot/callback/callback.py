@@ -11,6 +11,7 @@ import uuid
 import logging
 logger = logging.getLogger(__name__)
 from states import Form
+from keyboards import keyboard
 from keyboards.keyboard import create_keyboard
 from utils import check_available_configs
 
@@ -22,6 +23,22 @@ AUTH_CODE = os.getenv("AUTH_CODE")
 async def process_callback_query(callback_query: CallbackQuery, state: FSMContext, bot: Bot) -> None:
     logger.info(f"Callback query received: {callback_query.data}")
     tg_id = callback_query.from_user.id     
+
+    if callback_query.data in ["server_fi", "server_nl"]:
+        if callback_query.data == "server_nl":
+            # Нидерланды пока недоступны
+            await callback_query.answer("Ещё в разработке", show_alert=True)
+            await state.update_data(server="nl")
+            return
+        elif callback_query.data == "server_fi":
+            # Сохраняем выбор сервера в состоянии
+            await state.update_data(server="fi")
+            # Показываем выбор тарифов
+            await callback_query.message.edit_text(
+                text="Выберите тариф:",
+                reply_markup=keyboard.create_tariff_keyboard()
+            )
+            return
 
     if callback_query.data == "back":
         await bot.delete_message(chat_id=tg_id, message_id=callback_query.message.message_id)
@@ -39,11 +56,14 @@ async def process_callback_query(callback_query: CallbackQuery, state: FSMContex
     else:
         # Проверяем наличие свободных конфигов только если у пользователя есть email
         if callback_query.data in ["buy_1", "buy_2"]:
-            configs_available = await check_available_configs()
+            # узнаём выбранный сервер из FSM, если нет — None
+            user_data = await state.get_data()
+            server = user_data.get("server")
+            configs_available = await check_available_configs(server)
             if not configs_available:
                 await bot.send_message(
                     tg_id, 
-                    "К сожалению, в данный момент нет свободных конфигураций. Попробуйте позже или обратитесь в поддержку."
+                    "К сожалению, в данный момент нет свободных конфигураций для выбранного сервера. Попробуйте позже или обратитесь в поддержку."
                 )
                 return
         confirmation_url = ""

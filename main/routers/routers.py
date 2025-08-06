@@ -68,7 +68,7 @@ async def create_config(client_data: models.CreateData, x_api_key: str = Header(
 
         response = requests.post(urlcreate, json=payload, headers=headers)
         if response.status_code == 200:
-            await db.insert_into_db(tg_id=None, user_code=uid, time_end=0)
+            await db.insert_into_db(tg_id=None, user_code=uid, time_end=0, server_country=client_data.server)
             created_ids.append(uid)
             logger.info("Config %s created", uid)
         else:
@@ -82,7 +82,7 @@ async def give_config(client_data: models.ClientData, x_api_key: str = Header(..
     if x_api_key != AUTH_CODE:
         raise HTTPException(status_code=403, detail="Нет доступа")
         
-    uid = await db.get_one_expired_client()
+    uid = await db.get_one_expired_client(client_data.server)
     if uid:
         uid = uid[1]
     else:
@@ -110,7 +110,7 @@ async def give_config(client_data: models.ClientData, x_api_key: str = Header(..
 
     response = requests.post(urlupdate+str(uid), json=data, headers=headers)
     if response.status_code == 200:
-        await db.update_user_code(tg_id=client_data.id, user_code=uid, time_end=exptime)
+        await db.update_user_code(tg_id=client_data.id, user_code=uid, time_end=exptime, server_country=client_data.server)
         logger.info("Config %s activated for tg_id %s", uid, client_data.id)
         return str(uid)
     else:
@@ -171,7 +171,7 @@ async def delete_config(data: models.DeleteConfig, x_api_key: str = Header(...))
     if x_api_key != AUTH_CODE:
         raise HTTPException(status_code=403, detail="Нет доступа")
 
-    uid = data.id
+    uid = data.uid
 
     # Проверяем, есть ли такой конфиг в БД
     if await db.get_time_end_by_code(uid) is None:
@@ -192,18 +192,23 @@ async def delete_config(data: models.DeleteConfig, x_api_key: str = Header(...))
     logger.info("Config %s deleted", uid)
     return "Конфиг успешно удалён"
 
+from fastapi import Query
+
 @router.get("/check-available-configs")
-async def check_available_configs(x_api_key: str = Header(...)):
+async def check_available_configs(server: str | None = Query(default=None, description="Код страны сервера"),
+                                  x_api_key: str = Header(...)):
+    """Возвращает наличие свободных конфигов.
+    Если передан `server`, ищем только среди данной страны, иначе среди всех.
+    """
     if x_api_key != AUTH_CODE:
         raise HTTPException(status_code=403, detail="Нет доступа")
-    
-    # Проверяем наличие свободных конфигов
-    available_config = await db.get_one_expired_client()
-    
-    if available_config:
-        return JSONResponse(content={"available": True, "message": "Свободные конфиги доступны"})
-    else:
-        return JSONResponse(content={"available": False, "message": "Свободных конфигов в данный момент нет"})
+
+    available_config = await db.get_one_expired_client(server)
+
+    return JSONResponse(content={
+        "available": bool(available_config),
+        "message": "Свободные конфиги доступны" if available_config else "Свободных конфигов в данный момент нет"
+    })
 
 @router.get("/usercodes/{tg_id}")
 async def read_user(tg_id: int, x_api_key: str = Header(...)):
@@ -214,7 +219,7 @@ async def read_user(tg_id: int, x_api_key: str = Header(...)):
     if not users:
         raise HTTPException(status_code=404, detail="У вас нет актвных конфигураций")
     
-    result = [{"user_code": user[0], "time_end": user[1]} for user in users]
+    result = [{"user_code": user[0], "time_end": user[1], "server": user[2]} for user in users]
     return JSONResponse(content=result)
 
 @router.get("/subscription/{tg_id}")
@@ -235,8 +240,8 @@ async def get_subscription(tg_id: int):
     # Фильтруем только активные конфиги
     current_time = int(time.time())
     active_configs = []
-    
-    for user_code, time_end in users:
+
+    for user_code, time_end, server in users:
         if time_end > current_time:  # Конфиг еще активен
             vless_config = (
                 f"vless://{user_code}@77.110.108.194:443?"

@@ -48,7 +48,8 @@ async def handle_email_input(message: Message, state: FSMContext) -> None:
 
 async def main():
     await db.init_db()
-    await dp.start_polling(bot)
+    # Variant B: сбрасываем накопившиеся апдейты при старте
+    await dp.start_polling(bot, skip_updates=True)
 
 if __name__ == "__main__":
     asyncio.run(main())

@@ -5,4 +5,5 @@ router = Router()
 
 @router.message(F.text == "Выбрать тариф")
 async def choose_tariff(message: types.Message):
-    await message.answer("Выберите тариф:", reply_markup=keyboard.create_tariff_keyboard())
+    # Сначала предлагаем выбрать сервер
+    await message.answer("Выберите сервер:", reply_markup=keyboard.create_server_keyboard())
