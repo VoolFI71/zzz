@@ -11,7 +11,7 @@ async def guide_command(message: types.Message):
 @router.message(F.text == "Установка на Телефон")
 async def tel_guide_command(message: types.Message):
     await message.answer(
-        "Установка подключения на [Android](https://play.google.com/store/apps/details?id=com.v2raytun.android) и [iOS](https://apps.apple.com/ru/app/v2raytun/id6476628951) идентична. Чтобы подключиться к серверу необходимо установить приложение v2RayTun. Скопировать конфиг подключения из личного кабинета в боте. Вставить конфиг из буфера обмена в установленном приложении и подключиться.",
+        "Установка подключения на [Android](https://play.google.com/store/apps/details?id=com.v2raytun.android) и [iOS](https://apps.apple.com/ru/app/v2raytun/id6476628951) идентична. Чтобы подключиться к серверу необходимо установить приложение v2RayTun. Нажать на кнопку на сайте или скопировать конфиг подключения из личного кабинета и вставить вручную.",
         reply_markup=keyboard.create_keyboard(),
         parse_mode='Markdown',
         disable_web_page_preview=True

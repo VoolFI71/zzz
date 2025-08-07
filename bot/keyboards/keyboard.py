@@ -19,8 +19,8 @@ def create_server_keyboard():
 
 def create_tariff_keyboard():
     kb_list = [
-        [InlineKeyboardButton(text="Купить на 1 месяц - 99 Рублей💰", callback_data="buy_1")],
-        [InlineKeyboardButton(text="Купить на 3 месяца - 199 Рублей💰", callback_data="buy_2")],
+        [InlineKeyboardButton(text="Купить на 1 месяц — 99 ⭐", callback_data="buy_1")],
+        [InlineKeyboardButton(text="Купить на 3 месяца — 249 ⭐", callback_data="buy_2")],
         [InlineKeyboardButton(text="Назад", callback_data="back")]
 
     ]

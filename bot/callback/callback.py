@@ -1,149 +1,175 @@
-from payment import payment as pay
-from database import db
-from yookassa import Configuration, Payment
-from aiogram import Router, F
-from aiogram.types import InlineKeyboardMarkup, ReplyKeyboardMarkup, InlineKeyboardButton, KeyboardButton, LabeledPrice, PreCheckoutQuery, Message, CallbackQuery
-from aiogram.fsm.context import FSMContext
-from aiogram import Bot, Dispatcher, types
-import aiohttp
-import os
-import uuid
+"""Callback-обработчики покупок с помощью Telegram Stars.
+
+В этой версии убраны зависимости от YooKassa. Бот принимает оплату
+встроенными "звёздами" Telegram и получает событие `successful_payment`
+сразу после подтверждения.
+"""
+
+from __future__ import annotations
+
 import logging
-logger = logging.getLogger(__name__)
-from states import Form
+import os
+import aiohttp
+from aiogram import Bot, F, Router
+from aiogram.fsm.context import FSMContext
+from aiogram.types import (
+    CallbackQuery,
+    LabeledPrice,
+    Message,
+    PreCheckoutQuery,
+)
+
+from database import db  # локальный модуль
 from keyboards import keyboard
 from keyboards.keyboard import create_keyboard
 from utils import check_available_configs
 
+logger = logging.getLogger(__name__)
+
 callback_router = Router()
 
-AUTH_CODE = os.getenv("AUTH_CODE")
+# ---------------------------------------------------------------------------
+# Inline-callback для выбора тарифа и создания счёта Stars
+# ---------------------------------------------------------------------------
 
 @callback_router.callback_query()
-async def process_callback_query(callback_query: CallbackQuery, state: FSMContext, bot: Bot) -> None:
-    logger.info(f"Callback query received: {callback_query.data}")
-    tg_id = callback_query.from_user.id     
+async def process_callback_query(
+    callback_query: CallbackQuery,
+    state: FSMContext,
+    bot: Bot,
+) -> None:  # noqa: D401 – коллбек-функция
+    tg_id = callback_query.from_user.id
 
+    # Покупка тарифов (2 или 3 звезды)
+    if callback_query.data in {"buy_1", "buy_2"}:
+        # Проверка email больше не требуется
+
+        # Проверяем свободные конфиги
+        user_data = await state.get_data()
+        server = user_data.get("server")
+        if not await check_available_configs(server):
+            await bot.send_message(tg_id, "Свободных конфигов для данного сервера нет. Попробуйте выбрать другой сервер.")
+            return
+        provider_token = ""
+        # provider_token = os.getenv("STARS_TOKEN")
+        # if not provider_token:
+        #     await callback_query.answer("Платёж недоступен: STARS_TOKEN не настроен", show_alert=True)
+        #     return
+
+        if callback_query.data == "buy_1":
+            await bot.send_invoice(
+                chat_id=tg_id,
+                title="Подписка на 1 месяц",
+                description="Доступ к сервису на 1 месяц",
+                payload="sub_1m",
+                provider_token=provider_token,
+                currency="XTR",
+                prices=[LabeledPrice(label="XTR", amount=1)],
+                max_tip_amount=0,
+            )
+        else:  # buy_2
+            await bot.send_invoice(
+                chat_id=tg_id,
+                title="Подписка на 3 месяца",
+                description="Доступ к сервису на 3 месяца",
+                payload="sub_3m",
+                provider_token=provider_token,
+                currency="XTR",
+                prices=[LabeledPrice(label="XTR", amount=1)],
+                max_tip_amount=0,
+            )
+        await callback_query.answer("Создаём счёт для оплаты...")
+        return
+
+    # Обработка выбора сервера
     if callback_query.data in ["server_fi", "server_nl"]:
         if callback_query.data == "server_nl":
-            # Нидерланды пока недоступны
             await callback_query.answer("Ещё в разработке", show_alert=True)
             await state.update_data(server="nl")
             return
         elif callback_query.data == "server_fi":
-            # Сохраняем выбор сервера в состоянии
             await state.update_data(server="fi")
-            # Показываем выбор тарифов
             await callback_query.message.edit_text(
                 text="Выберите тариф:",
                 reply_markup=keyboard.create_tariff_keyboard()
             )
             return
 
+    # Обработка кнопки "Назад"
     if callback_query.data == "back":
-        await bot.delete_message(chat_id=tg_id, message_id=callback_query.message.message_id)
-        await bot.send_message(
-            chat_id=callback_query.from_user.id,
-            text="Выберите опцию:",
-            reply_markup=create_keyboard()  
-        )
-        return 
+        current_text = (callback_query.message.text or "").lower()
+        
+        if "тариф" in current_text:
+            # На экране тарифов → вернуться к выбору страны
+            await callback_query.message.edit_text(
+                text="Выберите страну:",
+                reply_markup=keyboard.create_server_keyboard(),
+            )
+        elif "страну" in current_text or "страна" in current_text:
+            # На экране выбора страны → главное меню
+            await bot.delete_message(chat_id=tg_id, message_id=callback_query.message.message_id)
+            await bot.send_message(
+                chat_id=tg_id,
+                text="Выберите опцию:",
+                reply_markup=create_keyboard(),
+            )
+        else:
+            # Для всех остальных случаев – главное меню
+            await bot.delete_message(chat_id=tg_id, message_id=callback_query.message.message_id)
+            await bot.send_message(
+                chat_id=tg_id,
+                text="Выберите опцию:",
+                reply_markup=create_keyboard(),
+            )
+        return
 
-    email = await db.get_email(tg_id)
-    if email is None:
-        await bot.send_message(tg_id, "Пожалуйста, введите корректный email для отправки чеков на почту:")
-        await state.set_state(Form.waiting_for_email)
+
+# ---------------------------------------------------------------------------
+# Telegram Stars: подтверждение и успешная оплата
+# ---------------------------------------------------------------------------
+
+@callback_router.pre_checkout_query(lambda _: True)
+async def pre_checkout_query_handler(
+    pre_checkout_query: PreCheckoutQuery,
+    bot: Bot,
+) -> None:
+    """Отвечаем Telegram, что предварительная проверка прошла успешно."""
+    await bot.answer_pre_checkout_query(pre_checkout_query.id, ok=True)
+
+
+@callback_router.message(F.successful_payment)
+async def successful_payment_handler(message: Message, bot: Bot, state: FSMContext) -> None:
+    """Обрабатываем успешную оплату и выдаём конфиг пользователю."""
+    tg_id = message.from_user.id
+    payload = message.successful_payment.invoice_payload
+
+    days: int
+    if payload == "sub_1m":
+        days = 31
+    elif payload == "sub_3m":
+        days = 93
     else:
-        # Проверяем наличие свободных конфигов только если у пользователя есть email
-        if callback_query.data in ["buy_1", "buy_2"]:
-            # узнаём выбранный сервер из FSM, если нет — None
-            user_data = await state.get_data()
-            server = user_data.get("server")
-            configs_available = await check_available_configs(server)
-            if not configs_available:
-                await bot.send_message(
-                    tg_id, 
-                    "К сожалению, в данный момент нет свободных конфигураций для выбранного сервера. Попробуйте позже или обратитесь в поддержку."
-                )
-                return
-        confirmation_url = ""
-        confirmation_id = ""
+        await bot.send_message(tg_id, "Неизвестный тип подписки. Сообщите поддержке.")
+        return
 
-        uid = uuid.uuid4()
-        if callback_query.data == "buy_1":
-            description = "1m"
-            payment_resp = Payment.create({
-                "amount": {
-                    "value": 99,
-                    "currency": "RUB"
-                },
-                "confirmation": {
-                    "type": "redirect",
-                    "return_url": "https://t.me/godnet_vpnbot"
-                },
-                "capture": True,
-                "description": description,
-                "receipt": {
-                    "customer": {
-                        "email": email
-                    },
-                    "items": [
-                        {
-                            "description": "Подписка на 1 месяц",
-                            "quantity": 1,
-                            "amount": {
-                                "value": "99.00",
-                                "currency": "RUB"
-                            },
-                            "vat_code": 1
-                        }
-                    ]
-                }
-            }, uid)
+    # Вытаскиваем выбранный сервер из FSM (если пользователь выбирал)
+    user_data = await state.get_data()
+    server = user_data.get("server") or "fi"
 
-            confirmation_url = payment_resp.confirmation.confirmation_url
-            confirmation_id = payment_resp.id
+    data = {"time": days, "id": str(tg_id), "server": server}
+    AUTH_CODE = os.getenv("AUTH_CODE")
+    urlupdate = "http://fastapi:8080/giveconfig"
 
-        elif callback_query.data == "buy_2":
-            description = "3m"
-            payment_resp = Payment.create({
-                "amount": {
-                    "value": 199,
-                    "currency": "RUB"
-                },
-                "confirmation": {
-                    "type": "redirect",
-                    "return_url": "https://t.me/godnet_vpnbot"
-                },
-                "capture": True,
-                "description": description,
-                "receipt": {
-                    "customer": {
-                        "email": email
-                    },
-                    "items": [
-                        {
-                            "description": "Подписка на 3 месяца",
-                            "quantity": 1,
-                            "amount": {
-                                "value": "199.00",
-                                "currency": "RUB"
-                            },
-                            "vat_code": 1
-                        }
-                    ]
-                }
-            }, uid)
-
-            confirmation_url = payment_resp.confirmation.confirmation_url
-            confirmation_id = payment_resp.id
-
-        reply_markup = types.InlineKeyboardMarkup(
-            inline_keyboard=[
-                [types.InlineKeyboardButton(text="Перейти к оплате", url=confirmation_url)]
-            ]
-        )
-
-        message = await callback_query.message.edit_text(text=f"{"Заказ на оплату успешно создан"}\n", reply_markup=reply_markup)
-
-        await pay.check_payment_status(confirmation_id, bot, callback_query.from_user.id, description, message.message_id)
+    from utils import get_session
+    session = await get_session()
+    try:
+        async with session.post(urlupdate, json=data, headers={"X-API-Key": AUTH_CODE}) as resp:
+                if resp.status == 200:
+                    await bot.send_message(tg_id, "Подписка активирована! Конфиг доступен в личном кабинете.")
+                elif resp.status == 409:
+                    await bot.send_message(tg_id, "Свободных конфигов нет. Свяжитесь с поддержкой.")
+                else:
+                    await bot.send_message(tg_id, f"Ошибка сервера ({resp.status}). Попробуйте позже.")
+    except Exception as exc:  # noqa: BLE001
+        logger.error("Ошибка обращения к FastAPI: %s", exc)
+        await bot.send_message(tg_id, "Ошибка сети. Попробуйте позже или напишите в поддержку.")

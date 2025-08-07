@@ -5,40 +5,46 @@ import asyncio
 async def init_db():
     async with aiosqlite.connect("users.db") as conn:
         cursor = await conn.cursor()
-        await cursor.execute('''
-            CREATE TABLE IF NOT EXISTS users (
-                tg_id TEXT UNIQUE,
-                email TEXT,
-                referral_code TEXT UNIQUE,
-                referred_by TEXT
-            )
-        ''')
-        await conn.commit()
-        await cursor.close()  # Закрываем курсор
-
-async def get_email(tg_id):
-    """Получить email пользователя по его tg_id из базы данных."""
-    async with aiosqlite.connect("users.db") as conn:
-        async with conn.execute('SELECT email FROM users WHERE tg_id = ?', (tg_id,)) as cursor:
-            result = await cursor.fetchone()
-            return result[0] if result else None
-
-async def insert_email(tg_id, email):
-    """Сохранить email пользователя в базе данных."""
-    try:
-        async with aiosqlite.connect("users.db") as conn:
-            cursor = await conn.cursor()  # Создаем курсор
-            await cursor.execute("SELECT * FROM users WHERE tg_id=?", (tg_id,))
-            user_data = await cursor.fetchone()
-            if user_data:
-                await cursor.execute("UPDATE users SET email=? WHERE tg_id=?", (email, tg_id))
-            else:
-                await cursor.execute("INSERT INTO users (tg_id, email) VALUES (?, ?)", (tg_id, email))
+        # Если таблица ещё не создана – создаём без поля email
+        await cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
+        exists = await cursor.fetchone()
+        if not exists:
+            await cursor.execute('''
+                CREATE TABLE users (
+                    tg_id TEXT UNIQUE,
+                    referral_code TEXT UNIQUE,
+                    referred_by TEXT,
+                    referral_count INTEGER DEFAULT 0
+                )
+            ''')
             await conn.commit()
-    except aiosqlite.IntegrityError:
-        print(f"Ошибка: tg_id '{tg_id}' уже существует.")
-    except aiosqlite.Error as e:
-        print(f"Ошибка при вставке данных: {e}")
+        else:
+            # Миграция: убрать колонку email, если она есть
+            await cursor.execute("PRAGMA table_info(users)")
+            columns = [row[1] for row in await cursor.fetchall()]
+            if 'email' in columns:
+                await cursor.execute('''
+                    CREATE TABLE IF NOT EXISTS users_new (
+                        tg_id TEXT UNIQUE,
+                        referral_code TEXT UNIQUE,
+                        referred_by TEXT,
+                        referral_count INTEGER DEFAULT 0
+                    )
+                ''')
+                await cursor.execute(
+                    'INSERT OR IGNORE INTO users_new (tg_id, referral_code, referred_by, referral_count) '
+                    'SELECT tg_id, referral_code, referred_by, COALESCE(referral_count, 0) FROM users'
+                )
+                await conn.commit()
+                await cursor.execute('DROP TABLE users')
+                await cursor.execute('ALTER TABLE users_new RENAME TO users')
+                await conn.commit()
+            elif 'referral_count' not in columns:
+                await cursor.execute('ALTER TABLE users ADD COLUMN referral_count INTEGER DEFAULT 0')
+                await conn.commit()
+        await cursor.close()
+
+# email больше не хранится/не используется
 
 user_locks = {}
 async def get_referral_code(tg_id):
@@ -98,24 +104,51 @@ async def is_first_time_user(user_id):
             # Возвращаем true, если поля referred_by нет или оно пустое
             return referred_by_result is None or referred_by_result[0] is None
 
-async def add_referral_by(user_id, referral_code):
+async def get_referral_count(tg_id: str) -> int | None:
+    """Возвращает количество приглашённых пользователем или None, если записи нет."""
     async with aiosqlite.connect("users.db") as conn:
         async with conn.cursor() as cursor:
-            # Проверяем, существует ли пользователь с таким tg_id
-            await cursor.execute("SELECT tg_id FROM users WHERE tg_id = ?", (str(user_id),))
-            result = await cursor.fetchone()
+            await cursor.execute("SELECT referral_count FROM users WHERE tg_id = ?", (str(tg_id),))
+            row = await cursor.fetchone()
+            return row[0] if row else None
 
-            if result is None:
-                # Если пользователя нет, вставляем новую запись
+async def add_referral_by(user_id, referral_code, max_invites: int = 7) -> bool:
+    """Добавляет связь реферала и увеличивает счётчик, если лимит не достигнут.
+
+    Возвращает True, если бонус следует начислить (счётчик < max_invites),
+    False – если лимит был исчерпан и счётчик не изменён."""
+    async with aiosqlite.connect("users.db") as conn:
+        async with conn.cursor() as cursor:
+            # 1. Создаём запись пользователя (если её нет) и выставляем referred_by
+            await cursor.execute("SELECT tg_id FROM users WHERE tg_id = ?", (str(user_id),))
+            if await cursor.fetchone() is None:
                 await cursor.execute("INSERT INTO users (tg_id) VALUES (?)", (str(user_id),))
 
-            # Теперь ставим поле referred_by
             await cursor.execute(
                 "UPDATE users SET referred_by = ? WHERE tg_id = ?",
                 (str(referral_code), str(user_id))
             )
-            await conn.commit()
 
+            # 2. Проверяем текущий счётчик у пригласившего
+            await cursor.execute(
+                "SELECT referral_count FROM users WHERE referral_code = ?",
+                (str(referral_code),)
+            )
+            row = await cursor.fetchone()
+            current_count = row[0] if row and row[0] is not None else 0
+
+            if current_count >= max_invites:
+                # Лимит достигнут – просто фиксируем referral, но без бонуса
+                await conn.commit()
+                return False
+
+            # 3. Увеличиваем счётчик
+            await cursor.execute(
+                "UPDATE users SET referral_count = ? WHERE referral_code = ?",
+                (current_count + 1, str(referral_code))
+            )
+            await conn.commit()
+            return True
 
 async def get_tg_id_by_referral_code(referral_code):
     async with aiosqlite.connect("users.db") as conn:

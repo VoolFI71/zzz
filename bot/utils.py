@@ -2,6 +2,16 @@ import os
 import aiohttp
 import logging
 
+_session: aiohttp.ClientSession | None = None
+
+async def get_session() -> aiohttp.ClientSession:
+    global _session
+    if _session is None or _session.closed:
+        timeout = aiohttp.ClientTimeout(total=15)
+        connector = aiohttp.TCPConnector(limit=100, ssl=False)
+        _session = aiohttp.ClientSession(timeout=timeout, connector=connector)
+    return _session
+
 AUTH_CODE = os.getenv("AUTH_CODE")
 
 logger = logging.getLogger(__name__)
@@ -14,12 +24,12 @@ async def check_available_configs(server: str | None = None) -> bool:
     headers = {"X-API-Key": AUTH_CODE}
 
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, headers=headers) as response:
-                if response.status == 200:
-                    data = await response.json()
-                    return data.get("available", False)
-                logger.warning("Unexpected status %s while checking configs", response.status)
+        session = await get_session()
+        async with session.get(url, headers=headers) as response:
+            if response.status == 200:
+                data = await response.json()
+                return data.get("available", False)
+            logger.warning("Unexpected status %s while checking configs", response.status)
     except Exception as exc:
         logger.error("Failed to check available configs: %s", exc)
 

@@ -5,3 +5,5 @@ main/.env
 main/users.db
 
 backups
+
+docs

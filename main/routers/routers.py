@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import json
 import logging
 import os
@@ -21,6 +22,7 @@ from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
 from fastapi.templating import Jinja2Templates
 
 from database import db
+from fastapi import FastAPI
 from models import models
 
 logger = logging.getLogger(__name__)
@@ -30,27 +32,41 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 AUTH_CODE: str | None = os.getenv("AUTH_CODE")
-COOKIE: str | None = os.getenv("COOKIE")
 
 if AUTH_CODE is None:
     logger.warning("ENV AUTH_CODE is not set – all requests will be rejected")
 
-if COOKIE is None:
-    logger.warning("ENV COOKIE is not set – requests to panel may fail")
+def _get_cookie(server_code: str) -> str:
+    """Возвращает cookie для панели конкретного сервера.
+
+    Ищет переменную окружения вида ``COOKIE_fi`` (регистр не важен).
+    Если не найдено – вернёт пустую строку.
+    """
+    return os.getenv(f"COOKIE_{server_code.lower()}", "")
+
+# Значения PBK/SID читаем из .env, чтобы не хранить в коде
+def _env_any(*keys: str, default: str = "") -> str:
+    for key in keys:
+        value = os.getenv(key)
+        if value:
+            return value
+    return default
 
 COUNTRY_SETTINGS: dict[str, dict[str, str]] = {
     "fi": {
-        "urlcreate": "http://77.110.108.194:5580/hj0pGaxiL1U2cNG7bo/panel/inbound/addClient",
-        "urlupdate": "http://77.110.108.194:5580/hj0pGaxiL1U2cNG7bo/panel/inbound/updateClient/",
-        "urldelete": "http://77.110.108.194:5580/hj0pGaxiL1U2cNG7bo/panel/inbound/1/delClient/",
+        "urlcreate": _env_any("URLCREATE_FI", "urlcreate_fi", default=""),
+        "urlupdate": _env_any("URLUPDATE_FI", "urlupdate_fi", default=""),
+        "urldelete": _env_any("URLDELETE_FI", "urldelete_fi", default=""),
+        # Параметры для генерации VLESS
+        "host": _env_any("HOST_FI", "host_fi", default=""),
+        "pbk": _env_any("PBK_FI", "pbk_fi", default=""),
+        "sni": "google.com",
+        "sid": _env_any("SID_FI", "sid_fi", default=""),
     },
-    # "nl": {...}  # добавьте другие страны при необходимости
+    # "nl": {...}
 }
 
-DEFAULT_HEADERS = {
-    "Content-Type": "application/json",
-    "Cookie": COOKIE or "",
-}
+
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -98,18 +114,34 @@ def build_payload(uid: str, enable: bool, expiry_time: int = 0) -> Dict[str, Any
     }
 
 
-async def panel_request(url: str, payload: Dict[str, Any] | None = None) -> httpx.Response:
+async def panel_request(request: Request, url: str, server_code: str, payload: Dict[str, Any] | None = None) -> httpx.Response:
     """Помощник для запросов к панели."""
-    async with httpx.AsyncClient(timeout=15) as client:
+    headers = {
+        "Content-Type": "application/json",
+        "Cookie": _get_cookie(server_code),
+    }
+    # Берём общий клиент из app.state
+    async def _do_request(client: httpx.AsyncClient) -> httpx.Response:
+        if payload is None:
+            return await client.post(url, headers=headers)
+        return await client.post(url, json=payload, headers=headers)
+
+    # Ретраи на сетевые ошибки
+    last_exc: Exception | None = None
+    for attempt in range(3):
         try:
-            if payload is None:
-                response = await client.post(url, headers=DEFAULT_HEADERS)
-            else:
-                response = await client.post(url, json=payload, headers=DEFAULT_HEADERS)
-            return response
+            # Получаем клиента из request.app.state
+            http_client = getattr(request.app.state, "http_client", None)
+            if http_client is not None:
+                return await _do_request(http_client)
+            # Fallback: локальный клиент (не должно часто срабатывать)
+            async with httpx.AsyncClient(timeout=15) as tmp_client:
+                return await _do_request(tmp_client)
         except httpx.RequestError as exc:
-            logger.error("HTTP request to %s failed: %s", url, exc)
-            raise HTTPException(status_code=502, detail="Ошибка обращения к панели") from exc
+            last_exc = exc
+            await asyncio.sleep(0.3 * (attempt + 1))
+    logger.error("HTTP request to %s failed after retries: %s", url, last_exc)
+    raise HTTPException(status_code=502, detail="Ошибка обращения к панели")
 
 
 # ---------------------------------------------------------------------------
@@ -119,6 +151,7 @@ async def panel_request(url: str, payload: Dict[str, Any] | None = None) -> http
 @router.post("/createconfig", response_model=List[str])
 async def create_config(
     client_data: models.CreateData,
+    request: Request,
     _: None = Depends(verify_api_key),
 ) -> List[str]:
     """Создаёт `client_data.count` новых конфигураций и сохраняет их в БД."""
@@ -130,7 +163,7 @@ async def create_config(
         payload = build_payload(uid, enable=False)
 
         url = COUNTRY_SETTINGS[client_data.server]["urlcreate"]
-        response = await panel_request(url, payload)
+        response = await panel_request(request, url, client_data.server, payload)
 
         if response.status_code == 200:
             await db.insert_into_db(
@@ -158,10 +191,12 @@ async def create_config(
 @router.post("/giveconfig", response_model=str)
 async def give_config(
     client_data: models.ClientData,
+    request: Request,
     _: None = Depends(verify_api_key),
 ) -> str:
     """Активирует свободную конфигурацию для пользователя."""
 
+    # Ищем свободный конфиг
     expired_client = await db.get_one_expired_client(client_data.server)
     if not expired_client:
         raise HTTPException(
@@ -175,7 +210,7 @@ async def give_config(
     payload = build_payload(uid, enable=True, expiry_time=expiry_unix)
 
     url = COUNTRY_SETTINGS[client_data.server]["urlupdate"] + uid
-    response = await panel_request(url, payload)
+    response = await panel_request(request, url, client_data.server, payload)
 
     if response.status_code == 200:
         await db.update_user_code(
@@ -184,7 +219,7 @@ async def give_config(
             time_end=expiry_unix,
             server_country=client_data.server,
         )
-        logger.info("Config %s activated for tg_id %s", uid, client_data.id)
+        logger.info("Config %s activated for tg_id %s on server %s", uid, client_data.id, client_data.server)
         return uid
     raise HTTPException(
         status_code=response.status_code,
@@ -195,6 +230,7 @@ async def give_config(
 @router.post("/extendconfig", response_model=str)
 async def extend_config(
     update_data: models.ExtendConfig,
+    request: Request,
     _: None = Depends(verify_api_key),
 ) -> str:
     """Продлевает срок действия конфига на `update_data.time` суток."""
@@ -212,7 +248,7 @@ async def extend_config(
     payload = build_payload(uid, enable=True, expiry_time=new_time_end)
 
     url = f"{COUNTRY_SETTINGS[update_data.server]['urlupdate']}{uid}"
-    response = await panel_request(url, payload)
+    response = await panel_request(request, url, update_data.server, payload)
 
     if response.status_code == 200:
         await db.set_time_end(uid, new_time_end)
@@ -227,6 +263,7 @@ async def extend_config(
 @router.delete("/deleteconfig", response_model=str)
 async def delete_config(
     data: models.DeleteConfig,
+    request: Request,
     _: None = Depends(verify_api_key),
 ) -> str:
     """Удаляет конфигурацию по её `uid`."""
@@ -237,7 +274,7 @@ async def delete_config(
         raise HTTPException(status_code=404, detail="Конфиг не найден или уже удалён")
 
     url = f"{COUNTRY_SETTINGS[data.server]['urldelete']}{uid}"
-    response = await panel_request(url)
+    response = await panel_request(request, url, data.server)
 
     if response.status_code != 200:
         logger.error(
@@ -264,7 +301,7 @@ async def delete_config(
 # ---------------------------------------------------------------------------
 
 @router.delete("/delete-all-configs", response_model=str)
-async def delete_all_configs(_: None = Depends(verify_api_key)) -> str:  # noqa: D401
+async def delete_all_configs(request: Request, _: None = Depends(verify_api_key)) -> str:  # noqa: D401
     """Удаляет все конфиги: сначала на панели, затем в БД."""
     rows = await db.get_all_user_codes()
     if not rows:
@@ -280,7 +317,7 @@ async def delete_all_configs(_: None = Depends(verify_api_key)) -> str:  # noqa:
             failed += 1
             continue
 
-        response = await panel_request(url)
+        response = await panel_request(request, url, server)
         if response.status_code == 200:
             # 2. Удаляем запись из БД
             await db.delete_user_code(uid)
@@ -305,6 +342,9 @@ async def check_available_configs(
 ):
     """Проверяет наличие свободных конфигов."""
 
+    # Сначала сбрасываем истёкшие конфиги
+    #await db.reset_expired_configs()
+    
     available_config = await db.get_one_expired_client(server)
     return JSONResponse(
         content={
@@ -317,9 +357,11 @@ async def check_available_configs(
         }
     )
 
-
 @router.get("/usercodes/{tg_id}")
 async def read_user(tg_id: int, _: None = Depends(verify_api_key)):
+    # Сначала сбрасываем истёкшие конфиги
+    #await db.reset_expired_configs()
+    
     users = await db.get_codes_by_tg_id(tg_id)
     if not users:
         raise HTTPException(status_code=404, detail="У вас нет активных конфигураций")
@@ -330,12 +372,14 @@ async def read_user(tg_id: int, _: None = Depends(verify_api_key)):
     ]
     return JSONResponse(content=result)
 
-
 @router.get("/subscription/{tg_id}")
 async def get_subscription(tg_id: int):
     """Возвращает подписку из активных конфигов для V2rayTun в plain-text."""
 
     logger.info("Subscription request for tg_id: %s", tg_id)
+
+    # Сначала сбрасываем истёкшие конфиги
+    #await db.reset_expired_configs()
 
     users = await db.get_codes_by_tg_id(tg_id)
     if not users:
@@ -346,13 +390,17 @@ async def get_subscription(tg_id: int):
 
     for user_code, time_end, server in users:
         if time_end > current_time:
+            settings = COUNTRY_SETTINGS.get(server)
+            if not settings:
+                # Если сервер неизвестен – пропускаем
+                logger.warning("Unknown server %s for user_code %s", server, user_code)
+                continue
             vless_config = (
-                "vless://{user_code}@77.110.108.194:443?"
-                "security=reality&encryption=none&pbk="
-                "bMhOMGZho4aXhfoxyu7D9ZjVnM-02bR9dKBfIMMTVlc&"
-                "headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&"
-                "sni=google.com&sid=094e39c18a0e44#godnetvpn"
-            ).format(user_code=user_code)
+                f"vless://{user_code}@{settings['host']}:443?"
+                f"security=reality&encryption=none&pbk={settings['pbk']}&"
+                f"headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&"
+                f"sni={settings['sni']}&sid={settings['sid']}#godnetvpn"
+            )
             active_configs.append(vless_config)
 
     if not active_configs:
@@ -365,7 +413,6 @@ async def get_subscription(tg_id: int):
         content=subscription_content,
         headers={"Content-Type": "text/plain; charset=utf-8"},
     )
-
 
 @router.get("/add-config", response_class=HTMLResponse)
 async def add_config_page(

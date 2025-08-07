@@ -2,20 +2,19 @@ from aiogram import Router, F, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from keyboards import keyboard
 import aiohttp
-import json
 import os
 import time
-import urllib.parse
 router = Router()
 
 AUTH_CODE = os.getenv("AUTH_CODE")
+PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "http://77.110.108.194:8080")
 
 countryies_settings = {
     "fi": {
-        "ip": "77.110.108.194:443",
-        "pbk": "bMhOMGZho4aXhfoxyu7D9ZjVnM-02bR9dKBfIMMTVlc",
+        "host": "77.110.108.194",
+        "pbk": "pX2kfQomg0q6W38ndY1cS-G-ohj2jkFBmQwsmOh2nTQ",
         "sni": "google.com",
-        "sid": "094e39c18a0e44",
+        "sid": "74d3d8efef7f8e27",
         "country": "Финляндия 🇫🇮"
     }
 }
@@ -27,8 +26,9 @@ async def my_account(message: types.Message):
     headers = {"X-API-Key": AUTH_CODE}
 
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(url, headers=headers) as response:
+        from utils import get_session
+        session = await get_session()
+        async with session.get(url, headers=headers) as response:
                 if response.status == 200:
                     response_data = await response.json()
                     if response_data:
@@ -40,17 +40,19 @@ async def my_account(message: types.Message):
                                 continue
     
                             # Создаем VLESS конфиг
+                            settings = countryies_settings[user['server']]
                             vless_config = (
-                                    f"vless://{user['user_code']}@{countryies_settings[user['server']]['ip']}:443?"
-                                "security=reality&encryption=none&pbk={countryies_settings[user['server']]['pbk']}&"
-                                f"headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&sni={countryies_settings[user['server']]['sni']}&sid={countryies_settings[user['server']]['sid']}#godnetvpn"
+                                f"vless://{user['user_code']}@{settings['host']}:443?"
+                                f"security=reality&encryption=none&pbk={settings['pbk']}&"
+                                f"headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&"
+                                f"sni={settings['sni']}&sid={settings['sid']}#godnetvpn"
                             )
                             
                             # Создаем URL для веб-страницы добавления конфига
                             import base64
                             encoded_config = base64.b64encode(vless_config.encode()).decode()
                             remaining_seconds = user['time_end'] - int(time.time())
-                            web_url = f"http://77.110.108.194:8080/add-config?config={encoded_config}&expiry={remaining_seconds}"
+                            web_url = f"{PUBLIC_BASE_URL}/add-config?config={encoded_config}&expiry={remaining_seconds}"
                             
                             # Создаем inline клавиатуру с кнопкой для V2rayTun
                             inline_kb = InlineKeyboardMarkup(inline_keyboard=[

@@ -18,6 +18,8 @@ router = Router()
 async def start_command(message: types.Message):
     args = message.text.split()
     user_id = message.from_user.id
+    bonus_message_needed = False
+    configs_available = True
     logger.info(f"/start received from {user_id} with args={args}")
     if len(args) > 1:
         referral_code = args[1]
@@ -34,11 +36,19 @@ async def start_command(message: types.Message):
 
         if is_new_user:
             # Добавляем связь между пользователями (реферралом и владельцем ссылки)
-            await db.add_referral_by(user_id, referral_code)
+            bonus_eligible = await db.add_referral_by(user_id, referral_code)
+            if bonus_eligible:
+                bonus_message_needed = True  # для сообщения пользователю
+                # Проверяем наличие свободных конфигов (любого сервера) перед выдачей бонуса
+                configs_available = False
+                preferred_servers = ["fi", "nl"]
+                selected_server = None
+                for server_code in preferred_servers:
+                    if await check_available_configs(server_code):
+                        configs_available = True
+                        selected_server = server_code
+                        break
 
-            # Проверяем наличие свободных конфигов перед выдачей бонуса
-            configs_available = await check_available_configs()
-            
             try:
                 if configs_available:
                     # Отправляем уведомление владельцу реферального кода
@@ -49,21 +59,23 @@ async def start_command(message: types.Message):
 
                     data = {
                         "id": str(owner_tg_id),
-                        "time": 3
+                        "time": 3,
+                        "server": selected_server,
                     }
 
-                    async with aiohttp.ClientSession() as session:
-                        try:
-                            async with session.post(urlupdate, json=data, headers={"X-API-Key": AUTH_CODE}) as response:
-                                if response.status == 200:
-                                    await message.bot.send_message(int(owner_tg_id), "Конфиг для подключения можно найти в личном кабинете.")
-                        except Exception:
-                            pass  # сетевой сбой – молча игнорируем
+                    from utils import get_session
+                    session = await get_session()
+                    try:
+                        async with session.post(urlupdate, json=data, headers={"X-API-Key": AUTH_CODE}) as response:
+                            if response.status == 200:
+                                await message.bot.send_message(int(owner_tg_id), "Конфиг для подключения можно найти в личном кабинете.")
+                    except Exception:
+                        pass  # сетевой сбой – молча игнорируем
                 else:
                     # Свободных конфигов нет, но реферальная ссылка засчитана
                     await message.bot.send_message(
                         int(owner_tg_id),
-                        "По вашей реферальной ссылке зарегистрировался новый пользователь! К сожалению, в данный момент нет свободных конфигураций. Бонус будет начислен, как только появятся свободные конфиги."
+                        "По вашей реферальной ссылке зарегистрировался новый пользователь! К сожалению, в данный момент нет свободных конфигураций. При желании напишите в поддержку"
                     )
             except Exception:
                 pass  # Любая неожиданная ошибка – не прерываем flow

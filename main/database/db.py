@@ -63,6 +63,25 @@ async def get_one_expired_client(server_country: str | None = None):
     
     return expired_client
 
+
+async def reset_expired_configs():
+    """
+    Сбрасывает tg_id в пустую строку для всех конфигов, у которых истёк срок действия.
+    Возвращает количество обновлённых записей.
+    """
+    async with aiosqlite.connect("users.db") as conn:
+        async with conn.cursor() as cursor:
+            current_time = int(time.time())
+            
+            await cursor.execute('''
+                UPDATE users 
+                SET tg_id = '' 
+                WHERE time_end > 0 AND time_end < ?
+            ''', (current_time,))
+            
+            await conn.commit()
+            return cursor.rowcount
+
 async def update_user_code(tg_id: str, user_code: str, time_end: int, server_country: str):
     async with aiosqlite.connect("users.db") as conn:
         async with conn.cursor() as cursor:
