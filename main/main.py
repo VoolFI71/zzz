@@ -1,30 +1,24 @@
-from fastapi import FastAPI, HTTPException, Request
-from pydantic import BaseModel
-import json
-import uuid
-import random
-import requests
-import time
-from fastapi.responses import JSONResponse
-import os
-import aiosqlite
-from routers import routers
-from database import db
+from fastapi import FastAPI
 import uvicorn
+
+from database import db  # noqa: WPS412
+from routers import routers
 
 app = FastAPI()
 app.include_router(routers.router)
 
-async def start_application():
-    await db.init_db()  # Инициализация базы данных при запуске приложения
 
 @app.on_event("startup")
-async def startup_event():
-    await start_application()  # Инициализация базы данных при старте приложения
+async def startup_event() -> None:
+    """Инициализируем БД при запуске приложения."""
+    await db.init_db()
+
 
 @app.get("/healthz", include_in_schema=False)
-async def healthz():
+async def healthz() -> dict[str, str]:
+    """Проверка работоспособности приложения для Docker."""
     return {"status": "ok"}
 
+
 if __name__ == "__main__":
-    uvicorn.run(app, host="0.0.0.0", port=8080)
+    uvicorn.run(app, host="0.0.0.0", port=8080, reload=True)

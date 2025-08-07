@@ -1,22 +1,39 @@
 from pydantic import BaseModel
 
+
 class CreateData(BaseModel):
     """Данные для создания конфигураций.
-    count — сколько новых конфигов создать (по умолчанию 1).
-    server: код страны сервера (fi, nl).
+
+    Attributes
+    ----------
+    count : int
+        Сколько новых конфигов создать (по умолчанию ``1``).
+    server : str
+        Код страны сервера (fi, nl, ...).
     """
+
     count: int = 1
     server: str
 
+
 class ExtendConfig(BaseModel):
-    time: int
+    """Данные для продления срока действия конфига."""
+
+    time: int  # количество суток, на которое нужно продлить
     uid: str  # id продлеваемого конфига
+    server: str  # код страны сервера
+
 
 class ClientData(BaseModel):
-    time: int
-    id: str
-    server: str
+    """Данные для активации (выдачи) конфигурации пользователю."""
+
+    time: int  # срок действия в днях
+    id: str  # telegram id пользователя
+    server: str  # код страны сервера
+
 
 class DeleteConfig(BaseModel):
-    uid: str  # id конфигурации для удаления
+    """Данные для удаления конфига."""
 
+    uid: str  # id конфигурации для удаления
+    server: str  # код страны сервера

@@ -35,6 +35,14 @@ async def get_codes_by_tg_id(tg_id):
     
     return rows
 
+async def get_all_user_codes() -> list[tuple[str, str]]:
+    """Возвращает все (user_code, server_country) из таблицы users."""
+    async with aiosqlite.connect("users.db") as conn:
+        async with conn.cursor() as cursor:
+            await cursor.execute('SELECT user_code, server_country FROM users')
+            rows = await cursor.fetchall()
+    return rows
+
 async def get_one_expired_client(server_country: str | None = None):
     async with aiosqlite.connect("users.db") as conn:
         async with conn.cursor() as cursor:
@@ -99,5 +107,13 @@ async def delete_user_code(user_code: str):
     async with aiosqlite.connect("users.db") as conn:
         async with conn.cursor() as cursor:
             await cursor.execute('DELETE FROM users WHERE user_code = ?', (user_code,))
+            await conn.commit()
+            return cursor.rowcount
+
+async def delete_all_user_codes() -> int:
+    """Удаляет все конфиги из таблицы `users`. Возвращает количество удалённых строк."""
+    async with aiosqlite.connect("users.db") as conn:
+        async with conn.cursor() as cursor:
+            await cursor.execute('DELETE FROM users')
             await conn.commit()
             return cursor.rowcount
