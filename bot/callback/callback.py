@@ -40,7 +40,7 @@ async def process_callback_query(
 ) -> None:  # noqa: D401 – коллбек-функция
     tg_id = callback_query.from_user.id
 
-    # Покупка тарифов (2 или 3 звезды)
+    # Покупка тарифов
     if callback_query.data in {"buy_1", "buy_2"}:
         # Проверка email больше не требуется
 
@@ -56,28 +56,39 @@ async def process_callback_query(
         #     await callback_query.answer("Платёж недоступен: STARS_TOKEN не настроен", show_alert=True)
         #     return
 
+        # Удаляем сообщение с кнопками тарифа, чтобы не оставалось лишнего UI
+        try:
+            await bot.delete_message(chat_id=tg_id, message_id=callback_query.message.message_id)
+        except Exception:
+            pass
+
+        # Создаём счёт и запоминаем id сообщения с инвойсом для последующего удаления
         if callback_query.data == "buy_1":
-            await bot.send_invoice(
+            invoice_msg = await bot.send_invoice(
                 chat_id=tg_id,
                 title="Подписка на 1 месяц",
                 description="Доступ к сервису на 1 месяц",
                 payload="sub_1m",
                 provider_token=provider_token,
                 currency="XTR",
-                prices=[LabeledPrice(label="XTR", amount=1)],
+                prices=[LabeledPrice(label="XTR", amount=99)],
                 max_tip_amount=0,
             )
         else:  # buy_2
-            await bot.send_invoice(
+            invoice_msg = await bot.send_invoice(
                 chat_id=tg_id,
                 title="Подписка на 3 месяца",
                 description="Доступ к сервису на 3 месяца",
                 payload="sub_3m",
                 provider_token=provider_token,
                 currency="XTR",
-                prices=[LabeledPrice(label="XTR", amount=1)],
+                prices=[LabeledPrice(label="XTR", amount=249)],
                 max_tip_amount=0,
             )
+        try:
+            await state.update_data(invoice_msg_id=invoice_msg.message_id)
+        except Exception:
+            pass
         await callback_query.answer("Создаём счёт для оплаты...")
         return
 
@@ -173,3 +184,13 @@ async def successful_payment_handler(message: Message, bot: Bot, state: FSMConte
     except Exception as exc:  # noqa: BLE001
         logger.error("Ошибка обращения к FastAPI: %s", exc)
         await bot.send_message(tg_id, "Ошибка сети. Попробуйте позже или напишите в поддержку.")
+
+    # Удаляем инвойс после успешной оплаты, если он есть в состоянии
+    try:
+        data_state = await state.get_data()
+        invoice_msg_id = data_state.get("invoice_msg_id")
+        if invoice_msg_id:
+            await bot.delete_message(chat_id=tg_id, message_id=invoice_msg_id)
+            await state.update_data(invoice_msg_id=None)
+    except Exception:
+        pass
