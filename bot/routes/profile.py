@@ -4,6 +4,7 @@ from keyboards import keyboard
 import aiohttp
 import os
 import time
+import urllib.parse
 router = Router()
 
 AUTH_CODE = os.getenv("AUTH_CODE")
@@ -45,18 +46,20 @@ async def my_account(message: types.Message):
                                 f"vless://{user['user_code']}@{settings['host']}:443?"
                                 f"security=reality&encryption=none&pbk={settings['pbk']}&"
                                 f"headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&"
-                                f"sni={settings['sni']}&sid={settings['sid']}#godnetvpn"
+                                f"sni={settings['sni']}&sid={settings['sid']}#glsvpn"
                             )
                             
-                            # Создаем URL для веб-страницы добавления конфига
+                            # Создаем URL для веб-страницы добавления конфига и прямого редиректа
                             import base64
                             encoded_config = base64.b64encode(vless_config.encode()).decode()
                             remaining_seconds = user['time_end'] - int(time.time())
                             web_url = f"{PUBLIC_BASE_URL}/add-config?config={encoded_config}&expiry={remaining_seconds}"
+                            redirect_url = f"{PUBLIC_BASE_URL}/redirect?config={urllib.parse.quote(vless_config, safe='')}"
                             
-                            # Создаем inline клавиатуру с кнопкой для V2rayTun
+                            # Создаем inline клавиатуру с двумя одинаковыми кнопками (вторая ведёт на /redirect)
                             inline_kb = InlineKeyboardMarkup(inline_keyboard=[
                                 [InlineKeyboardButton(text="📱 Добавить в V2rayTun", url=web_url)],
+                                [InlineKeyboardButton(text="📱 Добавить в V2rayTun", url=redirect_url)],
                                 [InlineKeyboardButton(text="📋 Копировать конфиг", callback_data=f"copy_config_{i}")]
                             ])
                             

@@ -1,4 +1,5 @@
 from fastapi import FastAPI
+from fastapi.staticfiles import StaticFiles
 import uvicorn
 import httpx
 import asyncio
@@ -36,6 +37,10 @@ async def startup_event() -> None:
     app.state.expire_task = None
     if enable_sweep:
         app.state.expire_task = asyncio.create_task(_expire_sweeper())
+
+    # Монтируем статику (CSS/JS/изображения)
+    static_dir = os.path.join(os.path.dirname(__file__), "static")
+    app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
 
 @app.get("/healthz", include_in_schema=False)

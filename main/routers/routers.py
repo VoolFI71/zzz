@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import base64
 import json
 import logging
 import os
@@ -18,7 +19,7 @@ from fastapi import (
     Query,
     Request,
 )
-from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse
 from fastapi.templating import Jinja2Templates
 
 from database import db
@@ -44,7 +45,7 @@ def _get_cookie(server_code: str) -> str:
     """
     return os.getenv(f"COOKIE_{server_code.lower()}", "")
 
-# Значения PBK/SID читаем из .env, чтобы не хранить в коде
+# Значения читаем из .env, чтобы не хранить в коде
 def _env_any(*keys: str, default: str = "") -> str:
     for key in keys:
         value = os.getenv(key)
@@ -194,37 +195,68 @@ async def give_config(
     request: Request,
     _: None = Depends(verify_api_key),
 ) -> str:
-    """Активирует свободную конфигурацию для пользователя."""
+    """Активирует свободную конфигурацию для пользователя с атомарной бронью."""
 
-    # Ищем свободный конфиг
-    expired_client = await db.get_one_expired_client(client_data.server)
-    if not expired_client:
+    # 1) Пытаемся зарезервировать свободный конфиг атомарно
+    reserved_uid = await db.reserve_one_free_config(
+        reserver_tg_id=str(client_data.id),
+        server_country=client_data.server,
+        reservation_ttl_seconds=120,
+    )
+    if not reserved_uid:
         raise HTTPException(
             status_code=409,
             detail="Свободных конфигов в данный момент нет, обратитесь в поддержку",
         )
 
-    uid = expired_client[1]
     expiry_unix = int(time.time()) + (60 * 60 * 24 * client_data.time)
+    payload = build_payload(reserved_uid, enable=True, expiry_time=expiry_unix)
+    url = COUNTRY_SETTINGS[client_data.server]["urlupdate"] + reserved_uid
 
-    payload = build_payload(uid, enable=True, expiry_time=expiry_unix)
-
-    url = COUNTRY_SETTINGS[client_data.server]["urlupdate"] + uid
+    # 2) Обновляем конфиг на панели
     response = await panel_request(request, url, client_data.server, payload)
 
-    if response.status_code == 200:
-        await db.update_user_code(
-            tg_id=client_data.id,
-            user_code=uid,
-            time_end=expiry_unix,
-            server_country=client_data.server,
+    if response.status_code != 200:
+        # Откатываем бронь, чтобы конфиг снова стал доступен
+        try:
+            await db.cancel_reserved_config(reserved_uid, str(client_data.id))
+        finally:
+            pass
+        raise HTTPException(
+            status_code=response.status_code,
+            detail="Ошибка при обновлении конфигурации на панели",
         )
-        logger.info("Config %s activated for tg_id %s on server %s", uid, client_data.id, client_data.server)
-        return uid
-    raise HTTPException(
-        status_code=response.status_code,
-        detail="Ошибка при обновлении конфигурации",
+
+    # 3) Финализируем бронь в БД
+    finalized = await db.finalize_reserved_config(
+        user_code=reserved_uid,
+        reserver_tg_id=str(client_data.id),
+        final_time_end=expiry_unix,
+        server_country=client_data.server,
     )
+    if finalized == 0:
+        # Маловероятный случай: бронь истекла или потеряна; пробуем отменить на панели невозможно здесь
+        # Возвращаем ошибку, просим поддержку
+        logger.error(
+            "Finalization failed for uid %s (tg_id %s, server %s) after panel success",
+            reserved_uid,
+            client_data.id,
+            client_data.server,
+        )
+        # Попробуем снять бронь на всякий случай
+        try:
+            await db.cancel_reserved_config(reserved_uid, str(client_data.id))
+        finally:
+            pass
+        raise HTTPException(status_code=500, detail="Ошибка финализации. Обратитесь в поддержку.")
+
+    logger.info(
+        "Config %s activated for tg_id %s on server %s",
+        reserved_uid,
+        client_data.id,
+        client_data.server,
+    )
+    return reserved_uid
 
 
 @router.post("/extendconfig", response_model=str)
@@ -342,8 +374,8 @@ async def check_available_configs(
 ):
     """Проверяет наличие свободных конфигов."""
 
-    # Сначала сбрасываем истёкшие конфиги
-    #await db.reset_expired_configs()
+    # Сначала сбрасываем истёкшие конфиги, чтобы отразить актуальную доступность
+    await db.reset_expired_configs()
     
     available_config = await db.get_one_expired_client(server)
     return JSONResponse(
@@ -399,7 +431,7 @@ async def get_subscription(tg_id: int):
                 f"vless://{user_code}@{settings['host']}:443?"
                 f"security=reality&encryption=none&pbk={settings['pbk']}&"
                 f"headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&"
-                f"sni={settings['sni']}&sid={settings['sid']}#godnetvpn"
+                f"sni={settings['sni']}&sid={settings['sid']}#glsvpn"
             )
             active_configs.append(vless_config)
 
@@ -426,3 +458,35 @@ async def add_config_page(
         "add_config.html",
         {"request": request, "config": config, "expiry": expiry},
     )
+
+@router.get("/redirect")
+async def add_config_redirect(
+    config: str = Query(..., description="Строка конфигурации или base64(config) для импорта в V2rayTun"),
+):
+    """Редиректит на схему v2raytun://import/{base64(config)}.
+
+    Поддерживает как сырой VLESS-текст, так и уже закодированный base64.
+    """
+    raw_config: str
+    # Пробуем распознать base64 → если удачно и похоже на vless, используем его
+    try:
+        decoded = base64.b64decode(config, validate=True).decode()
+        if decoded.startswith(("vless://", "vmess://", "trojan://")):
+            raw_config = decoded
+        else:
+            raw_config = config
+    except Exception:
+        raw_config = config
+
+    encoded_config = base64.b64encode(raw_config.encode()).decode()
+    return RedirectResponse(url=f"v2raytun://import/{encoded_config}", status_code=307)
+
+
+# ---------------------------------------------------------------------------
+# Landing page
+# ---------------------------------------------------------------------------
+
+@router.get("/", response_class=HTMLResponse)
+async def landing(request: Request):  # noqa: D401
+    """Красочная посадочная страница VPN."""
+    return templates.TemplateResponse("index.html", {"request": request})

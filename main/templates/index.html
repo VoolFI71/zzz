@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>GLS VPN — Быстрый и безопасный доступ без границ</title>
+  <meta name="description" content="VPN с высокой скоростью, шифрованием и простым подключением. Поддержка iOS, Android, Windows, macOS." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}" />
+</head>
+<body>
+  <header class="header">
+    <div class="container nav">
+      <div class="brand">
+        <div class="logo">⚡</div>
+        <span>GLS VPN</span>
+      </div>
+      <nav class="menu" id="menu">
+        <a href="#features">Функции</a>
+        <a href="#pricing">Тарифы</a>
+        <a href="#faq">FAQ</a>
+        <a class="btn small" href="#start">Начать</a>
+      </nav>
+      <button class="hamburger" id="hamburger" aria-label="Открыть меню">
+        <span></span><span></span><span></span>
+      </button>
+    </div>
+  </header>
+
+  <main>
+    <section class="hero" id="start">
+      <div class="container grid-2">
+        <div class="hero__content">
+          <h1>Доступ к интернету без ограничений</h1>
+          <p>Стабильные сервера, высокая скорость, шифрование и простое подключение в одно касание. Поддержка VLESS/Reality для максимальной защиты.</p>
+          <div class="cta">
+            <a class="btn primary" href="#pricing">Выбрать тариф</a>
+            <a class="btn ghost" href="/add-config">У меня есть конфиг</a>
+          </div>
+          <div class="badges">
+            <span>iOS</span><span>Android</span><span>Windows</span><span>macOS</span>
+          </div>
+        </div>
+        <div class="hero__art">
+          <div class="glass card">
+            <h3>Шифрование Reality</h3>
+            <p>Скрывает трафик под легитимный TLS, обходя блокировки и DPI.</p>
+            <div class="stats">
+              <div><strong>200+</strong><span>соединений</span></div>
+              <div><strong>99.9%</strong><span>аптайм</span></div>
+              <div><strong>1 клик</strong><span>подключение</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="blur b1"></div>
+      <div class="blur b2"></div>
+    </section>
+
+    <section id="features" class="section">
+      <div class="container">
+        <h2 class="section__title">Почему GLS VPN</h2>
+        <div class="cards">
+          <article class="card">
+            <div class="icon">🛡️</div>
+            <h3>Максимальная приватность</h3>
+            <p>Современные протоколы VLESS/Reality, отсутствие логов и шифрование end‑to‑end.</p>
+          </article>
+          <article class="card">
+            <div class="icon">🚀</div>
+            <h3>Высокая скорость</h3>
+            <p>Оптимизированные сервера и балансировка подключений обеспечивают стабильный пинг и пропускную способность.</p>
+          </article>
+          <article class="card">
+            <div class="icon">🧩</div>
+            <h3>Простое подключение</h3>
+            <p>Поддержка популярных клиентов. Импорт конфигурации в один клик.</p>
+          </article>
+          <article class="card">
+            <div class="icon">🌍</div>
+            <h3>Доступ без границ</h3>
+            <p>Обход блокировок и DPI. Доступ к любимым сервисам из любой точки мира.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="pricing" class="section">
+      <div class="container">
+        <h2 class="section__title">Тарифы</h2>
+        <div class="pricing">
+          <div class="price-card">
+            <h3>На день</h3>
+            <div class="price">50 ₽</div>
+            <ul>
+              <li>Полный доступ</li>
+              <li>Высокая скорость</li>
+              <li>Поддержка</li>
+            </ul>
+            <a class="btn primary w100" href="#start">Активировать</a>
+          </div>
+          <div class="price-card popular">
+            <div class="ribbon">Популярно</div>
+            <h3>На месяц</h3>
+            <div class="price">350 ₽</div>
+            <ul>
+              <li>Неограниченный трафик</li>
+              <li>Стабильные сервера</li>
+              <li>Приоритетная поддержка</li>
+            </ul>
+            <a class="btn primary w100" href="#start">Выбрать</a>
+          </div>
+          <div class="price-card">
+            <h3>На год</h3>
+            <div class="price">2990 ₽</div>
+            <ul>
+              <li>Лучшая цена</li>
+              <li>Все функции</li>
+              <li>Премиум‑поддержка</li>
+            </ul>
+            <a class="btn primary w100" href="#start">Купить</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section id="faq" class="section">
+      <div class="container">
+        <h2 class="section__title">Частые вопросы</h2>
+        <details class="faq">
+          <summary>Как подключиться?</summary>
+          <p>Получите конфигурацию в нашем боте и импортируйте её в приложение V2rayTun/AlphaNet/Shadowrocket.</p>
+        </details>
+        <details class="faq">
+          <summary>Ведёте ли вы логи?</summary>
+          <p>Нет. Мы не храним историю посещений и не отслеживаем активность пользователей.</p>
+        </details>
+        <details class="faq">
+          <summary>Поддержка устройств?</summary>
+          <p>iOS, Android, Windows, macOS и любые клиенты с поддержкой VLESS/Reality.</p>
+        </details>
+      </div>
+    </section>
+  </main>
+
+  <footer class="footer">
+    <div class="container footer__content">
+      <div class="brand small">
+        <div class="logo">⚡</div>
+        <span>GLS VPN</span>
+      </div>
+      <div class="footer__right">
+        <span>© {{ (range(2025, 2026)|list|last) if false else "2025" }} GLS</span>
+        <a href="#">Политика конфиденциальности</a>
+      </div>
+    </div>
+  </footer>
+
+  <script src="{{ url_for('static', path='app.js') }}" defer></script>
+</body>
+</html>
+
+

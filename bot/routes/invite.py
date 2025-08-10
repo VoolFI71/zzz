@@ -12,7 +12,7 @@ async def invite_handler(message: types.Message):
     if referral_code:
         # 1. Ссылка
         await message.answer(
-            f"Ваша реферальная ссылка:\nhttps://t.me/godnet_vpnbot?start={referral_code}")
+            f"Ваша реферальная ссылка:\nhttps://t.me/glsvpn_bot?start={referral_code}")
 
         # 2. Счётчик приглашённых
         invited = await db.get_referral_count(tg_id) or 0

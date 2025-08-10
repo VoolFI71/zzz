@@ -8,6 +8,8 @@
 from __future__ import annotations
 
 import logging
+import time
+import asyncio
 import os
 import aiohttp
 from aiogram import Bot, F, Router
@@ -44,8 +46,22 @@ async def process_callback_query(
     if callback_query.data in {"buy_1", "buy_2"}:
         # Проверка email больше не требуется
 
-        # Проверяем свободные конфиги
+        # Анти-спам и один активный счёт на пользователя
         user_data = await state.get_data()
+        now_ts = int(time.time())
+        last_click_ts = user_data.get("last_buy_click_ts")
+        if last_click_ts and (now_ts - int(last_click_ts) < 3):
+            await callback_query.answer("Подождите пару секунд…", show_alert=False)
+            return
+        await state.update_data(last_buy_click_ts=now_ts)
+
+        existing_invoice_id = user_data.get("invoice_msg_id")
+        if existing_invoice_id:
+            # Уже есть неоплаченный счёт — не создаём новый
+            await callback_query.answer("У вас уже есть неоплаченный счёт выше ⬆️", show_alert=True)
+            return
+
+        # Проверяем свободные конфиги
         server = user_data.get("server")
         if not await check_available_configs(server):
             await bot.send_message(tg_id, "Свободных конфигов для данного сервера нет. Попробуйте выбрать другой сервер.")
@@ -86,9 +102,34 @@ async def process_callback_query(
                 max_tip_amount=0,
             )
         try:
-            await state.update_data(invoice_msg_id=invoice_msg.message_id)
+            await state.update_data(invoice_msg_id=invoice_msg.message_id, invoice_created_ts=now_ts)
         except Exception:
             pass
+
+        # Планируем авто-истечение инвойса через 15 минут, если не оплачен
+        async def _expire_invoice() -> None:
+            try:
+                await asyncio.sleep(4 * 60)
+                data_state = await state.get_data()
+                current_invoice_id = data_state.get("invoice_msg_id")
+                if current_invoice_id == invoice_msg.message_id:
+                    # Счёт всё ещё висит неоплаченным — удаляем и очищаем состояние
+                    try:
+                        await bot.delete_message(chat_id=tg_id, message_id=invoice_msg.message_id)
+                    except Exception:
+                        pass
+                    try:
+                        await state.update_data(invoice_msg_id=None)
+                    except Exception:
+                        pass
+                    try:
+                        await bot.send_message(tg_id, "Счёт истёк. Если хотите, создайте новый.")
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+
+        asyncio.create_task(_expire_invoice())
         await callback_query.answer("Создаём счёт для оплаты...")
         return
 
