@@ -11,7 +11,7 @@ import logging
 logger = logging.getLogger(__name__)
 
 AUTH_CODE = os.getenv("AUTH_CODE")
-urlupdate = "http://fastapi:8080/giveconfig"  # добавлено определение urlupdate
+urlupdate = "http://fastapi:8080/giveconfig"  # внутренний адрес API
 
 router = Router()
 

@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>GLS VPN — Добавить конфиг</title>
-  <style>
+    <style>
     :root{
       --bg:#0b1020;--bg2:#101634;--glass:rgba(255,255,255,.06);--stroke:rgba(255,255,255,.14);
       --text:#e8ecf8;--muted:#a9b3c9;--primary:#6d8bff;--primary2:#9a6dff;--ok:#22c55e;--warn:#f59e0b
@@ -23,7 +23,7 @@
     .b1{top:-40px;left:6%;width:280px;height:280px;background:#6d8bff44;border-radius:50%}
     .b2{bottom:-40px;right:10%;width:320px;height:320px;background:#9a6dff33;border-radius:50%}
 
-    .card{width:100%;max-width:560px;border:1px solid var(--stroke);background:var(--glass);
+    .card{width:100%;max-width:900px;border:1px solid var(--stroke);background:var(--glass);
       border-radius:18px;backdrop-filter:blur(10px) saturate(135%);padding:22px 22px 18px}
     .brand{display:flex;align-items:center;gap:12px;margin-bottom:8px}
     .logo{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;
@@ -37,7 +37,7 @@
 
     .config{
       background:rgba(255,255,255,.05);border:1px dashed var(--stroke);border-radius:12px;padding:12px;
-      font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;font-size:12px;line-height:1.5;max-height:140px;overflow:auto
+      font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;font-size:12.5px;line-height:1.6;max-height:220px;min-height:120px;overflow:auto
     }
 
     .actions{display:grid;grid-template-columns:1fr;gap:10px;margin:16px 0}
@@ -55,8 +55,14 @@
       transition:.3s;pointer-events:none}
     .toast.show{opacity:1;transform:translateX(-50%) translateY(-6px)}
 
+    @media (min-width:860px){
+      .brand h1{font-size:20px}
+      .subtitle{font-size:15px}
+      .actions{grid-template-columns:1fr 1fr}
+      .config{max-height:320px;font-size:13.5px}
+    }
     @media (max-width:560px){.card{padding:18px}.brand h1{font-size:16px}}
-  </style>
+    </style>
 </head>
 <body>
   <div class="b1 blur"></div><div class="b2 blur"></div>
@@ -64,20 +70,20 @@
     <div class="brand">
       <div class="logo">⚡</div>
       <h1>GLS VPN — Импорт конфига</h1>
-    </div>
+        </div>
     <div class="subtitle">Добавьте конфигурацию в V2rayTun в один клик</div>
 
     <div class="info">
       <div class="chip">⏳ Срок действия: <span id="expiry-time">—</span></div>
       <div class="chip ok" id="platform-chip">📱 Готово для мобильного</div>
-    </div>
+        </div>
 
     <div class="config" id="config-text">Загрузка конфига…</div>
 
     <div class="actions">
       <a class="btn" id="openBtn">📲 Открыть в V2rayTun</a>
       <button class="btn ghost" id="copyBtn">📋 Копировать конфиг</button>
-    </div>
+        </div>
     <div class="help">
       Если приложение не открылось автоматически — скопируйте конфиг и добавьте его в V2rayTun вручную.
     </div>
@@ -85,7 +91,7 @@
 
   <div class="toast" id="toast">Скопировано</div>
 
-  <script>
+    <script>
     const qs = new URLSearchParams(location.search);
     const configB64 = qs.get('config');
     const expiry = Number(qs.get('expiry') || 0);
@@ -121,7 +127,7 @@
     openBtn.addEventListener('click', () => {
       if(!configB64){ showToast('Конфиг не найден'); return; }
       if(!isMobile){ showToast('Откройте со смартфона'); return; }
-      const link = document.createElement('a');
+            const link = document.createElement('a');
       link.href = `v2raytun://import/${configB64}`;
       document.body.appendChild(link); link.click(); link.remove();
       setTimeout(()=>{ if(document.hasFocus()) showToast('Если приложение не открылось — скопируйте конфиг'); }, 1200);
@@ -146,6 +152,6 @@
       const ok = await copyToClipboard(decoded);
       showToast(ok ? '✅ Конфиг скопирован' : '❌ Не удалось скопировать');
     });
-  </script>
+    </script>
 </body>
 </html>

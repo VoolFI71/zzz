@@ -8,7 +8,7 @@ import urllib.parse
 router = Router()
 
 AUTH_CODE = os.getenv("AUTH_CODE")
-PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "http://77.110.108.194:8080")
+PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "https://77.110.108.194:8080")
 
 countryies_settings = {
     "fi": {
@@ -23,7 +23,7 @@ countryies_settings = {
 @router.message(F.text == "Личный кабинет")
 async def my_account(message: types.Message):
     user_id = message.from_user.id
-    url = f"http://fastapi:8080/usercodes/{user_id}"
+    url = f"https://fastapi:8080/usercodes/{user_id}"
     headers = {"X-API-Key": AUTH_CODE}
 
     try:

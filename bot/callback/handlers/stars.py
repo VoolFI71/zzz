@@ -60,7 +60,7 @@ async def pay_with_stars(callback_query: CallbackQuery, state: FSMContext, bot: 
             payload=payload,
             provider_token=provider_token,
             currency="XTR",
-            prices=[LabeledPrice(label="XTR", amount=int(os.getenv("PRICE_3D_STAR", "1")))],
+            prices=[LabeledPrice(label="XTR", amount=int(os.getenv("PRICE_3D_STAR", "5")))],
             max_tip_amount=0,
         )
     elif payload == "sub_1m":
@@ -71,7 +71,7 @@ async def pay_with_stars(callback_query: CallbackQuery, state: FSMContext, bot: 
             payload=payload,
             provider_token=provider_token,
             currency="XTR",
-            prices=[LabeledPrice(label="XTR", amount=int(os.getenv("PRICE_1M_STAR", "1")))],
+            prices=[LabeledPrice(label="XTR", amount=int(os.getenv("PRICE_1M_STAR", "99")))],
             max_tip_amount=0,
         )
     else:
@@ -82,7 +82,7 @@ async def pay_with_stars(callback_query: CallbackQuery, state: FSMContext, bot: 
             payload=payload,
             provider_token=provider_token,
             currency="XTR",
-            prices=[LabeledPrice(label="XTR", amount=int(os.getenv("PRICE_3M_STAR", "1")))],
+            prices=[LabeledPrice(label="XTR", amount=int(os.getenv("PRICE_3M_STAR", "229")))],
             max_tip_amount=0,
         )
 

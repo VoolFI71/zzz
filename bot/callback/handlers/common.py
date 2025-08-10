@@ -39,7 +39,7 @@ async def select_plan(callback_query: CallbackQuery, state: FSMContext) -> None:
     star_1m = int(os.getenv("PRICE_1M_STAR", "99"))
     star_3m = int(os.getenv("PRICE_3M_STAR", "229"))
     rub_3d = int(os.getenv("PRICE_3D_RUB", "5"))
-    rub_1m = int(os.getenv("PRICE_1M_RUB", "75"))
+    rub_1m = int(os.getenv("PRICE_1M_RUB", "9"))
     rub_3m = int(os.getenv("PRICE_3M_RUB", "199"))
 
     if days == 3:
