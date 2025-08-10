@@ -19,13 +19,22 @@ def create_server_keyboard():
 
 def create_tariff_keyboard():
     kb_list = [
-        [InlineKeyboardButton(text="Купить на 1 месяц — 99 ⭐", callback_data="buy_1")],
-        [InlineKeyboardButton(text="Купить на 3 месяца — 249 ⭐", callback_data="buy_2")],
+        [InlineKeyboardButton(text="3 дня", callback_data="plan_3d")],
+        [InlineKeyboardButton(text="1 месяц", callback_data="plan_1m")],
+        [InlineKeyboardButton(text="3 месяца", callback_data="plan_3m")],
         [InlineKeyboardButton(text="Назад", callback_data="back")]
-
     ]
     keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
     return keyboard
+
+
+def create_payment_method_keyboard(star_amount: int, rub_amount: int):
+    kb_list = [
+        [InlineKeyboardButton(text=f"Оплатить звёздами — {star_amount} ⭐", callback_data="pay_star")],
+        [InlineKeyboardButton(text=f"Оплатить YooKassa — {rub_amount} ₽", callback_data="pay_cash")],
+        [InlineKeyboardButton(text="Назад", callback_data="back")],
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=kb_list)
 
 def create_settings_keyboard():
     kb_list = [

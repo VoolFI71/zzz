@@ -1,6 +1,7 @@
 import os
 import aiohttp
 import logging
+import asyncio
 
 _session: aiohttp.ClientSession | None = None
 
@@ -17,11 +18,18 @@ AUTH_CODE = os.getenv("AUTH_CODE")
 logger = logging.getLogger(__name__)
 
 async def check_available_configs(server: str | None = None) -> bool:
-    """Возвращает True, если есть свободные конфиги. При указании `server` проверяется только эта страна."""
-    url = "http://fastapi:8080/check-available-configs"
+    """Возвращает True, если есть свободные конфиги.
+
+    Поведение:
+    - 200: читаем флаг available из ответа
+    - 401/403 и любые иные коды ответа: считаем, что свободных нет (False)
+    - Сетевые ошибки/таймаут: не блокируем оплату (True), окончательная проверка произойдёт в /giveconfig
+    """
+    base_url = "http://fastapi:8080"
+    url = f"{base_url}/check-available-configs"
     if server is not None:
         url += f"?server={server}"
-    headers = {"X-API-Key": AUTH_CODE}
+    headers = {"X-API-Key": AUTH_CODE} if AUTH_CODE else {}
 
     try:
         session = await get_session()
@@ -29,8 +37,13 @@ async def check_available_configs(server: str | None = None) -> bool:
             if response.status == 200:
                 data = await response.json()
                 return data.get("available", False)
-            logger.warning("Unexpected status %s while checking configs", response.status)
+            # Любой не-200 считаем как отсутствие свободных конфигов
+            logger.warning("/check-available-configs returned %s", response.status)
+            return False
+    except (aiohttp.ClientError, asyncio.TimeoutError) as exc:
+        logger.error("Network error while checking configs: %s", exc)
+        return True
     except Exception as exc:
-        logger.error("Failed to check available configs: %s", exc)
+        logger.error("Unexpected error while checking configs: %s", exc)
+        return False
 
-    return False

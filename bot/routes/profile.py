@@ -54,12 +54,11 @@ async def my_account(message: types.Message):
                             encoded_config = base64.b64encode(vless_config.encode()).decode()
                             remaining_seconds = user['time_end'] - int(time.time())
                             web_url = f"{PUBLIC_BASE_URL}/add-config?config={encoded_config}&expiry={remaining_seconds}"
-                            redirect_url = f"{PUBLIC_BASE_URL}/redirect?config={urllib.parse.quote(vless_config, safe='')}"
+                            # redirect_url = f"{PUBLIC_BASE_URL}/redirect?config={urllib.parse.quote(vless_config, safe='')}"
                             
                             # Создаем inline клавиатуру с двумя одинаковыми кнопками (вторая ведёт на /redirect)
                             inline_kb = InlineKeyboardMarkup(inline_keyboard=[
                                 [InlineKeyboardButton(text="📱 Добавить в V2rayTun", url=web_url)],
-                                [InlineKeyboardButton(text="📱 Добавить в V2rayTun", url=redirect_url)],
                                 [InlineKeyboardButton(text="📋 Копировать конфиг", callback_data=f"copy_config_{i}")]
                             ])
                             

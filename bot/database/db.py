@@ -9,42 +9,17 @@ async def init_db():
         await cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
         exists = await cursor.fetchone()
         if not exists:
+            # Создаём таблицу сразу со всеми необходимыми столбцами
             await cursor.execute('''
                 CREATE TABLE users (
                     tg_id TEXT UNIQUE,
                     referral_code TEXT UNIQUE,
                     referred_by TEXT,
-                    referral_count INTEGER DEFAULT 0
+                    referral_count INTEGER DEFAULT 0,
+                    trial_3d_used INTEGER DEFAULT 0
                 )
             ''')
             await conn.commit()
-        else:
-            # Миграция: убрать колонку email, если она есть
-            await cursor.execute("PRAGMA table_info(users)")
-            columns = [row[1] for row in await cursor.fetchall()]
-            if 'email' in columns:
-                await cursor.execute('''
-                    CREATE TABLE IF NOT EXISTS users_new (
-                        tg_id TEXT UNIQUE,
-                        referral_code TEXT UNIQUE,
-                        referred_by TEXT,
-                        referral_count INTEGER DEFAULT 0
-                    )
-                ''')
-                await cursor.execute(
-                    'INSERT OR IGNORE INTO users_new (tg_id, referral_code, referred_by, referral_count) '
-                    'SELECT tg_id, referral_code, referred_by, COALESCE(referral_count, 0) FROM users'
-                )
-                await conn.commit()
-                await cursor.execute('DROP TABLE users')
-                await cursor.execute('ALTER TABLE users_new RENAME TO users')
-                await conn.commit()
-            elif 'referral_count' not in columns:
-                await cursor.execute('ALTER TABLE users ADD COLUMN referral_count INTEGER DEFAULT 0')
-                await conn.commit()
-        await cursor.close()
-
-# email больше не хранится/не используется
 
 user_locks = {}
 async def get_referral_code(tg_id):
@@ -155,3 +130,35 @@ async def get_tg_id_by_referral_code(referral_code):
         async with conn.execute("SELECT tg_id FROM users WHERE referral_code = ?", (referral_code,)) as cursor:
             row = await cursor.fetchone()
             return row[0] if row else None
+
+
+# -----------------------------
+# Тестовая подписка 3 дня
+# -----------------------------
+
+async def ensure_user_row(tg_id: str) -> None:
+    async with aiosqlite.connect("users.db") as conn:
+        async with conn.cursor() as cursor:
+            await cursor.execute("SELECT tg_id FROM users WHERE tg_id = ?", (str(tg_id),))
+            exists = await cursor.fetchone()
+            if exists is None:
+                await cursor.execute("INSERT INTO users (tg_id) VALUES (?)", (str(tg_id),))
+                await conn.commit()
+
+
+async def has_used_trial_3d(tg_id: str) -> bool:
+    async with aiosqlite.connect("users.db") as conn:
+        async with conn.cursor() as cursor:
+            await cursor.execute("SELECT trial_3d_used FROM users WHERE tg_id = ?", (str(tg_id),))
+            row = await cursor.fetchone()
+            return bool(row[0]) if row and row[0] is not None else False
+
+
+async def set_trial_3d_used(tg_id: str) -> None:
+    async with aiosqlite.connect("users.db") as conn:
+        async with conn.cursor() as cursor:
+            await cursor.execute("UPDATE users SET trial_3d_used = 1 WHERE tg_id = ?", (str(tg_id),))
+            if cursor.rowcount == 0:
+                # На случай отсутствия строки создадим её и повторим
+                await cursor.execute("INSERT INTO users (tg_id, trial_3d_used) VALUES (?, 1)", (str(tg_id),))
+            await conn.commit()

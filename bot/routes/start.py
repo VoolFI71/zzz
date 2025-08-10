@@ -5,6 +5,7 @@ from database import db
 import os
 import aiohttp  # добавлен импорт
 from aiogram import Bot  # если нужен тип Bot
+from aiogram.types import FSInputFile
 from utils import check_available_configs
 import logging
 logger = logging.getLogger(__name__)
@@ -82,6 +83,34 @@ async def start_command(message: types.Message):
         else:
             # Пользователь уже активировал реферальную ссылку ранее
             await message.answer("Вы уже использовали реферальную ссылку ранее. Это можно сделать только один раз.")
-    await message.answer("Добро пожаловать! Выберите действие:", reply_markup=keyboard.create_keyboard())
+
+    start_caption = (
+        "⚡ Привет! Я — твой личный помощник GLS VPN.\n"
+        "Помогу получить быстрый и безопасный интернет без границ.\n\n"
+        "🔓 Обход блокировок и DPI\n"
+        "🚀 Высокая скорость и стабильность\n"
+        "📱 iOS / Android / Windows / macOS\n\n"
+        "Всё просто: выбери тариф, оплати в Telegram и подключайся!"
+    )
+
+    try:
+        # Ищем start.jpg локально без переменных окружения
+        routes_dir = os.path.dirname(__file__)
+        bot_root = os.path.abspath(os.path.join(routes_dir, ".."))
+        project_root = os.path.abspath(os.path.join(routes_dir, "..", ".."))
+        candidate_paths = [
+            os.path.join(project_root, "start.jpg"),
+            os.path.join(bot_root, "start.jpg"),
+            os.path.join(os.getcwd(), "start.jpg"),
+        ]
+
+        image_path_found = next((p for p in candidate_paths if os.path.exists(p)), None)
+        if image_path_found:
+            await message.answer_photo(photo=FSInputFile(image_path_found), caption=start_caption, reply_markup=keyboard.create_keyboard())
+        else:
+            await message.answer("Добро пожаловать! Выберите действие:", reply_markup=keyboard.create_keyboard())
+    except Exception:
+        # Фолбэк на случай ошибки при отправке изображения
+        await message.answer("Добро пожаловать! Выберите действие:", reply_markup=keyboard.create_keyboard())
 
 

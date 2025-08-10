@@ -375,7 +375,10 @@ async def check_available_configs(
     """Проверяет наличие свободных конфигов."""
 
     # Сначала сбрасываем истёкшие конфиги, чтобы отразить актуальную доступность
-    await db.reset_expired_configs()
+    try:
+        await db.reset_expired_configs()
+    except Exception:
+        pass
     
     available_config = await db.get_one_expired_client(server)
     return JSONResponse(
