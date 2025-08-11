@@ -22,7 +22,9 @@ async def pay_with_stars(callback_query: CallbackQuery, state: FSMContext, bot: 
     tg_id = callback_query.from_user.id
 
     user_data = await state.get_data()
-    days = int(user_data.get("selected_days", 31))
+    # По умолчанию делаем тестовую подписку на 3 дня
+    days = int(user_data.get("selected_days", 3))
+    # Маппинг payload по длительности
     payload = "sub_3d" if days == 3 else ("sub_1m" if days == 31 else "sub_3m")
 
     # Анти-спам и один активный счёт на пользователя

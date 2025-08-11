@@ -39,7 +39,7 @@ def create_payment_method_keyboard(star_amount: int, rub_amount: int):
 def create_settings_keyboard():
     kb_list = [
         [KeyboardButton(text="Установка на Телефон"), KeyboardButton(text="Установка на PC")],
-        [KeyboardButton(text="🔙 Назад")]
+        [KeyboardButton(text="Назад")]
     ]
     keyboard = ReplyKeyboardMarkup(keyboard=kb_list, resize_keyboard=True, one_time_keyboard=True)
     return keyboard
