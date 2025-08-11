@@ -9,15 +9,15 @@ services:
       - ./bot/.env
     volumes:
       - ./bot:/app
-    networks:
-      - internal
+    # networks:
+    #   - internal
     
 
   fastapi:
     build: ./main
     restart: always
-    expose:
-      - "8080"
+    ports:
+      - "8080:8080"
     env_file:
       - ./main/.env
     volumes:
@@ -28,27 +28,27 @@ services:
       timeout: 5s
       retries: 3
       start_period: 10s
-    networks:
-      - internal
+    # networks:
+    #   - internal
 
-  caddy:
-    image: caddy:2
-    restart: always
-    ports:
-      - "80:80"
-      - "443:443"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    environment:
-      - DOMAIN=${DOMAIN}
-      - EMAIL=${EMAIL}
-    depends_on:
-      - fastapi
-    networks:
-      - web
-      - internal
+  # caddy:
+  #   image: caddy:2
+  #   restart: always
+  #   ports:
+  #     - "80:80"
+  #     - "443:443"
+  #   volumes:
+  #     - ./Caddyfile:/etc/caddy/Caddyfile:ro
+  #     - caddy_data:/data
+  #     - caddy_config:/config
+  #   environment:
+  #     - DOMAIN=${DOMAIN}
+  #     - EMAIL=${EMAIL}
+  #   depends_on:
+  #     - fastapi
+  #   networks:
+  #     - web
+  #     - internal
   backup:
     build:
       context: ./backup
@@ -57,14 +57,14 @@ services:
       - ./main:/app/main
       - ./backup:/app/backup    
       - ./backups:/app/backups    
-    networks:
-      - internal
+    # networks:
+    #   - internal
 
-networks:
-  web:
-  internal:
-    internal: true
+# networks:
+#   web:
+#   internal:
+#     internal: true
 
-volumes:
-  caddy_data:
-  caddy_config:
+# volumes:
+#   caddy_data:
+#   caddy_config:
