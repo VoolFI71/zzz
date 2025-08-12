@@ -3,6 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="yandex-verification" content="bb185d3a0aa04535" />
   <title>GLS VPN — Быстрый и безопасный доступ без границ</title>
   <meta name="description" content="VPN с высокой скоростью, шифрованием и простым подключением. Поддержка iOS, Android, Windows, macOS." />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -16,6 +17,7 @@
   --muted: #a7b0c0;
   --primary: #6d8bff;
   --primary-2: #9a6dff;
+  --telegram: #26A5E4;
   --card: rgba(255,255,255,0.06);
   --stroke: rgba(255,255,255,0.12);
   --success: #22c55e;
@@ -52,6 +54,8 @@ body{
 .btn.small{padding:8px 12px}
 .btn.primary{background:linear-gradient(135deg,var(--primary),var(--primary-2));border-color:transparent;box-shadow:0 10px 40px #6d8bff44}
 .btn.primary:hover{transform:translateY(-1px);box-shadow:0 14px 46px #6d8bff66}
+.btn.telegram{background:var(--telegram);border-color:transparent;color:#fff;box-shadow:0 10px 40px rgba(38,165,228,0.35)}
+.btn.telegram:hover{transform:translateY(-1px);filter:brightness(1.06);box-shadow:0 14px 46px rgba(38,165,228,0.5)}
 .btn.ghost{background:transparent}
 .btn.ghost:hover{border-color:#ffffff44}
 .btn.w100{display:block;text-align:center}
@@ -96,23 +100,38 @@ body{
 .faq summary{cursor:pointer;font-weight:600}
 .faq p{color:var(--muted)}
 
-/* Footer */
-.footer{border-top:1px solid var(--stroke);padding:18px 0;background:rgba(0,0,0,0.15)}
-.footer__content{display:flex;align-items:center;justify-content:space-between;gap:12px}
-.footer__right{display:flex;align-items:center;gap:16px;color:var(--muted)}
+/* Footer removed */
 
 /* Responsive */
-@media (max-width: 980px){
-  .grid-2{grid-template-columns:1fr}
-  .cards{grid-template-columns:repeat(2,1fr)}
-  .pricing{grid-template-columns:1fr}
-}
+  @media (max-width: 1180px){
+    .cards{grid-template-columns:repeat(3,1fr)}
+  }
 
-@media (max-width: 720px){
-  .menu{display:none}
-  .hamburger{display:block}
-  .hero__content h1{font-size:34px}
-}
+  @media (max-width: 980px){
+    .grid-2{grid-template-columns:1fr}
+    .hero{padding:56px 0}
+    .hero__content h1{font-size:40px}
+    .cards{grid-template-columns:repeat(2,1fr)}
+    .pricing{grid-template-columns:repeat(2,1fr)}
+  }
+
+  @media (max-width: 720px){
+    .menu{display:none}
+    .hamburger{display:block}
+    .hero{padding:48px 0}
+    .hero__content h1{font-size:34px}
+    .cta{flex-direction:column}
+    .cta .btn{width:100%}
+    .cards{grid-template-columns:1fr}
+    .pricing{grid-template-columns:1fr}
+    .section{padding:42px 0}
+    .menu.open .btn{width:100%}
+  }
+
+  @media (max-width: 420px){
+    .hero{padding:44px 0}
+    .hero__content p{font-size:16px}
+  }
 
 /* Mobile menu */
 .menu.open{position:absolute;top:64px;left:0;right:0;background:rgba(11,16,32,.96);border-bottom:1px solid var(--stroke);display:flex;flex-direction:column;gap:12px;padding:14px 20px}
@@ -126,7 +145,7 @@ body{
         <span>GLS VPN</span>
       </div>
       <nav class="menu" id="menu">
-        <a href="#features">Функции</a>
+        <a class="btn small telegram" href="https://t.me/glsvpn_bot" target="_blank" rel="noopener">Telegram бот</a>
         <a href="#pricing">Тарифы</a>
         <a href="#faq">FAQ</a>
         <a class="btn small" href="#start">Начать</a>
@@ -145,7 +164,6 @@ body{
           <p>Стабильные сервера, высокая скорость, шифрование и простое подключение в одно касание. Поддержка VLESS/Reality для максимальной защиты.</p>
           <div class="cta">
             <a class="btn primary" href="#pricing">Выбрать тариф</a>
-            <a class="btn ghost" href="/add-config">У меня есть конфиг</a>
           </div>
           <div class="badges">
             <span>iOS</span><span>Android</span><span>Windows</span><span>macOS</span>
@@ -200,35 +218,35 @@ body{
         <h2 class="section__title">Тарифы</h2>
         <div class="pricing">
           <div class="price-card">
-            <h3>На день</h3>
-            <div class="price">50 ₽</div>
+            <h3>Тестовый период</h3>
+            <div class="price">5 ₽</div>
             <ul>
-              <li>Полный доступ</li>
-              <li>Высокая скорость</li>
-              <li>Поддержка</li>
+              <li>Доступ на 3 дня</li>
+              <li>Быстрое подключение</li>
+              <li>Работает на всех устройствах</li>
             </ul>
-            <a class="btn primary w100" href="#start">Активировать</a>
+            <a class="btn primary w100" href="https://t.me/glsvpn_bot" target="_blank" rel="noopener">Активировать</a>
           </div>
           <div class="price-card popular">
             <div class="ribbon">Популярно</div>
-            <h3>На месяц</h3>
-            <div class="price">350 ₽</div>
+            <h3>1 месяц</h3>
+            <div class="price">79 ₽</div>
             <ul>
-              <li>Неограниченный трафик</li>
-              <li>Стабильные сервера</li>
-              <li>Приоритетная поддержка</li>
+              <li>Доступ на 31 день</li>
+              <li>Безлимитный трафик</li>
+              <li>Быстрое подключение</li>
             </ul>
-            <a class="btn primary w100" href="#start">Выбрать</a>
+            <a class="btn primary w100" href="https://t.me/glsvpn_bot" target="_blank" rel="noopener">Выбрать</a>
           </div>
           <div class="price-card">
-            <h3>На год</h3>
-            <div class="price">2990 ₽</div>
+            <h3>3 месяца</h3>
+            <div class="price">199 ₽</div>
             <ul>
-              <li>Лучшая цена</li>
-              <li>Все функции</li>
-              <li>Премиум‑поддержка</li>
+              <li>Доступ на 93 дня</li>
+              <li>Низкий пинг</li>
+              <li>Высокая скорость</li>
             </ul>
-            <a class="btn primary w100" href="#start">Купить</a>
+            <a class="btn primary w100" href="https://t.me/glsvpn_bot" target="_blank" rel="noopener">Купить</a>
           </div>
         </div>
       </div>
@@ -253,18 +271,7 @@ body{
     </section>
   </main>
 
-  <footer class="footer">
-    <div class="container footer__content">
-      <div class="brand small">
-        <div class="logo">⚡</div>
-        <span>GLS VPN</span>
-      </div>
-      <div class="footer__right">
-        <span>© {{ (range(2025, 2026)|list|last) if false else "2025" }} GLS</span>
-        <a href="#">Политика конфиденциальности</a>
-      </div>
-    </div>
-  </footer>
+  
 
   <script>
 document.addEventListener('DOMContentLoaded', () => {
@@ -293,5 +300,4 @@ document.addEventListener('DOMContentLoaded', () => {
   </script>
 </body>
 </html>
-
 
