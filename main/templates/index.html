@@ -10,11 +10,14 @@
   <meta property="og:description" content="VPN с высокой скоростью, шифрованием и простым подключением. Поддержка iOS, Android, Windows, macOS." />
   <meta property="og:url" content="https://swaga.space/" />
   <meta property="og:image" content="{{ url_for('static', path='gls-avatar-wordmark.svg') }}" />
+  <meta property="og:site_name" content="GLS VPN" />
+  <meta property="og:locale" content="ru_RU" />
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="GLS VPN — Быстрый и безопасный доступ без границ" />
   <meta name="twitter:description" content="VPN с высокой скоростью, шифрованием и простым подключением. Поддержка iOS, Android, Windows, macOS." />
   <meta name="twitter:image" content="{{ url_for('static', path='gls-avatar-wordmark.svg') }}" />
   <link rel="alternate" hreflang="ru-RU" href="https://swaga.space/" />
+  <link rel="alternate" hreflang="x-default" href="https://swaga.space/" />
   <script type="application/ld+json">
   {
     "@context": "https://schema.org",
@@ -26,6 +29,46 @@
       "target": "https://swaga.space/?q={search_term_string}",
       "query-input": "required name=search_term_string"
     }
+  }
+  </script>
+  <script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Service",
+    "name": "GLS VPN",
+    "url": "https://swaga.space/",
+    "areaServed": "Worldwide",
+    "provider": {
+      "@type": "Organization",
+      "name": "GLS VPN",
+      "url": "https://swaga.space/"
+    },
+    "offers": [
+      {
+        "@type": "Offer",
+        "name": "Тестовый период (3 дня)",
+        "price": "5",
+        "priceCurrency": "RUB",
+        "url": "https://t.me/glsvpn_bot",
+        "availability": "https://schema.org/InStock"
+      },
+      {
+        "@type": "Offer",
+        "name": "Абонемент 1 месяц",
+        "price": "79",
+        "priceCurrency": "RUB",
+        "url": "https://t.me/glsvpn_bot",
+        "availability": "https://schema.org/InStock"
+      },
+      {
+        "@type": "Offer",
+        "name": "Абонемент 3 месяца",
+        "price": "199",
+        "priceCurrency": "RUB",
+        "url": "https://t.me/glsvpn_bot",
+        "availability": "https://schema.org/InStock"
+      }
+    ]
   }
   </script>
   <script type="application/ld+json">
@@ -168,6 +211,8 @@ body.no-scroll{overflow:hidden}
 .theme-toggle{display:inline-flex;align-items:center;gap:8px}
 .theme-toggle .icon{font-size:16px;line-height:1}
 .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
+  .skip-link{position:absolute;left:-9999px;top:auto;width:1px;height:1px;overflow:hidden}
+  .skip-link:focus{left:12px;top:10px;width:auto;height:auto;padding:10px 14px;background:linear-gradient(135deg,var(--primary),var(--primary-2));color:#fff;border-radius:10px;z-index:100;box-shadow:0 10px 30px color-mix(in oklab, var(--primary) 40%, transparent)}
 
 /* Hero */
 .hero{position:relative;padding:72px 0}
@@ -207,12 +252,19 @@ body.no-scroll{overflow:hidden}
 .card .icon{font-size:22px;margin-bottom:6px}
 
 /* Pricing */
-.pricing{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-.price-card{position:relative;display:flex;flex-direction:column;gap:12px;padding:22px;border:1px solid transparent;border-radius:16px;background:
+.pricing{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;perspective:1000px;perspective-origin:center}
+.price-card{position:relative;z-index:0;display:flex;flex-direction:column;gap:12px;padding:22px;border:1px solid transparent;border-radius:16px;background:
   linear-gradient(var(--surface), var(--surface)) padding-box,
-  linear-gradient(180deg, color-mix(in oklab, var(--primary) 28%, transparent), color-mix(in oklab, var(--primary-2) 22%, transparent)) border-box}
+  linear-gradient(180deg, color-mix(in oklab, var(--primary) 28%, transparent), color-mix(in oklab, var(--primary-2) 22%, transparent)) border-box;
+  transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateZ(0) scale(var(--scale, 1));
+  will-change: transform, box-shadow;
+  transition: transform .18s ease, box-shadow .25s ease, background .3s ease, border-color .3s ease, filter .3s ease}
+.price-card::before{content:"";position:absolute;inset:-2px;border-radius:inherit;pointer-events:none;z-index:-1;background:radial-gradient(120px 80px at var(--mx, 50%) var(--my, 50%), color-mix(in oklab, var(--primary) 38%, transparent), transparent 60%);opacity:var(--glow, 0);filter:blur(22px);transition:opacity .25s ease}
+.price-card::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(125deg, transparent 40%, rgba(255,255,255,.06) 50%, transparent 60%);background-size:200% 200%;background-position:180% 0;opacity:0;transition:opacity .2s ease, background-position .8s ease}
 .price{font-size:32px;font-weight:700}
 .price-card ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;color:var(--muted)}
+.price-card:hover{--scale:1.02; box-shadow:0 16px 56px color-mix(in oklab, var(--primary) 28%, transparent)}
+.price-card:hover::after{opacity:.7; background-position:-20% 100%}
 .price-card.popular{box-shadow:0 10px 40px color-mix(in oklab, var(--primary) 30%, transparent); transform:translateY(-2px)}
 .price-card .ribbon{position:absolute;top:14px;right:14px;background:linear-gradient(135deg,var(--primary),var(--primary-2));padding:4px 10px;border-radius:999px;font-size:12px}
 
@@ -284,17 +336,17 @@ footer a:hover{color:var(--text)}
   </style>
 </head>
 <body>
+  <a href="#main" class="skip-link">Пропустить к основному контенту</a>
   <header class="header">
     <div class="container nav">
       <div class="brand">
-        <img class="logo" src="{{ url_for('static', path='gls-avatar-wordmark.svg') }}" alt="GLS VPN logo" />
+        <img class="logo" src="{{ url_for('static', path='gls-avatar-wordmark.svg') }}" alt="GLS VPN logo" width="50" height="50" decoding="async" />
         <span>Главная страница</span>
       </div>
       <nav class="menu" id="menu">
-        <a class="btn small telegram" href="https://t.me/glsvpn_bot" target="_blank" rel="noopener">Telegram бот</a>
+        <a class="btn small telegram" href="https://t.me/glsvpn_bot" target="_blank" rel="noopener noreferrer">Telegram бот</a>
         <a href="#pricing">Тарифы</a>
         <a href="#faq">FAQ</a>
-        <a class="btn small" href="#start">Начать</a>
         <span class="divider" aria-hidden="true"></span>
         <button type="button" class="btn small ghost theme-toggle" id="themeToggle" aria-label="Переключить тему">
           <span class="icon" id="themeIcon" aria-hidden="true">🌙</span>
@@ -307,7 +359,7 @@ footer a:hover{color:var(--text)}
     </div>
   </header>
 
-  <main>
+  <main id="main">
     <section class="hero" id="start">
       <div class="container grid-2">
         <div class="hero__content">
@@ -376,7 +428,7 @@ footer a:hover{color:var(--text)}
               <li>Быстрое подключение</li>
               <li>Работает на всех устройствах</li>
             </ul>
-            <a class="btn primary w100" href="https://t.me/glsvpn_bot" target="_blank" rel="noopener">Активировать</a>
+            <a class="btn primary w100" href="https://t.me/glsvpn_bot" target="_blank" rel="noopener noreferrer">Активировать</a>
           </div>
           <div class="price-card popular">
             <div class="ribbon">Популярно</div>
@@ -387,7 +439,7 @@ footer a:hover{color:var(--text)}
               <li>Безлимитный трафик</li>
               <li>Быстрое подключение</li>
             </ul>
-            <a class="btn primary w100" href="https://t.me/glsvpn_bot" target="_blank" rel="noopener">Выбрать</a>
+            <a class="btn primary w100" href="https://t.me/glsvpn_bot" target="_blank" rel="noopener noreferrer">Выбрать</a>
           </div>
           <div class="price-card">
             <h3>3 месяца</h3>
@@ -397,7 +449,7 @@ footer a:hover{color:var(--text)}
               <li>Низкий пинг</li>
               <li>Высокая скорость</li>
             </ul>
-            <a class="btn primary w100" href="https://t.me/glsvpn_bot" target="_blank" rel="noopener">Купить</a>
+            <a class="btn primary w100" href="https://t.me/glsvpn_bot" target="_blank" rel="noopener noreferrer">Купить</a>
           </div>
         </div>
       </div>
@@ -424,14 +476,14 @@ footer a:hover{color:var(--text)}
   <footer>
     <div class="container inner">
       <div class="brand small">
-        <img class="logo" src="{{ url_for('static', path='gls-avatar-wordmark.svg') }}" alt="GLS VPN" />
+        <img class="logo" src="{{ url_for('static', path='gls-avatar-wordmark.svg') }}" alt="GLS VPN" width="32" height="32" loading="lazy" decoding="async" />
         <span>GLS VPN</span>
       </div>
       <div class="links">
         <a href="#features">Возможности</a>
         <a href="#pricing">Тарифы</a>
         <a href="#faq">FAQ</a>
-        <a href="https://t.me/glsvpn_bot" target="_blank" rel="noopener">Telegram</a>
+        <a href="https://t.me/glsvpn_bot" target="_blank" rel="noopener noreferrer">Telegram</a>
       </div>
     </div>
   </footer>
@@ -544,6 +596,41 @@ document.addEventListener('DOMContentLoaded', () => {
     el.classList.add('reveal');
     observer.observe(el);
   });
+
+  // Interactive pricing hover (tilt + glow)
+  const pricing = document.querySelector('.pricing');
+  const cards = document.querySelectorAll('.price-card');
+  const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (pricing && cards.length && !reduceMotion) {
+    const constrain = 14; // tilt strength
+    cards.forEach(card => {
+      const handleMove = (e) => {
+        const rect = card.getBoundingClientRect();
+        const x = e.clientX - rect.left;
+        const y = e.clientY - rect.top;
+        const px = (x / rect.width) - 0.5;  // -0.5..0.5
+        const py = (y / rect.height) - 0.5; // -0.5..0.5
+        const rx = (-py * constrain).toFixed(2) + 'deg';
+        const ry = (px * constrain).toFixed(2) + 'deg';
+        card.style.setProperty('--rx', rx);
+        card.style.setProperty('--ry', ry);
+        card.style.setProperty('--mx', `${((x / rect.width) * 100).toFixed(2)}%`);
+        card.style.setProperty('--my', `${((y / rect.height) * 100).toFixed(2)}%`);
+        card.style.setProperty('--glow', '1');
+      };
+      const reset = () => {
+        card.style.setProperty('--rx', '0deg');
+        card.style.setProperty('--ry', '0deg');
+        card.style.setProperty('--glow', '0');
+      };
+      card.addEventListener('mousemove', handleMove);
+      card.addEventListener('mouseleave', reset);
+      card.addEventListener('blur', reset);
+      // Touch support (soft center tilt)
+      card.addEventListener('touchstart', () => { card.style.setProperty('--scale','1.02'); card.style.setProperty('--glow','1'); }, {passive:true});
+      card.addEventListener('touchend', () => { card.style.removeProperty('--scale'); card.style.setProperty('--glow','0'); }, {passive:true});
+    });
+  }
 });
   </script>
 </body>
