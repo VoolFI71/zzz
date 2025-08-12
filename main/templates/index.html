@@ -125,12 +125,18 @@ body.no-scroll{overflow:hidden}
 /* Hero */
 .hero{position:relative;padding:72px 0}
 .grid-2{display:grid;grid-template-columns:1.2fr 1fr;gap:32px;align-items:center}
+.grid-2 > .hero__art{justify-self:center;width:auto}
 .hero__content h1{font-size:44px;line-height:1.12;margin:0 0 14px}
 .hero__content p{color:var(--muted);margin:0 0 22px;font-size:18px}
 .cta{display:flex;gap:12px;flex-wrap:wrap}
 .badges{display:flex;gap:10px;margin-top:18px}
 .badges span{font-size:12px;color:var(--muted);border:1px solid var(--stroke);padding:6px 10px;border-radius:999px}
 .hero__art{display:flex;align-items:center;justify-content:center}
+  /* Reveal animation */
+  .reveal{opacity:0; transform:translateY(14px); transition:opacity .35s ease, transform .35s ease}
+  .visible{opacity:1; transform:none}
+  /* Art container sizing */
+  .hero__art .card{width:100%; max-width:480px; margin:0 auto}
 .glass{background:var(--card);border:1px solid var(--stroke);backdrop-filter:blur(10px) saturate(135%);-webkit-backdrop-filter:blur(10px) saturate(135%);border-radius:16px}
 .card{padding:22px}
 .card h3{margin:0 0 6px}
@@ -194,6 +200,9 @@ body.no-scroll{overflow:hidden}
     .section{padding:42px 0}
     .menu.open{position:absolute;top:64px;left:0;right:0;background:rgba(11,16,32,.96);border-bottom:1px solid var(--stroke);display:flex;flex-direction:column;gap:12px;padding:14px 20px}
     .menu.open a, .menu.open .btn{display:block; width:100%; text-align:center}
+     /* Hero art mobile tweaks */
+     .hero__art{margin-top:14px}
+     .hero__art .card{max-width:360px; padding:16px}
   }
 
   @media (max-width: 420px){
