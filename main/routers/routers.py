@@ -164,6 +164,7 @@ async def create_config(
         payload = build_payload(uid, enable=False)
 
         url = COUNTRY_SETTINGS[client_data.server]["urlcreate"]
+        logger.info("panel.create URL=%s", url)
         response = await panel_request(request, url, client_data.server, payload)
 
         if response.status_code == 200:
@@ -212,6 +213,7 @@ async def give_config(
     expiry_unix = int(time.time()) + (60 * 60 * 24 * client_data.time)
     payload = build_payload(reserved_uid, enable=True, expiry_time=expiry_unix)
     url = COUNTRY_SETTINGS[client_data.server]["urlupdate"] + reserved_uid
+    logger.info("panel.update URL=%s", url)
 
     # 2) Обновляем конфиг на панели
     response = await panel_request(request, url, client_data.server, payload)
@@ -280,6 +282,7 @@ async def extend_config(
     payload = build_payload(uid, enable=True, expiry_time=new_time_end)
 
     url = f"{COUNTRY_SETTINGS[update_data.server]['urlupdate']}{uid}"
+    logger.info("panel.extend URL=%s", url)
     response = await panel_request(request, url, update_data.server, payload)
 
     if response.status_code == 200:
@@ -306,6 +309,7 @@ async def delete_config(
         raise HTTPException(status_code=404, detail="Конфиг не найден или уже удалён")
 
     url = f"{COUNTRY_SETTINGS[data.server]['urldelete']}{uid}"
+    logger.info("panel.delete URL=%s", url)
     response = await panel_request(request, url, data.server)
 
     if response.status_code != 200:

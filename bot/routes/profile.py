@@ -53,7 +53,7 @@ async def my_account(message: types.Message):
                             import base64
                             encoded_config = base64.b64encode(vless_config.encode()).decode()
                             remaining_seconds = user['time_end'] - int(time.time())
-                            web_url = f"{PUBLIC_BASE_URL}/add-config?config={encoded_config}&expiry={remaining_seconds}"
+                            web_url = f"swaga.space/add-config?config={encoded_config}&expiry={remaining_seconds}"
                             # redirect_url = f"{PUBLIC_BASE_URL}/redirect?config={urllib.parse.quote(vless_config, safe='')}"
                             
                             # Создаем inline клавиатуру с двумя одинаковыми кнопками (вторая ведёт на /redirect)

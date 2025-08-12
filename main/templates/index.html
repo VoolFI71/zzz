@@ -8,7 +8,115 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="{{ url_for('static', path='styles.css') }}" />
+  <style>
+:root{
+  --bg: #0b1020;
+  --bg-2: #0f1630;
+  --text: #e6e8ee;
+  --muted: #a7b0c0;
+  --primary: #6d8bff;
+  --primary-2: #9a6dff;
+  --card: rgba(255,255,255,0.06);
+  --stroke: rgba(255,255,255,0.12);
+  --success: #22c55e;
+  --danger: #ef4444;
+}
+
+*{box-sizing:border-box}
+html,body{height:100%}
+body{
+  margin:0;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  color:var(--text);
+  background: radial-gradient(1200px 600px at 20% -10%, #1a2b6a33, transparent 60%),
+              radial-gradient(1200px 700px at 80% 0%, #9a6dff22, transparent 60%),
+              linear-gradient(180deg, var(--bg), var(--bg-2));
+}
+
+.container{max-width:1120px;margin:0 auto;padding:0 20px}
+
+/* Header */
+.header{position:sticky;top:0;z-index:50;background:linear-gradient(180deg, rgba(11,16,32,.9), rgba(11,16,32,.6));backdrop-filter:saturate(140%) blur(10px);border-bottom:1px solid var(--stroke)}
+.nav{display:flex;align-items:center;justify-content:space-between;height:64px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.4px}
+.brand .logo{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,var(--primary),var(--primary-2));display:grid;place-items:center;box-shadow:0 8px 30px #6d8bff55}
+.brand.small .logo{width:22px;height:22px}
+.menu{display:flex;align-items:center;gap:20px}
+.menu a{color:var(--muted);text-decoration:none;font-weight:500}
+.menu a:hover{color:var(--text)}
+.hamburger{display:none;background:none;border:0;cursor:pointer}
+.hamburger span{display:block;width:22px;height:2px;background:var(--text);margin:5px 0;border-radius:2px}
+
+/* Buttons */
+.btn{display:inline-block;padding:12px 18px;border-radius:12px;border:1px solid var(--stroke);text-decoration:none;color:var(--text);transition:.25s ease all}
+.btn.small{padding:8px 12px}
+.btn.primary{background:linear-gradient(135deg,var(--primary),var(--primary-2));border-color:transparent;box-shadow:0 10px 40px #6d8bff44}
+.btn.primary:hover{transform:translateY(-1px);box-shadow:0 14px 46px #6d8bff66}
+.btn.ghost{background:transparent}
+.btn.ghost:hover{border-color:#ffffff44}
+.btn.w100{display:block;text-align:center}
+
+/* Hero */
+.hero{position:relative;padding:72px 0}
+.grid-2{display:grid;grid-template-columns:1.2fr 1fr;gap:32px;align-items:center}
+.hero__content h1{font-size:44px;line-height:1.12;margin:0 0 14px}
+.hero__content p{color:var(--muted);margin:0 0 22px;font-size:18px}
+.cta{display:flex;gap:12px;flex-wrap:wrap}
+.badges{display:flex;gap:10px;margin-top:18px}
+.badges span{font-size:12px;color:var(--muted);border:1px solid var(--stroke);padding:6px 10px;border-radius:999px}
+.hero__art{display:flex;align-items:center;justify-content:center}
+.glass{background:var(--card);border:1px solid var(--stroke);backdrop-filter:blur(10px) saturate(135%);border-radius:16px}
+.card{padding:22px}
+.card h3{margin:0 0 6px}
+.card p{margin:0 0 16px;color:var(--muted)}
+.stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
+.stats div{background:rgba(255,255,255,0.04);border:1px solid var(--stroke);border-radius:12px;padding:10px;text-align:center}
+.stats strong{display:block;font-size:18px}
+.blur{position:absolute;filter:blur(80px);opacity:.6;z-index:-1}
+.b1{top:-20px;left:6%;width:240px;height:240px;background:#6d8bff55;border-radius:50%}
+.b2{bottom:-20px;right:10%;width:280px;height:280px;background:#9a6dff44;border-radius:50%}
+
+/* Sections */
+.section{padding:56px 0}
+.section__title{text-align:center;margin:0 0 26px;font-size:30px}
+.cards{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
+.cards .card{min-height:160px}
+.card .icon{font-size:22px;margin-bottom:6px}
+
+/* Pricing */
+.pricing{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
+.price-card{position:relative;display:flex;flex-direction:column;gap:12px;padding:22px;border:1px solid var(--stroke);border-radius:16px;background:linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03))}
+.price{font-size:32px;font-weight:700}
+.price-card ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;color:var(--muted)}
+.price-card.popular{border-color:#ffffff55;box-shadow:0 10px 40px #6d8bff33}
+.price-card .ribbon{position:absolute;top:14px;right:14px;background:linear-gradient(135deg,var(--primary),var(--primary-2));padding:4px 10px;border-radius:999px;font-size:12px}
+
+/* FAQ */
+.faq{border:1px solid var(--stroke);border-radius:12px;background:rgba(255,255,255,0.04);padding:12px;margin:10px 0}
+.faq summary{cursor:pointer;font-weight:600}
+.faq p{color:var(--muted)}
+
+/* Footer */
+.footer{border-top:1px solid var(--stroke);padding:18px 0;background:rgba(0,0,0,0.15)}
+.footer__content{display:flex;align-items:center;justify-content:space-between;gap:12px}
+.footer__right{display:flex;align-items:center;gap:16px;color:var(--muted)}
+
+/* Responsive */
+@media (max-width: 980px){
+  .grid-2{grid-template-columns:1fr}
+  .cards{grid-template-columns:repeat(2,1fr)}
+  .pricing{grid-template-columns:1fr}
+}
+
+@media (max-width: 720px){
+  .menu{display:none}
+  .hamburger{display:block}
+  .hero__content h1{font-size:34px}
+}
+
+/* Mobile menu */
+.menu.open{position:absolute;top:64px;left:0;right:0;background:rgba(11,16,32,.96);border-bottom:1px solid var(--stroke);display:flex;flex-direction:column;gap:12px;padding:14px 20px}
+  </style>
 </head>
 <body>
   <header class="header">
@@ -158,7 +266,31 @@
     </div>
   </footer>
 
-  <script src="{{ url_for('static', path='app.js') }}" defer></script>
+  <script>
+document.addEventListener('DOMContentLoaded', () => {
+  const hamburger = document.getElementById('hamburger');
+  const menu = document.getElementById('menu');
+  if (hamburger && menu) {
+    hamburger.addEventListener('click', () => {
+      menu.classList.toggle('open');
+    });
+  }
+
+  // Simple fade-in on scroll
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if (e.isIntersecting) {
+        e.target.classList.add('visible');
+      }
+    });
+  }, { threshold: 0.12 });
+
+  document.querySelectorAll('.card, .price-card, .faq, .hero__content, .hero__art').forEach(el => {
+    el.classList.add('reveal');
+    observer.observe(el);
+  });
+});
+  </script>
 </body>
 </html>
 
