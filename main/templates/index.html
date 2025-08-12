@@ -202,7 +202,12 @@ body.no-scroll{overflow:hidden}
     .menu.open a, .menu.open .btn{display:block; width:100%; text-align:center}
      /* Hero art mobile tweaks */
       .hero__art{margin-top:14px}
-      .hero__art .card{max-width:360px; padding:16px; width:calc(100% - 12px); margin-left:0; margin-right:12px}
+      .hero__art .card{max-width:360px; padding:16px; width:calc(100% - 12px); margin-left:0; margin-right:12px; overflow:hidden}
+      /* Stats grid: prevent right cling */
+      .stats{grid-template-columns:1fr 1fr}
+      .stats div:nth-child(3){grid-column:1 / -1}
+      .stats div{min-width:0; padding:8px}
+      .stats strong, .stats span{word-break:break-word; overflow-wrap:anywhere}
   }
 
   @media (max-width: 420px){
