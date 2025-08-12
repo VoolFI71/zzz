@@ -19,7 +19,11 @@ async def startup_event() -> None:
     # Глобальный HTTP-клиент для реюза соединений к панели
     timeout = httpx.Timeout(15.0, connect=5.0)
     limits = httpx.Limits(max_connections=200, max_keepalive_connections=50)
-    app.state.http_client = httpx.AsyncClient(timeout=timeout, limits=limits)
+    app.state.http_client = httpx.AsyncClient(
+        timeout=timeout,
+        limits=limits,
+        follow_redirects=True,
+    )
 
     # Опциональная фоновая чистка истёкших конфигов
     enable_sweep = os.getenv("ENABLE_EXPIRE_SWEEP", "true").lower() in {"1", "true", "yes"}

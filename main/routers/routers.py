@@ -136,7 +136,7 @@ async def panel_request(request: Request, url: str, server_code: str, payload: D
             if http_client is not None:
                 return await _do_request(http_client)
             # Fallback: локальный клиент (не должно часто срабатывать)
-            async with httpx.AsyncClient(timeout=15) as tmp_client:
+            async with httpx.AsyncClient(timeout=15, follow_redirects=True) as tmp_client:
                 return await _do_request(tmp_client)
         except httpx.RequestError as exc:
             last_exc = exc
