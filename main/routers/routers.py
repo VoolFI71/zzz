@@ -19,7 +19,7 @@ from fastapi import (
     Query,
     Request,
 )
-from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse
+from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, Response
 from fastapi.templating import Jinja2Templates
 
 from database import db
@@ -71,6 +71,7 @@ COUNTRY_SETTINGS: dict[str, dict[str, str]] = {
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
+BASE_URL: str = os.getenv("BASE_URL", "https://swaga.space")
 
 # ---------------------------------------------------------------------------
 # Dependencies
@@ -497,3 +498,35 @@ async def add_config_redirect(
 async def landing(request: Request):  # noqa: D401
     """Красочная посадочная страница VPN."""
     return templates.TemplateResponse("index.html", {"request": request})
+
+
+# ---------------------------------------------------------------------------
+# SEO: robots.txt и sitemap.xml
+# ---------------------------------------------------------------------------
+
+@router.get("/robots.txt", include_in_schema=False)
+async def robots_txt() -> PlainTextResponse:
+    content = (
+        "User-agent: *\n"
+        "Allow: /\n"
+        f"Sitemap: {BASE_URL}/sitemap.xml\n"
+    )
+    return PlainTextResponse(content=content, media_type="text/plain; charset=utf-8")
+
+
+@router.get("/sitemap.xml", include_in_schema=False)
+async def sitemap_xml() -> Response:
+    urls: list[str] = [
+        f"{BASE_URL}/",
+        f"{BASE_URL}/add-config",
+    ]
+    urlset = "\n".join(
+        f"  <url>\n    <loc>{loc}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>" for loc in urls
+    )
+    xml = (
+        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
+        "<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n"
+        f"{urlset}\n"
+        "</urlset>\n"
+    )
+    return Response(content=xml, media_type="application/xml")
