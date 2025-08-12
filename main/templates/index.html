@@ -71,10 +71,16 @@
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <meta name="color-scheme" content="dark light" />
+  <meta name="theme-color" content="#0f1630" media="(prefers-color-scheme: dark)" />
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
   <style>
 :root{
+  /* Base palette (dark) */
   --bg: #0b1020;
   --bg-2: #0f1630;
+  --surface: rgba(255,255,255,0.06);
+  --surface-2: rgba(255,255,255,0.04);
   --text: #e6e8ee;
   --muted: #a7b0c0;
   --primary: #6d8bff;
@@ -84,23 +90,55 @@
   --stroke: rgba(255,255,255,0.12);
   --success: #22c55e;
   --danger: #ef4444;
+  --shadow-xl: 0 10px 40px rgba(6,9,20,.35);
+  --radius-sm: 10px;
+  --radius-md: 12px;
+  --radius-lg: 16px;
+}
+
+/* Explicit light theme (toggle) */
+[data-theme="light"]{
+  --bg: #f7f8fb;
+  --bg-2: #ffffff;
+  --surface: rgba(0,0,0,0.035);
+  --surface-2: rgba(0,0,0,0.03);
+  --text: #0f1225;
+  --muted: #4b5565;
+  --primary: #4b6bff;
+  --primary-2: #8456ff;
+  --telegram: #229ed9;
+  --card: rgba(0,0,0,0.04);
+  --stroke: rgba(15,18,37,0.12);
+  --success: #16a34a;
+  --danger: #dc2626;
 }
 
 *{box-sizing:border-box}
 html,body{height:100%; overflow-x:hidden; overscroll-behavior-x:none}
+html{scroll-behavior:smooth}
 body{
   margin:0;
   font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji", "Segoe UI Emoji";
   color:var(--text);
-  /* Полностью единый фон без градиентов */
-  background: var(--bg-2);
+  line-height:1.6;
+  /* Subtle layered background */
+  background:
+    radial-gradient(1200px 600px at 10% -10%, rgba(109,139,255,0.10), transparent 60%),
+    radial-gradient(1200px 600px at 110% 10%, rgba(154,109,255,0.08), transparent 60%),
+    var(--bg-2);
 }
 body.no-scroll{overflow:hidden}
 
 .container{max-width:1120px;margin:0 auto;padding:0 20px}
 
+/* Selection */
+::selection{background:color-mix(in oklab, var(--primary) 25%, transparent); color:var(--text)}
+
+/* Focus states */
+:where(a,button,[role="button"],summary):focus-visible{outline:2px solid color-mix(in oklab, var(--primary) 70%, white 0%); outline-offset:2px; border-radius:10px}
+
 /* Header */
-.header{position:sticky;top:0;z-index:50;background:linear-gradient(180deg, rgba(11,16,32,.9), rgba(11,16,32,.6));backdrop-filter:saturate(140%) blur(10px);-webkit-backdrop-filter:saturate(140%) blur(10px);border-bottom:1px solid var(--stroke)}
+.header{position:sticky;top:0;z-index:50;background:linear-gradient(180deg, color-mix(in oklab, var(--bg) 94%, transparent), color-mix(in oklab, var(--bg) 80%, transparent));backdrop-filter:saturate(140%) blur(10px);-webkit-backdrop-filter:saturate(140%) blur(10px);border-bottom:1px solid var(--stroke)}
 .nav{display:flex;align-items:center;justify-content:space-between;height:64px;position:relative}
 .brand{display:flex;align-items:center;gap:10px;font-weight:700;letter-spacing:.4px}
   .brand .logo{width:50px;height:50px;border-radius:8px;display:block;object-fit:cover;border:0;box-shadow:none}
@@ -108,13 +146,17 @@ body.no-scroll{overflow:hidden}
 .menu{display:flex;align-items:center;gap:20px}
 .menu a{color:var(--muted);text-decoration:none;font-weight:500}
 .menu a:hover{color:var(--text)}
+.menu .divider{width:1px;height:22px;background:var(--stroke)}
 .hamburger{display:none;background:none;border:0;cursor:pointer}
 .hamburger span{display:block;width:22px;height:2px;background:var(--text);margin:5px 0;border-radius:2px}
 
+/* Mobile-centered header title */
+.header__title{display:none;position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);font-weight:700;letter-spacing:.2px;color:var(--text);pointer-events:none}
+
 /* Buttons */
-.btn{display:inline-block;padding:12px 18px;border-radius:12px;border:1px solid var(--stroke);text-decoration:none;color:var(--text);transition:.25s ease all}
+.btn{display:inline-block;padding:12px 18px;border-radius:12px;border:1px solid var(--stroke);text-decoration:none;color:var(--text);transition:.25s ease transform, .2s ease box-shadow, .2s ease background, .2s ease border-color}
 .btn.small{padding:8px 12px}
-.btn.primary{background:linear-gradient(135deg,var(--primary),var(--primary-2));border-color:transparent;box-shadow:0 10px 40px #6d8bff44}
+.btn.primary{background:linear-gradient(135deg,var(--primary),var(--primary-2));border-color:transparent;box-shadow:0 10px 40px color-mix(in oklab, var(--primary) 40%, transparent)}
 .btn.primary:hover{transform:translateY(-1px);box-shadow:0 14px 46px #6d8bff66}
 .btn.telegram{background:var(--telegram);border-color:transparent;color:#fff;box-shadow:0 10px 40px rgba(38,165,228,0.35)}
 .btn.telegram:hover{transform:translateY(-1px);filter:brightness(1.06);box-shadow:0 14px 46px rgba(38,165,228,0.5)}
@@ -122,11 +164,16 @@ body.no-scroll{overflow:hidden}
 .btn.ghost:hover{border-color:#ffffff44}
 .btn.w100{display:block;text-align:center}
 
+/* Theme toggle */
+.theme-toggle{display:inline-flex;align-items:center;gap:8px}
+.theme-toggle .icon{font-size:16px;line-height:1}
+.sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);clip-path:inset(50%);white-space:nowrap}
+
 /* Hero */
 .hero{position:relative;padding:72px 0}
 .grid-2{display:grid;grid-template-columns:1.2fr 1fr;gap:32px;align-items:center}
 .grid-2 > .hero__art{justify-self:center;width:auto}
-.hero__content h1{font-size:44px;line-height:1.12;margin:0 0 14px}
+.hero__content h1{font-size:44px;line-height:1.12;margin:0 0 14px;letter-spacing:.2px}
 .hero__content p{color:var(--muted);margin:0 0 22px;font-size:18px}
 .cta{display:flex;gap:12px;flex-wrap:wrap}
 .badges{display:flex;gap:10px;margin-top:18px}
@@ -138,11 +185,14 @@ body.no-scroll{overflow:hidden}
   /* Art container sizing */
   .hero__art .card{width:100%; max-width:480px; margin:0 auto}
 .glass{background:var(--card);border:1px solid var(--stroke);backdrop-filter:blur(10px) saturate(135%);-webkit-backdrop-filter:blur(10px) saturate(135%);border-radius:16px}
-.card{padding:22px}
+.card{padding:22px;border:1px solid transparent;background:
+  linear-gradient(var(--surface), var(--surface)) padding-box,
+  linear-gradient(135deg, color-mix(in oklab, var(--primary) 32%, transparent), color-mix(in oklab, var(--primary-2) 30%, transparent)) border-box;
+  border-radius:16px; box-shadow: var(--shadow-xl)}
 .card h3{margin:0 0 6px}
 .card p{margin:0 0 16px;color:var(--muted)}
 .stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px}
-.stats div{background:rgba(255,255,255,0.04);border:1px solid var(--stroke);border-radius:12px;padding:10px;text-align:center}
+.stats div{background:var(--surface-2);border:1px solid var(--stroke);border-radius:12px;padding:10px;text-align:center}
 .stats strong{display:block;font-size:18px}
 .blur{position:absolute;filter:blur(80px);opacity:.6;z-index:-1}
 .b1{top:-20px;left:6%;width:240px;height:240px;background:#6d8bff55;border-radius:50%}
@@ -150,6 +200,7 @@ body.no-scroll{overflow:hidden}
 
 /* Sections */
 .section{padding:56px 0}
+.section, .hero{scroll-margin-top:84px}
 .section__title{text-align:center;margin:0 0 26px;font-size:30px}
 .cards{display:grid;grid-template-columns:repeat(4,1fr);gap:16px}
 .cards .card{min-height:160px}
@@ -157,18 +208,25 @@ body.no-scroll{overflow:hidden}
 
 /* Pricing */
 .pricing{display:grid;grid-template-columns:repeat(3,1fr);gap:16px}
-.price-card{position:relative;display:flex;flex-direction:column;gap:12px;padding:22px;border:1px solid var(--stroke);border-radius:16px;background:linear-gradient(180deg, rgba(255,255,255,0.06), rgba(255,255,255,0.03))}
+.price-card{position:relative;display:flex;flex-direction:column;gap:12px;padding:22px;border:1px solid transparent;border-radius:16px;background:
+  linear-gradient(var(--surface), var(--surface)) padding-box,
+  linear-gradient(180deg, color-mix(in oklab, var(--primary) 28%, transparent), color-mix(in oklab, var(--primary-2) 22%, transparent)) border-box}
 .price{font-size:32px;font-weight:700}
 .price-card ul{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;color:var(--muted)}
-.price-card.popular{border-color:#ffffff55;box-shadow:0 10px 40px #6d8bff33}
+.price-card.popular{box-shadow:0 10px 40px color-mix(in oklab, var(--primary) 30%, transparent); transform:translateY(-2px)}
 .price-card .ribbon{position:absolute;top:14px;right:14px;background:linear-gradient(135deg,var(--primary),var(--primary-2));padding:4px 10px;border-radius:999px;font-size:12px}
 
 /* FAQ */
-.faq{border:1px solid var(--stroke);border-radius:12px;background:rgba(255,255,255,0.04);padding:12px;margin:10px 0}
+.faq{border:1px solid var(--stroke);border-radius:12px;background:var(--surface-2);padding:12px;margin:10px 0}
 .faq summary{cursor:pointer;font-weight:600}
 .faq p{color:var(--muted)}
 
-/* Footer removed */
+/* Footer */
+footer{border-top:1px solid var(--stroke);background:color-mix(in oklab, var(--bg) 96%, transparent)}
+footer .inner{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 0}
+footer .links{display:flex;align-items:center;gap:14px}
+footer a{color:var(--muted);text-decoration:none}
+footer a:hover{color:var(--text)}
 
 /* Responsive */
   @media (max-width: 1180px){
@@ -189,6 +247,7 @@ body.no-scroll{overflow:hidden}
     .hamburger span{width:24px}
     .brand span{display:none}
     .brand .logo{width:36px;height:36px}
+    .header__title{display:block}
     .hero{padding:48px 0}
     .hero__content h1{font-size:34px}
     .btn{font-size:16px; padding:14px 16px}
@@ -198,7 +257,7 @@ body.no-scroll{overflow:hidden}
     .cards{grid-template-columns:1fr}
     .pricing{grid-template-columns:1fr}
     .section{padding:42px 0}
-    .menu.open{position:absolute;top:64px;left:0;right:0;background:rgba(11,16,32,.96);border-bottom:1px solid var(--stroke);display:flex;flex-direction:column;gap:12px;padding:14px 20px}
+    .menu.open{position:absolute;top:64px;left:0;right:0;background:color-mix(in oklab, var(--bg) 96%, transparent);border-bottom:1px solid var(--stroke);display:flex;flex-direction:column;gap:12px;padding:14px 20px}
     .menu.open a, .menu.open .btn{display:block; width:100%; text-align:center}
      /* Hero art mobile tweaks */
       .hero__art{margin-top:14px}
@@ -217,6 +276,11 @@ body.no-scroll{overflow:hidden}
 
 /* Mobile menu */
 /* Стили мобильного меню определены внутри media-query (max-width:720px) */
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce){
+  *{animation:none !important; transition:none !important}
+}
   </style>
 </head>
 <body>
@@ -231,6 +295,11 @@ body.no-scroll{overflow:hidden}
         <a href="#pricing">Тарифы</a>
         <a href="#faq">FAQ</a>
         <a class="btn small" href="#start">Начать</a>
+        <span class="divider" aria-hidden="true"></span>
+        <button type="button" class="btn small ghost theme-toggle" id="themeToggle" aria-label="Переключить тему">
+          <span class="icon" id="themeIcon" aria-hidden="true">🌙</span>
+          <span class="sr-only">Сменить тему</span>
+        </button>
       </nav>
       <button class="hamburger" id="hamburger" aria-label="Открыть меню" aria-expanded="false" aria-controls="menu">
         <span></span><span></span><span></span>
@@ -352,11 +421,60 @@ body.no-scroll{overflow:hidden}
       </div>
     </section>
   </main>
+  <footer>
+    <div class="container inner">
+      <div class="brand small">
+        <img class="logo" src="{{ url_for('static', path='gls-avatar-wordmark.svg') }}" alt="GLS VPN" />
+        <span>GLS VPN</span>
+      </div>
+      <div class="links">
+        <a href="#features">Возможности</a>
+        <a href="#pricing">Тарифы</a>
+        <a href="#faq">FAQ</a>
+        <a href="https://t.me/glsvpn_bot" target="_blank" rel="noopener">Telegram</a>
+      </div>
+    </div>
+  </footer>
 
   
 
   <script>
 document.addEventListener('DOMContentLoaded', () => {
+  // Theme handling
+  const root = document.documentElement;
+  const themeToggle = document.getElementById('themeToggle');
+  const themeIcon = document.getElementById('themeIcon');
+
+  const getPreferredTheme = () => {
+    const stored = localStorage.getItem('theme');
+    if (stored === 'light' || stored === 'dark') return stored;
+    return window.matchMedia('(prefers-color-scheme: light)').matches ? 'light' : 'dark';
+  };
+
+  const setMetaThemeColor = (mode) => {
+    const meta = document.querySelector('meta[name="theme-color"][media]');
+    if (!meta) return;
+    // No-op: we provide media-query based theme-color metas above
+  };
+
+  const applyTheme = (mode) => {
+    if (mode === 'light') {
+      root.setAttribute('data-theme','light');
+      if (themeIcon) themeIcon.textContent = '☀️';
+    } else {
+      root.removeAttribute('data-theme');
+      if (themeIcon) themeIcon.textContent = '🌙';
+    }
+    setMetaThemeColor(mode);
+  };
+
+  applyTheme(getPreferredTheme());
+  themeToggle?.addEventListener('click', () => {
+    const next = root.getAttribute('data-theme') === 'light' ? 'dark' : 'light';
+    localStorage.setItem('theme', next);
+    applyTheme(next);
+  });
+
   const hamburger = document.getElementById('hamburger');
   const menu = document.getElementById('menu');
   const body = document.body;
@@ -411,11 +529,13 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }
 
-  // Simple fade-in on scroll
+  // Re-animate on every re-entry into viewport
   const observer = new IntersectionObserver((entries) => {
-    entries.forEach(e => {
-      if (e.isIntersecting) {
-        e.target.classList.add('visible');
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        entry.target.classList.add('visible');
+      } else {
+        entry.target.classList.remove('visible');
       }
     });
   }, { threshold: 0.12 });
