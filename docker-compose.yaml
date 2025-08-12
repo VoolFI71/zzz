@@ -9,7 +9,7 @@ services:
       - "80:80"
       - "443:443"
     volumes:
-      - ./nginx/certs:/etc/nginx/certs
+      - nginx_certs:/etc/nginx/certs
       - ./nginx/vhost.d:/etc/nginx/vhost.d
       - ./nginx/html:/usr/share/nginx/html
       - /var/run/docker.sock:/tmp/docker.sock:ro
@@ -24,10 +24,11 @@ services:
       - DEFAULT_EMAIL=gleb.gleb.tula@mail.ru
       - NGINX_PROXY_CONTAINER=nginx-proxy
     volumes:
-      - ./nginx/certs:/etc/nginx/certs
+      - nginx_certs:/etc/nginx/certs
       - ./nginx/vhost.d:/etc/nginx/vhost.d
       - ./nginx/html:/usr/share/nginx/html
       - /var/run/docker.sock:/var/run/docker.sock:ro
+      - acme:/etc/acme.sh
     restart: unless-stopped
   telegram-bot:
     build:
@@ -67,4 +68,8 @@ services:
       - ./main:/app/main
       - ./backup:/app/backup    
       - ./backups:/app/backups    
+
+volumes:
+  nginx_certs:
+  acme:
 
