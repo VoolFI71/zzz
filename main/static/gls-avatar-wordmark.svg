@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<svg width="512" height="512" viewBox="0 0 512 512" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <title>GLS VPN Avatar (Wordmark)</title>
+  <desc>Rounded gradient tile with GLS VPN wordmark.</desc>
+
+  <defs>
+    <linearGradient id="bg" x1="64" y1="32" x2="448" y2="480" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#6D8BFF"/>
+      <stop offset="1" stop-color="#9A6DFF"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0" cy="0" r="1" gradientUnits="userSpaceOnUse" gradientTransform="translate(150 110) rotate(35) scale(420)">
+      <stop offset="0" stop-color="#FFFFFF" stop-opacity="0.35"/>
+      <stop offset="1" stop-color="#FFFFFF" stop-opacity="0"/>
+    </radialGradient>
+    <filter id="softShadow" x="-20%" y="-20%" width="140%" height="140%" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="10" stdDeviation="16" flood-color="#0b1020" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+
+  <!-- Background -->
+  <rect x="32" y="32" width="448" height="448" rx="112" fill="url(#bg)"/>
+  <rect x="32" y="32" width="448" height="448" rx="112" fill="url(#glow)"/>
+  <rect x="32" y="32" width="448" height="448" rx="112" fill="none" stroke="rgba(255,255,255,0.28)" stroke-width="2"/>
+
+  <!-- Wordmark -->
+  <g filter="url(#softShadow)" fill="#FFFFFF">
+    <!-- Main: GLS -->
+    <text x="50%" y="56%" text-anchor="middle" font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial" font-size="160" font-weight="800" letter-spacing="2">
+      GLS
+    </text>
+    <!-- Subline: VPN -->
+    <text x="50%" y="74%" text-anchor="middle" font-family="Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial" font-size="56" font-weight="700" letter-spacing="6" opacity="0.92">
+      VPN
+    </text>
+  </g>
+
+</svg>
+
+
