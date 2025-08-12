@@ -183,6 +183,7 @@ async def check_yookassa(callback_query: CallbackQuery, state: FSMContext, bot: 
             async with session.post(urlupdate, json=data, headers={"X-API-Key": AUTH_CODE}) as resp:
                 if resp.status == 200:
                     await bot.send_message(tg_id, "Подписка активирована! Конфиг доступен в личном кабинете.")
+                    await bot.send_message(746560409, "Подписка активирована Для пользователя " + tg_id)
                 elif resp.status == 409:
                     await bot.send_message(tg_id, "Свободных конфигов нет. Свяжитесь с поддержкой.")
                 else:
