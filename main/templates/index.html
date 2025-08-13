@@ -12,9 +12,9 @@
   <meta property="og:image" content="{{ url_for('static', path='gls-avatar-wordmark.svg') }}" />
   <meta property="og:site_name" content="GLS VPN" />
   <meta property="og:locale" content="ru_RU" />
+  <meta name="twitter:title" content="GLS VPN">
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:title" content="GLS VPN — Быстрый и безопасный доступ без границ" />
-  <meta name="twitter:description" content="VPN с высокой скоростью, шифрованием и простым подключением. Поддержка iOS, Android, Windows, macOS." />
+  <meta name="twitter:description" content="GLS VPN — VPN с высокой скоростью, шифрованием и простым подключением. Поддержка iOS, Android, Windows, macOS." />
   <meta name="twitter:image" content="{{ url_for('static', path='gls-avatar-wordmark.svg') }}" />
   <link rel="alternate" hreflang="ru-RU" href="https://swaga.space/" />
   <link rel="alternate" hreflang="x-default" href="https://swaga.space/" />
@@ -107,7 +107,7 @@
   </script>
   <meta name="yandex-verification" content="1298a09f878a272b" />
   <meta name="yandex-verification" content="bb185d3a0aa04535" />
-  <title>GLS VPN — Быстрый и безопасный впн без границ</title>
+  <title>GLS VPN</title>
   <meta name="description" content="VPN с высокой скоростью, шифрованием и простым подключением. Поддержка iOS, Android, Windows, macOS." />
   <link rel="icon" href="{{ url_for('static', path='gls-avatar-wordmark.svg') }}" type="image/svg+xml">
   <link rel="apple-touch-icon" href="{{ url_for('static', path='gls-avatar-wordmark.svg') }}">
@@ -257,8 +257,8 @@ body.no-scroll{overflow:hidden}
   linear-gradient(var(--surface), var(--surface)) padding-box,
   linear-gradient(180deg, color-mix(in oklab, var(--primary) 28%, transparent), color-mix(in oklab, var(--primary-2) 22%, transparent)) border-box;
   transform: rotateX(var(--rx, 0deg)) rotateY(var(--ry, 0deg)) translateZ(0) scale(var(--scale, 1));
-  will-change: transform, box-shadow;
-  transition: transform .18s ease, box-shadow .25s ease, background .3s ease, border-color .3s ease, filter .3s ease}
+  will-change: opacity, transform, box-shadow;
+  transition: opacity .35s ease, transform .18s ease, box-shadow .25s ease, background .3s ease, border-color .3s ease, filter .3s ease}
 .price-card::before{content:"";position:absolute;inset:-2px;border-radius:inherit;pointer-events:none;z-index:-1;background:radial-gradient(120px 80px at var(--mx, 50%) var(--my, 50%), color-mix(in oklab, var(--primary) 38%, transparent), transparent 60%);opacity:var(--glow, 0);filter:blur(22px);transition:opacity .25s ease}
 .price-card::after{content:"";position:absolute;inset:0;border-radius:inherit;pointer-events:none;background:linear-gradient(125deg, transparent 40%, rgba(255,255,255,.06) 50%, transparent 60%);background-size:200% 200%;background-position:180% 0;opacity:0;transition:opacity .2s ease, background-position .8s ease}
 .price{font-size:32px;font-weight:700}
@@ -267,6 +267,32 @@ body.no-scroll{overflow:hidden}
 .price-card:hover::after{opacity:.7; background-position:-20% 100%}
 .price-card.popular{box-shadow:0 10px 40px color-mix(in oklab, var(--primary) 30%, transparent); transform:translateY(-2px)}
 .price-card .ribbon{position:absolute;top:14px;right:14px;background:linear-gradient(135deg,var(--primary),var(--primary-2));padding:4px 10px;border-radius:999px;font-size:12px}
+  .countries{margin-top:24px}
+  .countries .section__subtitle{color:var(--muted);text-align:center;margin:6px 0 0}
+  .country-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px;margin-top:12px;align-items:stretch}
+  .country-card{position:relative;display:flex;flex-direction:column;gap:10px;align-items:center;justify-content:center;text-align:center;padding:28px;border:1px solid var(--stroke);border-radius:16px;min-height:260px;
+    background:
+      linear-gradient(to bottom, var(--accent, color-mix(in oklab, var(--primary) 70%, white 0%)) 0 3px, transparent 3px),
+      var(--surface-2);
+    background-clip: padding-box, border-box}
+  .country-card.accent-1{--accent: var(--primary)}
+  .country-card.accent-2{--accent: var(--primary-2)}
+  .country-card.accent-3{--accent: var(--telegram)}
+  .country-flag{display:flex;align-items:center;justify-content:center}
+  .flag{width:96px;height:64px;display:block;border:none;border-radius:0;background:transparent;box-shadow:none}
+  .country-name{margin:0;min-height:28px}
+  .country-desc{margin:6px 0 0;max-width:520px;min-height:48px}
+  .country-code{display:none}
+  .country-name{font-size:22px;font-weight:700;margin:0}
+  .country-desc{color:var(--muted);margin:6px 0 0;max-width:520px}
+  .country-more{display:flex;align-items:center;gap:12px;margin:18px 0 6px}
+  .country-more .line{flex:1;height:2px;background:repeating-linear-gradient(90deg, color-mix(in oklab, var(--primary) 70%, transparent) 0 10px, transparent 10px 20px);border-radius:2px;position:relative}
+  .country-more .line::after{content:"";position:absolute;right:-6px;top:50%;transform:translateY(-50%);width:0;height:0;border-left:8px solid color-mix(in oklab, var(--primary) 70%, white 0%);border-top:6px solid transparent;border-bottom:6px solid transparent}
+  .country-more .more-text{white-space:nowrap;color:var(--muted);font-weight:600}
+  .country-pills{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .pill{display:flex;align-items:center;gap:10px;justify-content:flex-start;background:var(--surface-2);border:1px solid var(--stroke);border-radius:12px;padding:14px 16px}
+  .pill .code{display:inline-flex;align-items:center;justify-content:center;font-weight:800;letter-spacing:.04em;min-width:28px}
+  .pill .flag{font-size:18px}
 
 /* FAQ */
 .faq{border:1px solid var(--stroke);border-radius:12px;background:var(--surface-2);padding:12px;margin:10px 0}
@@ -336,24 +362,25 @@ footer a:hover{color:var(--text)}
   </style>
 </head>
 <body>
-  <a href="#main" class="skip-link">Пропустить к основному контенту</a>
+  <a href="#main" class="skip-link" data-i18n="skip.main">Пропустить к основному контенту</a>
   <header class="header">
     <div class="container nav">
       <div class="brand">
         <img class="logo" src="{{ url_for('static', path='gls-avatar-wordmark.svg') }}" alt="GLS VPN logo" width="50" height="50" decoding="async" />
-        <span>Главная страница</span>
+        <span data-i18n="brand.home">Главная страница</span>
       </div>
       <nav class="menu" id="menu">
-        <a class="btn small telegram" href="https://t.me/glsvpn_bot" target="_blank" rel="noopener noreferrer">Telegram бот</a>
-        <a href="#pricing">Тарифы</a>
-        <a href="#faq">FAQ</a>
+        <a class="btn small telegram" href="https://t.me/glsvpn_bot" target="_blank" rel="noopener noreferrer" data-i18n="menu.telegram">Telegram бот</a>
+        <a href="#pricing" data-i18n="menu.pricing">Тарифы</a>
+        <a href="#faq" data-i18n="menu.faq">FAQ</a>
         <span class="divider" aria-hidden="true"></span>
-        <button type="button" class="btn small ghost theme-toggle" id="themeToggle" aria-label="Переключить тему">
+        <button type="button" class="btn small ghost" id="langToggle" aria-label="Сменить язык" data-i18n-attr="aria-label" data-i18n="aria.lang_toggle">EN</button>
+        <button type="button" class="btn small ghost theme-toggle" id="themeToggle" aria-label="Переключить тему" data-i18n-attr="aria-label" data-i18n="theme.aria">
           <span class="icon" id="themeIcon" aria-hidden="true">🌙</span>
-          <span class="sr-only">Сменить тему</span>
+          <span class="sr-only" data-i18n="theme.sr_label">Сменить тему</span>
         </button>
       </nav>
-      <button class="hamburger" id="hamburger" aria-label="Открыть меню" aria-expanded="false" aria-controls="menu">
+      <button class="hamburger" id="hamburger" aria-label="Открыть меню" data-i18n-attr="aria-label" data-i18n="hamburger.aria" aria-expanded="false" aria-controls="menu">
         <span></span><span></span><span></span>
       </button>
     </div>
@@ -363,10 +390,10 @@ footer a:hover{color:var(--text)}
     <section class="hero" id="start">
       <div class="container grid-2">
         <div class="hero__content">
-          <h1>Доступ к интернету без ограничений</h1>
-          <p>Стабильные сервера, высокая скорость, шифрование и простое подключение в одно касание. Поддержка VLESS/Reality для максимальной защиты.</p>
+          <h1 data-i18n="hero.title">Доступ к интернету без ограничений</h1>
+          <p data-i18n="hero.subtitle">Стабильные сервера, высокая скорость, шифрование и простое подключение в одно касание. Поддержка VLESS/Reality для максимальной защиты.</p>
           <div class="cta">
-            <a class="btn primary" href="#pricing">Выбрать тариф</a>
+            <a class="btn primary" href="#pricing" data-i18n="cta.choose_plan">Выбрать тариф</a>
           </div>
           <div class="badges">
             <span>iOS</span><span>Android</span><span>Windows</span><span>macOS</span>
@@ -374,12 +401,12 @@ footer a:hover{color:var(--text)}
         </div>
         <div class="hero__art">
           <div class="glass card">
-            <h3>Шифрование Reality</h3>
-            <p>Скрывает трафик под легитимный TLS, обходя блокировки и DPI.</p>
+            <h3 data-i18n="hero.card.title">Шифрование Reality</h3>
+            <p data-i18n="hero.card.desc">Скрывает трафик под легитимный TLS, обходя блокировки и DPI.</p>
             <div class="stats">
-              <div><strong>200+</strong><span>соединений</span></div>
-              <div><strong>99.9%</strong><span>аптайм</span></div>
-              <div><strong>1 клик</strong><span>подключение</span></div>
+              <div><strong>200+</strong><span data-i18n="stats.connections">соединений</span></div>
+              <div><strong>99.9%</strong><span data-i18n="stats.uptime">аптайм</span></div>
+              <div><strong data-i18n="stats.one_click_num">1 клик</strong><span data-i18n="stats.connection">подключение</span></div>
             </div>
           </div>
         </div>
@@ -390,27 +417,27 @@ footer a:hover{color:var(--text)}
 
     <section id="features" class="section">
       <div class="container">
-        <h2 class="section__title">Почему GLS VPN</h2>
+        <h2 class="section__title" data-i18n="features.title">Почему GLS VPN</h2>
         <div class="cards">
           <article class="card">
             <div class="icon">🛡️</div>
-            <h3>Максимальная приватность</h3>
-            <p>Современные протоколы VLESS/Reality, отсутствие логов и шифрование end‑to‑end.</p>
+            <h3 data-i18n="features.item1.title">Максимальная приватность</h3>
+            <p data-i18n="features.item1.desc">Современные протоколы VLESS/Reality, отсутствие логов и шифрование end‑to‑end.</p>
           </article>
           <article class="card">
             <div class="icon">🚀</div>
-            <h3>Высокая скорость</h3>
-            <p>Оптимизированные сервера и балансировка подключений обеспечивают стабильный пинг и пропускную способность.</p>
+            <h3 data-i18n="features.item2.title">Высокая скорость</h3>
+            <p data-i18n="features.item2.desc">Оптимизированные сервера и балансировка подключений обеспечивают стабильный пинг и пропускную способность.</p>
           </article>
           <article class="card">
             <div class="icon">🧩</div>
-            <h3>Простое подключение</h3>
-            <p>Поддержка популярных клиентов. Импорт конфигурации в один клик.</p>
+            <h3 data-i18n="features.item3.title">Простое подключение</h3>
+            <p data-i18n="features.item3.desc">Поддержка популярных клиентов. Импорт конфигурации в один клик.</p>
           </article>
           <article class="card">
             <div class="icon">🌍</div>
-            <h3>Доступ без границ</h3>
-            <p>Обход блокировок и DPI. Доступ к любимым сервисам из любой точки мира.</p>
+            <h3 data-i18n="features.item4.title">Доступ без границ</h3>
+            <p data-i18n="features.item4.desc">Обход блокировок и DPI. Доступ к любимым сервисам из любой точки мира.</p>
           </article>
         </div>
       </div>
@@ -418,38 +445,77 @@ footer a:hover{color:var(--text)}
 
     <section id="pricing" class="section">
       <div class="container">
-        <h2 class="section__title">Тарифы</h2>
+        <h2 class="section__title" data-i18n="pricing.title">Тарифы</h2>
         <div class="pricing">
           <div class="price-card">
-            <h3>Тестовый период</h3>
+            <h3 data-i18n="pricing.p1.title">Тестовый период</h3>
             <div class="price">5 ₽</div>
             <ul>
-              <li>Доступ на 3 дня</li>
-              <li>Быстрое подключение</li>
-              <li>Работает на всех устройствах</li>
+              <li data-i18n="pricing.p1.li1">Доступ на 3 дня</li>
+              <li data-i18n="pricing.p1.li2">Быстрое подключение</li>
+              <li data-i18n="pricing.p1.li3">Работает на всех устройствах</li>
             </ul>
-            <a class="btn primary w100" href="https://t.me/glsvpn_bot" target="_blank" rel="noopener noreferrer">Активировать</a>
+            <a class="btn primary w100" href="https://t.me/glsvpn_bot" target="_blank" rel="noopener noreferrer" data-i18n="pricing.p1.btn">Активировать</a>
           </div>
           <div class="price-card popular">
-            <div class="ribbon">Популярно</div>
-            <h3>1 месяц</h3>
+            <div class="ribbon" data-i18n="pricing.p2.ribbon">Популярно</div>
+            <h3 data-i18n="pricing.p2.title">1 месяц</h3>
             <div class="price">79 ₽</div>
             <ul>
-              <li>Доступ на 31 день</li>
-              <li>Безлимитный трафик</li>
-              <li>Быстрое подключение</li>
+              <li data-i18n="pricing.p2.li1">Доступ на 31 день</li>
+              <li data-i18n="pricing.p2.li2">Безлимитный трафик</li>
+              <li data-i18n="pricing.p2.li3">Быстрое подключение</li>
             </ul>
-            <a class="btn primary w100" href="https://t.me/glsvpn_bot" target="_blank" rel="noopener noreferrer">Выбрать</a>
+            <a class="btn primary w100" href="https://t.me/glsvpn_bot" target="_blank" rel="noopener noreferrer" data-i18n="pricing.p2.btn">Выбрать</a>
           </div>
           <div class="price-card">
-            <h3>3 месяца</h3>
+            <h3 data-i18n="pricing.p3.title">3 месяца</h3>
             <div class="price">199 ₽</div>
             <ul>
-              <li>Доступ на 93 дня</li>
-              <li>Низкий пинг</li>
-              <li>Высокая скорость</li>
+              <li data-i18n="pricing.p3.li1">Доступ на 93 дня</li>
+              <li data-i18n="pricing.p3.li2">Низкий пинг</li>
+              <li data-i18n="pricing.p3.li3">Высокая скорость</li>
             </ul>
-            <a class="btn primary w100" href="https://t.me/glsvpn_bot" target="_blank" rel="noopener noreferrer">Купить</a>
+            <a class="btn primary w100" href="https://t.me/glsvpn_bot" target="_blank" rel="noopener noreferrer" data-i18n="pricing.p3.btn">Купить</a>
+          </div>
+        </div>
+        <div class="countries" id="countries">
+          <h3 class="section__title" data-i18n="countries.title">Страны</h3>
+          <p class="section__subtitle" data-i18n="countries.subtitle">Выбирайте оптимальные локации под игры, работу и доступ к сервисам</p>
+          <div class="country-grid">
+            <article class="country-card accent-1">
+              <div class="country-flag" aria-hidden="true">
+                <svg class="flag" viewBox="0 0 3 2" role="img" aria-label="Флаг Нидерландов" data-i18n-attr="aria-label" data-i18n="country.nl.flag" focusable="false" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+                  <rect width="3" height="2" fill="#FFFFFF"/>
+                  <rect width="3" height="0.6667" y="0" fill="#AE1C28"/>
+                  <rect width="3" height="0.6667" y="1.3333" fill="#21468B"/>
+                </svg>
+              </div>
+              <h4 class="country-name" data-i18n="country.nl.name">Нидерланды</h4>
+              <p class="country-desc" data-i18n="country.nl.desc">Узлы с отличной маршрутизацией и стабильной скоростью.</p>
+            </article>
+            <article class="country-card accent-2">
+              <div class="country-flag" aria-hidden="true">
+                <svg class="flag" viewBox="0 0 5 3" role="img" aria-label="Флаг Германии" data-i18n-attr="aria-label" data-i18n="country.de.flag" focusable="false" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+                  <rect width="5" height="3" fill="#000000"/>
+                  <rect width="5" height="1" y="1" fill="#DD0000"/>
+                  <rect width="5" height="1" y="2" fill="#FFCE00"/>
+                </svg>
+              </div>
+              <h4 class="country-name" data-i18n="country.de.name">Германия</h4>
+              <p class="country-desc" data-i18n="country.de.desc">Низкий пинг для Европы, высокая надёжность и приватность.</p>
+            </article>
+            <article class="country-card accent-3">
+              <div class="country-flag" aria-hidden="true">
+                <svg class="flag" viewBox="0 0 18 11" role="img" aria-label="Флаг Финляндии" data-i18n-attr="aria-label" data-i18n="country.fi.flag" focusable="false" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
+                  <rect width="18" height="11" fill="#FFFFFF"/>
+                  <rect x="0" y="4" width="18" height="3" fill="#003580"/>
+                  <rect x="5" y="0" width="3" height="11" fill="#003580"/>
+                </svg>
+              </div>
+              <h4 class="country-name" data-i18n="country.fi.name">Финляндия</h4>
+              <p class="country-desc" data-i18n="country.fi.desc">Стабильные каналы, хороший баланс скорости и латентности.</p>
+            </article>
           </div>
         </div>
       </div>
@@ -457,18 +523,18 @@ footer a:hover{color:var(--text)}
 
     <section id="faq" class="section">
       <div class="container">
-        <h2 class="section__title">Частые вопросы</h2>
+        <h2 class="section__title" data-i18n="faq.title">Частые вопросы</h2>
         <details class="faq">
-          <summary>Как подключиться?</summary>
-          <p>Получите конфигурацию в нашем боте и импортируйте её в приложение V2rayTun/AlphaNet/Shadowrocket.</p>
+          <summary data-i18n="faq.q1">Как подключиться?</summary>
+          <p data-i18n="faq.a1">Получите конфигурацию в нашем боте и импортируйте её в приложение V2rayTun/AlphaNet/Shadowrocket.</p>
         </details>
         <details class="faq">
-          <summary>Ведёте ли вы логи?</summary>
-          <p>Нет. Мы не храним историю посещений и не отслеживаем активность пользователей.</p>
+          <summary data-i18n="faq.q2">Ведёте ли вы логи?</summary>
+          <p data-i18n="faq.a2">Нет. Мы не храним историю посещений и не отслеживаем активность пользователей.</p>
         </details>
         <details class="faq">
-          <summary>Поддержка устройств?</summary>
-          <p>Наш протокол поддерживает iOS, Android, Windows, macOS. Главное установить клиент для подключения.</p>
+          <summary data-i18n="faq.q3">Поддержка устройств?</summary>
+          <p data-i18n="faq.a3">Наш протокол поддерживает iOS, Android, Windows, macOS. Главное установить клиент для подключения.</p>
         </details>
       </div>
     </section>
@@ -480,9 +546,9 @@ footer a:hover{color:var(--text)}
         <span>GLS VPN</span>
       </div>
       <div class="links">
-        <a href="#features">Возможности</a>
-        <a href="#pricing">Тарифы</a>
-        <a href="#faq">FAQ</a>
+        <a href="#features" data-i18n="footer.features">Возможности</a>
+        <a href="#pricing" data-i18n="footer.pricing">Тарифы</a>
+        <a href="#faq" data-i18n="footer.faq">FAQ</a>
         <a href="https://t.me/glsvpn_bot" target="_blank" rel="noopener noreferrer">Telegram</a>
       </div>
     </div>
@@ -492,6 +558,198 @@ footer a:hover{color:var(--text)}
 
   <script>
 document.addEventListener('DOMContentLoaded', () => {
+  // i18n
+  const I18N = {
+    ru: {
+      'meta.title': 'GLS VPN',
+      'meta.description': 'VPN с высокой скоростью, шифрованием и простым подключением. Поддержка iOS, Android, Windows, macOS.',
+      'skip.main': 'Пропустить к основному контенту',
+      'brand.home': 'Главная страница',
+      'menu.telegram': 'Telegram бот',
+      'menu.pricing': 'Тарифы',
+      'menu.faq': 'FAQ',
+      'aria.lang_toggle': 'Сменить язык',
+      'theme.aria': 'Переключить тему',
+      'theme.sr_label': 'Сменить тему',
+      'hamburger.aria': 'Открыть меню',
+      'hero.title': 'Доступ к интернету без ограничений',
+      'hero.subtitle': 'Стабильные сервера, высокая скорость, шифрование и простое подключение в одно касание. Поддержка VLESS/Reality для максимальной защиты.',
+      'cta.choose_plan': 'Выбрать тариф',
+      'hero.card.title': 'Шифрование Reality',
+      'hero.card.desc': 'Скрывает трафик под легитимный TLS, обходя блокировки и DPI.',
+      'stats.connections': 'соединений',
+      'stats.uptime': 'аптайм',
+      'stats.one_click_num': '1 клик',
+      'stats.connection': 'подключение',
+      'features.title': 'Почему GLS VPN',
+      'features.item1.title': 'Максимальная приватность',
+      'features.item1.desc': 'Современные протоколы VLESS/Reality, отсутствие логов и шифрование end‑to‑end.',
+      'features.item2.title': 'Высокая скорость',
+      'features.item2.desc': 'Оптимизированные сервера и балансировка подключений обеспечивают стабильный пинг и пропускную способность.',
+      'features.item3.title': 'Простое подключение',
+      'features.item3.desc': 'Поддержка популярных клиентов. Импорт конфигурации в один клик.',
+      'features.item4.title': 'Доступ без границ',
+      'features.item4.desc': 'Обход блокировок и DPI. Доступ к любимым сервисам из любой точки мира.',
+      'pricing.title': 'Тарифы',
+      'pricing.p1.title': 'Тестовый период',
+      'pricing.p1.li1': 'Доступ на 3 дня',
+      'pricing.p1.li2': 'Быстрое подключение',
+      'pricing.p1.li3': 'Работает на всех устройствах',
+      'pricing.p1.btn': 'Активировать',
+      'pricing.p2.ribbon': 'Популярно',
+      'pricing.p2.title': '1 месяц',
+      'pricing.p2.li1': 'Доступ на 31 день',
+      'pricing.p2.li2': 'Безлимитный трафик',
+      'pricing.p2.li3': 'Быстрое подключение',
+      'pricing.p2.btn': 'Выбрать',
+      'pricing.p3.title': '3 месяца',
+      'pricing.p3.li1': 'Доступ на 93 дня',
+      'pricing.p3.li2': 'Низкий пинг',
+      'pricing.p3.li3': 'Высокая скорость',
+      'pricing.p3.btn': 'Купить',
+      'countries.title': 'Страны',
+      'countries.subtitle': 'Выбирайте оптимальные локации под игры, работу и доступ к сервисам',
+      'country.nl.flag': 'Флаг Нидерландов',
+      'country.nl.name': 'Нидерланды',
+      'country.nl.desc': 'Узлы с отличной маршрутизацией и стабильной скоростью.',
+      'country.de.flag': 'Флаг Германии',
+      'country.de.name': 'Германия',
+      'country.de.desc': 'Низкий пинг для Европы, высокая надёжность и приватность.',
+      'country.fi.flag': 'Флаг Финляндии',
+      'country.fi.name': 'Финляндия',
+      'country.fi.desc': 'Стабильные каналы, хороший баланс скорости и латентности.',
+      'faq.title': 'Частые вопросы',
+      'faq.q1': 'Как подключиться?',
+      'faq.a1': 'Получите конфигурацию в нашем боте и импортируйте её в приложение V2rayTun/AlphaNet/Shadowrocket.',
+      'faq.q2': 'Ведёте ли вы логи?',
+      'faq.a2': 'Нет. Мы не храним историю посещений и не отслеживаем активность пользователей.',
+      'faq.q3': 'Поддержка устройств?',
+      'faq.a3': 'Наш протокол поддерживает iOS, Android, Windows, macOS. Главное установить клиент для подключения.',
+      'footer.features': 'Возможности',
+      'footer.pricing': 'Тарифы',
+      'footer.faq': 'FAQ'
+    },
+    en: {
+      'meta.title': 'GLS VPN',
+      'meta.description': 'VPN with high speed, encryption and simple one‑tap connection. Supports iOS, Android, Windows, macOS.',
+      'skip.main': 'Skip to main content',
+      'brand.home': 'Home',
+      'menu.telegram': 'Telegram bot',
+      'menu.pricing': 'Pricing',
+      'menu.faq': 'FAQ',
+      'aria.lang_toggle': 'Switch language',
+      'theme.aria': 'Toggle theme',
+      'theme.sr_label': 'Toggle theme',
+      'hamburger.aria': 'Open menu',
+      'hero.title': 'Unrestricted internet access',
+      'hero.subtitle': 'Stable servers, high speed, encryption, and one‑tap connection. VLESS/Reality support for maximum protection.',
+      'cta.choose_plan': 'Choose a plan',
+      'hero.card.title': 'Reality encryption',
+      'hero.card.desc': 'Disguises traffic as legitimate TLS, bypassing blocks and DPI.',
+      'stats.connections': 'connections',
+      'stats.uptime': 'uptime',
+      'stats.one_click_num': '1 click',
+      'stats.connection': 'connection',
+      'features.title': 'Why GLS VPN',
+      'features.item1.title': 'Maximum privacy',
+      'features.item1.desc': 'Modern VLESS/Reality protocols, no logs, and end‑to‑end encryption.',
+      'features.item2.title': 'High speed',
+      'features.item2.desc': 'Optimized servers and load balancing ensure stable latency and bandwidth.',
+      'features.item3.title': 'Easy setup',
+      'features.item3.desc': 'Support for popular clients. One‑click config import.',
+      'features.item4.title': 'Access without borders',
+      'features.item4.desc': 'Bypass blocks and DPI. Access your favorite services from anywhere.',
+      'pricing.title': 'Pricing',
+      'pricing.p1.title': 'Trial',
+      'pricing.p1.li1': 'Access for 3 days',
+      'pricing.p1.li2': 'Fast connection',
+      'pricing.p1.li3': 'Works on all devices',
+      'pricing.p1.btn': 'Activate',
+      'pricing.p2.ribbon': 'Popular',
+      'pricing.p2.title': '1 month',
+      'pricing.p2.li1': 'Access for 31 days',
+      'pricing.p2.li2': 'Unlimited traffic',
+      'pricing.p2.li3': 'Fast connection',
+      'pricing.p2.btn': 'Select',
+      'pricing.p3.title': '3 months',
+      'pricing.p3.li1': 'Access for 93 days',
+      'pricing.p3.li2': 'Low ping',
+      'pricing.p3.li3': 'High speed',
+      'pricing.p3.btn': 'Buy',
+      'countries.title': 'Countries',
+      'countries.subtitle': 'Choose optimal locations for gaming, work, and access to services',
+      'country.nl.flag': 'Flag of the Netherlands',
+      'country.nl.name': 'Netherlands',
+      'country.nl.desc': 'Nodes with excellent routing and stable speed.',
+      'country.de.flag': 'Flag of Germany',
+      'country.de.name': 'Germany',
+      'country.de.desc': 'Low latency for Europe, high reliability and privacy.',
+      'country.fi.flag': 'Flag of Finland',
+      'country.fi.name': 'Finland',
+      'country.fi.desc': 'Stable channels, a good balance of speed and latency.',
+      'faq.title': 'FAQ',
+      'faq.q1': 'How to connect?',
+      'faq.a1': 'Get a configuration in our bot and import it into V2rayTun/AlphaNet/Shadowrocket.',
+      'faq.q2': 'Do you keep logs?',
+      'faq.a2': 'No. We do not store browsing history or track user activity.',
+      'faq.q3': 'Device support?',
+      'faq.a3': 'Our protocol supports iOS, Android, Windows, macOS. Just install a client to connect.',
+      'footer.features': 'Features',
+      'footer.pricing': 'Pricing',
+      'footer.faq': 'FAQ'
+    }
+  };
+
+  const translatePage = (lang) => {
+    const dict = I18N[lang] || I18N.ru;
+    document.querySelectorAll('[data-i18n]').forEach(el => {
+      const key = el.getAttribute('data-i18n');
+      const attr = el.getAttribute('data-i18n-attr');
+      const value = dict[key];
+      if (value == null) return;
+      if (attr) {
+        el.setAttribute(attr, value);
+      } else {
+        el.textContent = value;
+      }
+    });
+    document.documentElement.setAttribute('lang', lang === 'en' ? 'en' : 'ru');
+    // Meta and title
+    document.title = dict['meta.title'] || document.title;
+    const metaDesc = document.querySelector('meta[name="description"]');
+    if (metaDesc && dict['meta.description']) metaDesc.setAttribute('content', dict['meta.description']);
+    const ogTitle = document.querySelector('meta[property="og:title"]');
+    if (ogTitle && dict['meta.title']) ogTitle.setAttribute('content', dict['meta.title']);
+    const ogDesc = document.querySelector('meta[property="og:description"]');
+    if (ogDesc && dict['meta.description']) ogDesc.setAttribute('content', dict['meta.description']);
+    const ogLocale = document.querySelector('meta[property="og:locale"]');
+    if (ogLocale) ogLocale.setAttribute('content', lang === 'en' ? 'en_US' : 'ru_RU');
+    const twitterTitle = document.querySelector('meta[name="twitter:title"]');
+    if (twitterTitle && dict['meta.title']) twitterTitle.setAttribute('content', dict['meta.title']);
+    const twitterDesc = document.querySelector('meta[name="twitter:description"]');
+    if (twitterDesc && dict['meta.description']) twitterDesc.setAttribute('content', dict['meta.description']);
+    // Toggle label
+    const langToggleBtn = document.getElementById('langToggle');
+    if (langToggleBtn) langToggleBtn.textContent = lang === 'en' ? 'RU' : 'EN';
+  };
+
+  const getPreferredLanguage = () => {
+    const stored = localStorage.getItem('lang');
+    if (stored === 'ru' || stored === 'en') return stored;
+    const nav = (navigator.languages && navigator.languages[0]) || navigator.language || '';
+    if (!nav) return 'ru'; // не удалось определить — по умолчанию русский
+    return nav.toLowerCase().startsWith('ru') ? 'ru' : 'en';
+  };
+
+  let currentLang = getPreferredLanguage();
+  translatePage(currentLang);
+  const langToggleBtn = document.getElementById('langToggle');
+  langToggleBtn?.addEventListener('click', () => {
+    const next = (localStorage.getItem('lang') || currentLang) === 'ru' ? 'en' : 'ru';
+    localStorage.setItem('lang', next);
+    currentLang = next;
+    translatePage(next);
+  });
   // Theme handling
   const root = document.documentElement;
   const themeToggle = document.getElementById('themeToggle');
@@ -592,7 +850,7 @@ document.addEventListener('DOMContentLoaded', () => {
     });
   }, { threshold: 0.12 });
 
-  document.querySelectorAll('.card, .price-card, .faq, .hero__content, .hero__art').forEach(el => {
+  document.querySelectorAll('.card, .price-card, .faq, .hero__content, .hero__art, .country-card').forEach(el => {
     el.classList.add('reveal');
     observer.observe(el);
   });
