@@ -49,6 +49,7 @@ services:
       - VIRTUAL_HOST=swaga.space,www.swaga.space
       - LETSENCRYPT_HOST=swaga.space,www.swaga.space
       - VIRTUAL_PORT=8080
+      # - REDIS_URL=redis://redis:6379/0
     volumes:
       - ./main:/app
     expose:
@@ -69,7 +70,16 @@ services:
       - ./backup:/app/backup    
       - ./backups:/app/backups    
 
+  redis:
+    image: redis:7-alpine
+    container_name: redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - redis_data:/data
+
 volumes:
   nginx_certs:
   acme:
+  redis_data:
 

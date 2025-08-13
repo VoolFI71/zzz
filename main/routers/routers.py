@@ -20,6 +20,7 @@ from fastapi import (
     Request,
 )
 from fastapi.responses import HTMLResponse, JSONResponse, PlainTextResponse, RedirectResponse, Response
+from fastapi_limiter.depends import RateLimiter
 from fastapi.templating import Jinja2Templates
 
 from database import db
@@ -86,6 +87,19 @@ async def verify_api_key(x_api_key: str = Header(...)) -> None:  # noqa: D401
         raise HTTPException(status_code=403, detail="Нет доступа")
 
 
+def rate_identifier(request: Request) -> str:
+    """Идентификатор для rate limiting: приоритет X-API-Key, иначе IP.
+
+    Это позволяет ограничивать злоупотребления даже при использовании общего ключа.
+    """
+    api_key = request.headers.get("X-API-Key")
+    if api_key:
+        return f"api:{api_key}"
+    fwd = request.headers.get("x-forwarded-for")
+    ip = (fwd.split(",")[0].strip() if fwd else (request.client.host if request.client else "unknown"))
+    return f"ip:{ip}"
+
+
 # ---------------------------------------------------------------------------
 # Вспомогательные функции
 # ---------------------------------------------------------------------------
@@ -150,7 +164,11 @@ async def panel_request(request: Request, url: str, server_code: str, payload: D
 # Эндпоинты
 # ---------------------------------------------------------------------------
 
-@router.post("/createconfig", response_model=List[str])
+@router.post(
+    "/createconfig",
+    response_model=List[str],
+    dependencies=[Depends(RateLimiter(times=10, seconds=60, identifier=rate_identifier))],
+)
 async def create_config(
     client_data: models.CreateData,
     request: Request,
@@ -191,7 +209,11 @@ async def create_config(
     return created_ids
 
 
-@router.post("/giveconfig", response_model=str)
+@router.post(
+    "/giveconfig",
+    response_model=str,
+    dependencies=[Depends(RateLimiter(times=10, seconds=60, identifier=rate_identifier))],
+)
 async def give_config(
     client_data: models.ClientData,
     request: Request,
@@ -262,7 +284,11 @@ async def give_config(
     return reserved_uid
 
 
-@router.post("/extendconfig", response_model=str)
+@router.post(
+    "/extendconfig",
+    response_model=str,
+    dependencies=[Depends(RateLimiter(times=20, seconds=60, identifier=rate_identifier))],
+)
 async def extend_config(
     update_data: models.ExtendConfig,
     request: Request,
@@ -296,7 +322,11 @@ async def extend_config(
     )
 
 
-@router.delete("/deleteconfig", response_model=str)
+@router.delete(
+    "/deleteconfig",
+    response_model=str,
+    dependencies=[Depends(RateLimiter(times=20, seconds=60, identifier=rate_identifier))],
+)
 async def delete_config(
     data: models.DeleteConfig,
     request: Request,
@@ -337,7 +367,11 @@ async def delete_config(
 # Сервисные эндпоинты
 # ---------------------------------------------------------------------------
 
-@router.delete("/delete-all-configs", response_model=str)
+@router.delete(
+    "/delete-all-configs",
+    response_model=str,
+    dependencies=[Depends(RateLimiter(times=2, seconds=60, identifier=rate_identifier))],
+)
 async def delete_all_configs(request: Request, _: None = Depends(verify_api_key)) -> str:  # noqa: D401
     """Удаляет все конфиги: сначала на панели, затем в БД."""
     rows = await db.get_all_user_codes()
@@ -371,7 +405,10 @@ async def delete_all_configs(request: Request, _: None = Depends(verify_api_key)
     logger.info("Bulk delete done: success=%s, failed=%s", deleted, failed)
     return f"Удалено {deleted} конфигураций, ошибок {failed}"
 
-@router.get("/check-available-configs")
+@router.get(
+    "/check-available-configs",
+    dependencies=[Depends(RateLimiter(times=60, seconds=60, identifier=rate_identifier))],
+)
 async def check_available_configs(
     server: str | None = Query(
         default=None, description="Код страны сервера, например `fi`"),
@@ -397,7 +434,10 @@ async def check_available_configs(
         }
     )
 
-@router.get("/usercodes/{tg_id}")
+@router.get(
+    "/usercodes/{tg_id}",
+    dependencies=[Depends(RateLimiter(times=60, seconds=60, identifier=rate_identifier))],
+)
 async def read_user(tg_id: int, _: None = Depends(verify_api_key)):
     # Сначала сбрасываем истёкшие конфиги
     #await db.reset_expired_configs()

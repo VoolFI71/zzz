@@ -18,6 +18,21 @@ async def init_db():
                 server_country TEXT NOT NULL
             )
         ''')
+        # Индексы для ускорения частых операций
+        # Уникальность по коду конфига
+        await cursor.execute('CREATE UNIQUE INDEX IF NOT EXISTS ux_users_user_code ON users(user_code)')
+        # Поиск по пользователю
+        await cursor.execute('CREATE INDEX IF NOT EXISTS ix_users_tg_id ON users(tg_id)')
+        # Массовые операции по истечению срока
+        await cursor.execute('CREATE INDEX IF NOT EXISTS ix_users_time_end ON users(time_end)')
+        # Быстрый поиск свободных конфигов по стране
+        await cursor.execute(
+            """
+            CREATE INDEX IF NOT EXISTS ix_users_free_by_country
+            ON users(server_country, time_end)
+            WHERE tg_id IS NULL OR tg_id = ''
+            """
+        )
         await conn.commit()
 
 async def insert_into_db(tg_id, user_code, time_end, server_country):

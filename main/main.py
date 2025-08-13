@@ -1,12 +1,18 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, Request
 from fastapi.staticfiles import StaticFiles
 import uvicorn
 import httpx
 import asyncio
 import os
+import logging
 
 from database import db  # noqa: WPS412
 from routers import routers
+
+# Rate limiting
+from fastapi_limiter import FastAPILimiter
+from fastapi_limiter.depends import RateLimiter
+import redis.asyncio as redis
 
 app = FastAPI()
 app.include_router(routers.router)
@@ -24,6 +30,15 @@ async def startup_event() -> None:
         limits=limits,
         follow_redirects=True,
     )
+
+    # Инициализация Redis и лимитера
+    redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
+    try:
+        app.state.redis = redis.from_url(redis_url, encoding="utf-8", decode_responses=True)
+        await FastAPILimiter.init(app.state.redis)
+    except Exception:
+        # Не блокируем запуск, но логируем
+        logging.getLogger(__name__).warning("Rate limiter init failed; proceeding without limiting")
 
     # Опциональная фоновая чистка истёкших конфигов
     enable_sweep = os.getenv("ENABLE_EXPIRE_SWEEP", "true").lower() in {"1", "true", "yes"}
@@ -46,6 +61,24 @@ async def startup_event() -> None:
     static_dir = os.path.join(os.path.dirname(__file__), "static")
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
+    # Простой аудит-лог запросов
+    logger = logging.getLogger("audit")
+
+    @app.middleware("http")
+    async def audit_log(request: Request, call_next):
+        client_ip = request.headers.get("x-forwarded-for", request.client.host if request.client else "-")
+        api_key = request.headers.get("x-api-key", "-")
+        path = request.url.path
+        method = request.method
+        try:
+            response = await call_next(request)
+            status = response.status_code
+        except Exception as exc:
+            logger.exception("request_error method=%s path=%s ip=%s", method, path, client_ip)
+            raise exc
+        logger.info("request method=%s path=%s status=%s ip=%s api_key_present=%s", method, path, status, client_ip, bool(api_key))
+        return response
+
 
 @app.get("/healthz", include_in_schema=False)
 async def healthz() -> dict[str, str]:
@@ -58,6 +91,12 @@ async def shutdown_event() -> None:
     client = getattr(app.state, "http_client", None)
     if client is not None:
         await client.aclose()
+    r = getattr(app.state, "redis", None)
+    if r is not None:
+        try:
+            await r.close()
+        except Exception:
+            pass
     task = getattr(app.state, "expire_task", None)
     if task is not None:
         task.cancel()

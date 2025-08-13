@@ -16,5 +16,5 @@ while true; do
     cp $MAIN_DB $BACKUP_DIR/main_db_$(date +%Y%m%d%H%M%S).db
 
     # Ждем 60 секунд
-    sleep 600
+    sleep 1800
 done
