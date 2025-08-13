@@ -19,7 +19,7 @@ def create_server_keyboard():
 
 def create_tariff_keyboard():
     kb_list = [
-        [InlineKeyboardButton(text="🧪 7 дней", callback_data="plan_3d")],
+        [InlineKeyboardButton(text="🧪 7 дней", callback_data="plan_7d")],
         [InlineKeyboardButton(text="📅 1 месяц", callback_data="plan_1m")],
         [InlineKeyboardButton(text="📆 3 месяца", callback_data="plan_3m")],
         [InlineKeyboardButton(text="🔙 Назад", callback_data="back")]
