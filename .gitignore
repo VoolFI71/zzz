@@ -8,3 +8,5 @@ backups
 
 docs
 .env
+
+load_test.py

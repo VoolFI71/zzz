@@ -17,6 +17,24 @@ import redis.asyncio as redis
 app = FastAPI()
 app.include_router(routers.router)
 
+# Простой аудит-лог запросов (middleware должен регистрироваться до старта приложения)
+logger = logging.getLogger("audit")
+
+@app.middleware("http")
+async def audit_log(request: Request, call_next):
+    client_ip = request.headers.get("x-forwarded-for", request.client.host if request.client else "-")
+    api_key = request.headers.get("x-api-key", "-")
+    path = request.url.path
+    method = request.method
+    try:
+        response = await call_next(request)
+        status = response.status_code
+    except Exception as exc:
+        logger.exception("request_error method=%s path=%s ip=%s", method, path, client_ip)
+        raise exc
+    logger.info("request method=%s path=%s status=%s ip=%s api_key_present=%s", method, path, status, client_ip, bool(api_key))
+    return response
+
 
 @app.on_event("startup")
 async def startup_event() -> None:
@@ -61,23 +79,6 @@ async def startup_event() -> None:
     static_dir = os.path.join(os.path.dirname(__file__), "static")
     app.mount("/static", StaticFiles(directory=static_dir), name="static")
 
-    # Простой аудит-лог запросов
-    logger = logging.getLogger("audit")
-
-    @app.middleware("http")
-    async def audit_log(request: Request, call_next):
-        client_ip = request.headers.get("x-forwarded-for", request.client.host if request.client else "-")
-        api_key = request.headers.get("x-api-key", "-")
-        path = request.url.path
-        method = request.method
-        try:
-            response = await call_next(request)
-            status = response.status_code
-        except Exception as exc:
-            logger.exception("request_error method=%s path=%s ip=%s", method, path, client_ip)
-            raise exc
-        logger.info("request method=%s path=%s status=%s ip=%s api_key_present=%s", method, path, status, client_ip, bool(api_key))
-        return response
 
 
 @app.get("/healthz", include_in_schema=False)
