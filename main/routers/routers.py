@@ -87,7 +87,7 @@ async def verify_api_key(x_api_key: str = Header(...)) -> None:  # noqa: D401
         raise HTTPException(status_code=403, detail="Нет доступа")
 
 
-def rate_identifier(request: Request) -> str:
+async def rate_identifier(request: Request) -> str:
     """Идентификатор для rate limiting: приоритет X-API-Key, иначе IP.
 
     Это позволяет ограничивать злоупотребления даже при использовании общего ключа.
