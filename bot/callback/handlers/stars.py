@@ -22,10 +22,10 @@ async def pay_with_stars(callback_query: CallbackQuery, state: FSMContext, bot: 
     tg_id = callback_query.from_user.id
 
     user_data = await state.get_data()
-    # По умолчанию делаем тестовую подписку на 3 дня
-    days = int(user_data.get("selected_days", 3))
+    # По умолчанию делаем тестовую подписку на 7 дней
+    days = int(user_data.get("selected_days", 7))
     # Маппинг payload по длительности
-    payload = "sub_3d" if days == 3 else ("sub_1m" if days == 31 else "sub_3m")
+    payload = "sub_7d" if days == 7 else ("sub_1m" if days == 31 else "sub_3m")
 
     # Анти-спам и один активный счёт на пользователя
     now_ts = int(time.time())
@@ -54,11 +54,11 @@ async def pay_with_stars(callback_query: CallbackQuery, state: FSMContext, bot: 
         pass
 
     # Создаём счёт
-    if payload == "sub_3d":
+    if payload == "sub_7d":
         invoice_msg = await bot.send_invoice(
             chat_id=tg_id,
-            title="Тестовая подписка — 3 дня",
-            description="GLS VPN доступ на 3 дня",
+            title="Тестовая подписка — 7 дней",
+            description="GLS VPN доступ на 7 дней",
             payload=payload,
             provider_token=provider_token,
             currency="XTR",
@@ -129,7 +129,7 @@ async def successful_payment_handler(message: Message, bot: Bot, state: FSMConte
     from utils import get_session
     tg_id = message.from_user.id
     payload = message.successful_payment.invoice_payload
-    days = 3 if payload == "sub_3d" else (31 if payload == "sub_1m" else 93)
+    days = 7 if payload == "sub_7d" else (31 if payload == "sub_1m" else 93)
     user_data = await state.get_data()
     server = user_data.get("server") or "fi"
 
@@ -160,8 +160,8 @@ async def successful_payment_handler(message: Message, bot: Bot, state: FSMConte
     except Exception:
         pass
 
-    # Помечаем одноразовый тест, если он был куплен
-    if payload == "sub_3d":
+    # Помечаем одноразовый тест, если он был куплен (7 дней)
+    if payload == "sub_7d":
         try:
             from database import db as user_db
             await user_db.set_trial_3d_used(str(tg_id))

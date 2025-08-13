@@ -45,7 +45,7 @@ async def pay_with_yookassa(callback_query: CallbackQuery, state: FSMContext, bo
     Configuration.secret_key = YOOKASSA_SECRET
 
     days = int(user_data.get("selected_days", 31))
-    payload = "sub_1m" if days == 31 else "sub_3m"
+    payload = "sub_1m" if days == 31 else ("sub_3m" if days == 93 else "sub_7d")
     # Суммы и описания из окружения с адекватными дефолтами
     price_1m = int(os.getenv("PRICE_1M_RUB", "79"))
     price_3m = int(os.getenv("PRICE_3M_RUB", "199"))
@@ -53,7 +53,7 @@ async def pay_with_yookassa(callback_query: CallbackQuery, state: FSMContext, bo
 
     desc_1m = os.getenv("YK_DESC_1M", "Подписка GLS VPN — 1 месяц")
     desc_3m = os.getenv("YK_DESC_3M", "Подписка GLS VPN — 3 месяца")
-    desc_3d = os.getenv("YK_DESC_3D", "Тестовая подписка GLS VPN — 3 дня")
+    desc_3d = os.getenv("YK_DESC_3D", "Тестовая подписка GLS VPN — 7 дней")
 
     if days == 31:
         amount_rub, description = price_1m, desc_1m
@@ -172,7 +172,7 @@ async def check_yookassa(callback_query: CallbackQuery, state: FSMContext, bot: 
         user_data = await state.get_data()
         server = user_data.get("server") or "fi"
         payload = payment.metadata.get("payload") if hasattr(payment, "metadata") else "sub_1m"
-        days = 31 if payload == "sub_1m" else 93
+        days = 31 if payload == "sub_1m" else (93 if payload == "sub_3m" else 7)
 
         AUTH_CODE = os.getenv("AUTH_CODE")
         urlupdate = "http://fastapi:8080/giveconfig"
@@ -204,5 +204,13 @@ async def check_yookassa(callback_query: CallbackQuery, state: FSMContext, bot: 
                 await state.update_data(yookassa_msg_id=None)
         except Exception:
             pass
+
+        # Помечаем одноразовый тест, если был оплачен 7‑дневный тариф
+        if payload == "sub_7d":
+            try:
+                from database import db as user_db
+                await user_db.set_trial_3d_used(str(tg_id))
+            except Exception:
+                pass
 
 

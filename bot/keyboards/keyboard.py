@@ -19,7 +19,7 @@ def create_server_keyboard():
 
 def create_tariff_keyboard():
     kb_list = [
-        [InlineKeyboardButton(text="🧪 3 дня (тест)", callback_data="plan_3d")],
+        [InlineKeyboardButton(text="🧪 7 дней", callback_data="plan_3d")],
         [InlineKeyboardButton(text="📅 1 месяц", callback_data="plan_1m")],
         [InlineKeyboardButton(text="📆 3 месяца", callback_data="plan_3m")],
         [InlineKeyboardButton(text="🔙 Назад", callback_data="back")]
@@ -43,3 +43,21 @@ def create_settings_keyboard():
     ]
     keyboard = ReplyKeyboardMarkup(keyboard=kb_list, resize_keyboard=True, one_time_keyboard=True)
     return keyboard
+
+
+def create_profile_keyboard():
+    kb_list = [
+        [KeyboardButton(text="Мои конфиги")],
+        [KeyboardButton(text="Активировать дни")],
+        [KeyboardButton(text="Назад")],
+    ]
+    return ReplyKeyboardMarkup(keyboard=kb_list, resize_keyboard=True, one_time_keyboard=True)
+
+
+def create_activate_balance_inline(balance_days: int):
+    text = f"Активировать {balance_days} дн." if balance_days > 0 else "Обновить"
+    kb_list = [
+        [InlineKeyboardButton(text=text, callback_data="activate_balance")],
+        [InlineKeyboardButton(text="Назад", callback_data="back")],
+    ]
+    return InlineKeyboardMarkup(inline_keyboard=kb_list)

@@ -16,10 +16,19 @@ async def init_db():
                     referral_code TEXT UNIQUE,
                     referred_by TEXT,
                     referral_count INTEGER DEFAULT 0,
-                    trial_3d_used INTEGER DEFAULT 0
+                    trial_3d_used INTEGER DEFAULT 0,
+                    balance INTEGER DEFAULT 0
                 )
             ''')
             await conn.commit()
+        else:
+            # Миграции для уже существующей таблицы: убеждаемся, что есть колонка balance
+            await cursor.execute("PRAGMA table_info(users)")
+            columns = await cursor.fetchall()
+            col_names = {row[1] for row in columns}
+            if "balance" not in col_names:
+                await cursor.execute("ALTER TABLE users ADD COLUMN balance INTEGER DEFAULT 0")
+                await conn.commit()
 
 user_locks = {}
 async def get_referral_code(tg_id):
@@ -162,3 +171,45 @@ async def set_trial_3d_used(tg_id: str) -> None:
                 # На случай отсутствия строки создадим её и повторим
                 await cursor.execute("INSERT INTO users (tg_id, trial_3d_used) VALUES (?, 1)", (str(tg_id),))
             await conn.commit()
+
+
+# -------------------------------------------------
+# Баланс дней: чтение, начисление, списание
+# -------------------------------------------------
+
+async def get_balance_days(tg_id: str) -> int:
+    async with aiosqlite.connect("users.db") as conn:
+        async with conn.cursor() as cursor:
+            await cursor.execute("SELECT balance FROM users WHERE tg_id = ?", (str(tg_id),))
+            row = await cursor.fetchone()
+            return int(row[0]) if row and row[0] is not None else 0
+
+
+async def add_balance_days(tg_id: str, days: int) -> None:
+    if days <= 0:
+        return
+    async with aiosqlite.connect("users.db") as conn:
+        async with conn.cursor() as cursor:
+            await cursor.execute("SELECT balance FROM users WHERE tg_id = ?", (str(tg_id),))
+            row = await cursor.fetchone()
+            if row is None:
+                await cursor.execute("INSERT INTO users (tg_id, balance) VALUES (?, ?)", (str(tg_id), int(days)))
+            else:
+                current_balance = int(row[0]) if row[0] is not None else 0
+                await cursor.execute("UPDATE users SET balance = ? WHERE tg_id = ?", (current_balance + int(days), str(tg_id)))
+            await conn.commit()
+
+
+async def deduct_balance_days(tg_id: str, days: int) -> bool:
+    if days <= 0:
+        return False
+    async with aiosqlite.connect("users.db") as conn:
+        async with conn.cursor() as cursor:
+            await cursor.execute("SELECT balance FROM users WHERE tg_id = ?", (str(tg_id),))
+            row = await cursor.fetchone()
+            current_balance = int(row[0]) if row and row[0] is not None else 0
+            if current_balance < days:
+                return False
+            await cursor.execute("UPDATE users SET balance = ? WHERE tg_id = ?", (current_balance - int(days), str(tg_id)))
+            await conn.commit()
+            return True
