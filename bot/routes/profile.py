@@ -9,16 +9,31 @@ from database import db
 router = Router()
 
 AUTH_CODE = os.getenv("AUTH_CODE")
-PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "http://77.110.108.194:8080")
+PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "https://swaga.space")
 
-countries_settings = {
+# Читает первое непустое значение из списка env-ключей
+def _env_any(*keys: str, default: str = "") -> str:
+    for key in keys:
+        value = os.getenv(key)
+        if value:
+            return value
+    return default
+
+
+COUNTRY_SETTINGS: dict[str, dict[str, str]] = {
     "fi": {
-        "host": "77.110.108.194",
-        "pbk": "MCYfahzGBFZW2V3Pf9XivR36CrnAUQiVfehSXgFwwVE",
+        "urlcreate": _env_any("URLCREATE_FI", "urlcreate_fi", default=""),
+        "urlupdate": _env_any("URLUPDATE_FI", "urlupdate_fi", default=""),
+        "urldelete": _env_any("URLDELETE_FI", "urldelete_fi", default=""),
+        # Параметры для генерации VLESS
+        "host": _env_any("HOST_FI", "host_fi", default=""),
+        "pbk": _env_any("PBK_FI", "pbk_fi", default=""),
         "sni": "google.com",
-        "sid": "fb77c9c3d3ef",
-        "country": "Финляндия 🇫🇮"
-    }
+        "sid": _env_any("SID_FI", "sid_fi", default=""),
+        # Отображаемое название страны
+        "country": "Финляндия",
+    },
+    # "nl": {...}
 }
 
 @router.message(F.text == "Личный кабинет")
@@ -56,7 +71,7 @@ async def copy_config_callback(callback: types.CallbackQuery):
             if remaining_seconds <= 0:
                 await callback.answer("Срок действия истёк", show_alert=True)
                 return
-            settings = countries_settings[user['server']]
+            settings = COUNTRY_SETTINGS[user['server']]
             vless_config = (
                 f"vless://{user['user_code']}@{settings['host']}:443?"
                 f"security=reality&encryption=none&pbk={settings['pbk']}&"
@@ -89,7 +104,7 @@ async def my_configs(message: types.Message):
                         remaining_seconds = user['time_end'] - int(time.time())
                         if remaining_seconds <= 0:
                             continue
-                        settings = countries_settings[user['server']]
+                        settings = COUNTRY_SETTINGS[user['server']]
                         vless_config = (
                             f"vless://{user['user_code']}@{settings['host']}:443?"
                             f"security=reality&encryption=none&pbk={settings['pbk']}&"
@@ -98,7 +113,8 @@ async def my_configs(message: types.Message):
                         )
                         import base64
                         encoded_config = base64.b64encode(vless_config.encode()).decode()
-                        web_url = f"swaga.space/add-config?config={encoded_config}&expiry={remaining_seconds}"
+                        base = PUBLIC_BASE_URL.rstrip('/')
+                        web_url = f"{base}/add-config?config={encoded_config}&expiry={remaining_seconds}"
                         inline_kb = InlineKeyboardMarkup(inline_keyboard=[
                             [InlineKeyboardButton(text="📱 Добавить в V2rayTun", url=web_url)],
                             [InlineKeyboardButton(text="📋 Копировать конфиг", callback_data=f"copy_config_{i}")]
@@ -113,7 +129,7 @@ async def my_configs(message: types.Message):
                         config_message = (
                             f"🔐 <b>Конфиг #{i}</b>\n"
                             f"⏰ Действует: <b>{time_text}</b>\n"
-                            f"🌐 Сервер: <code>{countries_settings[user['server']]['country']}</code>\n\n"
+                             f"🌐 Сервер: <code>{COUNTRY_SETTINGS[user['server']].get('country', user['server'])}</code>\n\n"
                             f"💡 <i>Нажмите кнопку ниже для добавления в приложение</i>"
                         )
                         await message.answer(config_message, parse_mode="HTML", reply_markup=inline_kb)
