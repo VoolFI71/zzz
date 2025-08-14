@@ -64,7 +64,6 @@ async def select_plan(callback_query: CallbackQuery, state: FSMContext) -> None:
 async def select_server(callback_query: CallbackQuery, state: FSMContext) -> None:
     if callback_query.data == "server_nl":
         await callback_query.answer("Ещё в разработке", show_alert=True)
-        await state.update_data(server="nl")
         return
     elif callback_query.data == "server_fi":
         await state.update_data(server="fi")
@@ -75,9 +74,60 @@ async def select_server(callback_query: CallbackQuery, state: FSMContext) -> Non
 
 
 @common_router.callback_query(F.data == "back")
-async def go_back(callback_query: CallbackQuery, bot: Bot) -> None:
+async def go_back(callback_query: CallbackQuery, bot: Bot, state: FSMContext) -> None:
     tg_id = callback_query.from_user.id
     current_text = (callback_query.message.text or "").lower()
+
+    # Если на экране выбор способа оплаты — вернёмся к выбору тарифа
+    if "выбран тариф" in current_text:
+        try:
+            await callback_query.message.edit_text(
+                text="Выберите тариф:",
+                reply_markup=keyboard.create_tariff_keyboard(),
+            )
+        except Exception:
+            await bot.send_message(
+                chat_id=tg_id,
+                text="Выберите тариф:",
+                reply_markup=keyboard.create_tariff_keyboard(),
+            )
+        await callback_query.answer()
+        return
+
+    # Если открыт экран оплаты (есть активный счёт) — вернёмся к выбору способа оплаты
+    try:
+        user_state = await state.get_data()
+    except Exception:
+        user_state = {}
+    if user_state.get("yookassa_payment_id") or user_state.get("invoice_msg_id"):
+        days = int(user_state.get("selected_days", 7))
+        star_3d = int(os.getenv("PRICE_3D_STAR", "5"))
+        star_1m = int(os.getenv("PRICE_1M_STAR", "99"))
+        star_3m = int(os.getenv("PRICE_3M_STAR", "229"))
+        rub_3d = int(os.getenv("PRICE_3D_RUB", "5"))
+        rub_1m = int(os.getenv("PRICE_1M_RUB", "79"))
+        rub_3m = int(os.getenv("PRICE_3M_RUB", "199"))
+
+        if days == 7:
+            star_amount, rub_amount = star_3d, rub_3d
+        elif days == 31:
+            star_amount, rub_amount = star_1m, rub_1m
+        else:
+            star_amount, rub_amount = star_3m, rub_3m
+
+        try:
+            await callback_query.message.edit_text(
+                text=f"Выбран тариф: {days} дн. Выберите способ оплаты:",
+                reply_markup=create_payment_method_keyboard(star_amount, rub_amount),
+            )
+        except Exception:
+            await bot.send_message(
+                chat_id=tg_id,
+                text=f"Выбран тариф: {days} дн. Выберите способ оплаты:",
+                reply_markup=create_payment_method_keyboard(star_amount, rub_amount),
+            )
+        await callback_query.answer()
+        return
 
     if "тариф" in current_text:
         text = (

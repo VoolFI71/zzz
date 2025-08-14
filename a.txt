@@ -33,6 +33,7 @@ services:
   telegram-bot:
     build:
       context: ./bot
+      dockerfile: dockerfile
     restart: always
     env_file:
       - ./bot/.env
@@ -41,10 +42,14 @@ services:
 
 
   fastapi:
-    build: ./main
+    build:
+      context: ./main
+      dockerfile: dockerfile
     restart: always
     env_file:
       - ./main/.env
+    environment:
+      - REDIS_URL=redis://redis:6379/0
     # environment:
     #   - VIRTUAL_HOST=swaga.space,www.swaga.space
     #   - LETSENCRYPT_HOST=swaga.space,www.swaga.space
@@ -53,10 +58,12 @@ services:
       - ./main:/app
     # expose:
     #   - "8080"
+    depends_on:
+      - redis
     ports:
       - "8080:8080"
     healthcheck:
-      test: [ "CMD-SHELL", "curl -f http://localhost:8080/healthz || exit 1" ]
+      test: [ "CMD-SHELL", "python -c \"import urllib.request,sys; sys.exit(0) if urllib.request.urlopen('http://localhost:8080/healthz').getcode()==200 else sys.exit(1)\"" ]
       interval: 30s
       timeout: 5s
       retries: 3
@@ -65,11 +72,17 @@ services:
   backup:
     build:
       context: ./backup
+      dockerfile: dockerfile
     volumes:
       - ./bot:/app/bot
       - ./main:/app/main
       - ./backup:/app/backup    
       - ./backups:/app/backups    
+
+  redis:
+    image: redis:7-alpine
+    restart: always
+    command: ["redis-server", "--save", "", "--appendonly", "no"]
 
 # volumes:
 #   nginx_certs:

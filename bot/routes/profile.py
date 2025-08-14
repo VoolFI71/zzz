@@ -11,7 +11,7 @@ router = Router()
 AUTH_CODE = os.getenv("AUTH_CODE")
 PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "http://77.110.108.194:8080")
 
-countryies_settings = {
+countries_settings = {
     "fi": {
         "host": "77.110.108.194",
         "pbk": "MCYfahzGBFZW2V3Pf9XivR36CrnAUQiVfehSXgFwwVE",
@@ -28,8 +28,48 @@ async def my_account(message: types.Message):
 
 @router.callback_query(F.data.startswith("copy_config_"))
 async def copy_config_callback(callback: types.CallbackQuery):
-    """Обработчик для кнопки копирования конфига"""
-    await callback.answer("Конфиг скопирован! Вставьте его в V2rayTun вручную.", show_alert=True)
+    """Показывает конфиг в виде текста для копирования + кнопку удаления сообщения."""
+    try:
+        idx_str = callback.data.split("_")[-1]
+        idx = int(idx_str)
+    except Exception:
+        await callback.answer("Ошибка", show_alert=True)
+        return
+
+    user_id = callback.from_user.id
+    url = f"http://fastapi:8080/usercodes/{user_id}"
+    headers = {"X-API-Key": AUTH_CODE}
+
+    try:
+        from utils import get_session
+        session = await get_session()
+        async with session.get(url, headers=headers) as response:
+            if response.status != 200:
+                await callback.answer("Конфиг не найден", show_alert=True)
+                return
+            response_data = await response.json()
+            if not response_data or idx < 1 or idx > len(response_data):
+                await callback.answer("Конфиг не найден", show_alert=True)
+                return
+            user = response_data[idx - 1]
+            remaining_seconds = user['time_end'] - int(time.time())
+            if remaining_seconds <= 0:
+                await callback.answer("Срок действия истёк", show_alert=True)
+                return
+            settings = countries_settings[user['server']]
+            vless_config = (
+                f"vless://{user['user_code']}@{settings['host']}:443?"
+                f"security=reality&encryption=none&pbk={settings['pbk']}&"
+                f"headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&"
+                f"sni={settings['sni']}&sid={settings['sid']}#glsvpn"
+            )
+            kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🗑 Удалить это сообщение", callback_data="delmsg")]])
+            await callback.message.answer(f"<code>{vless_config}</code>", parse_mode="HTML", reply_markup=kb)
+            await callback.answer()
+    except aiohttp.ClientError:
+        await callback.answer("Ошибка сети", show_alert=True)
+    except Exception:
+        await callback.answer("Ошибка", show_alert=True)
 
 
 @router.message(F.text == "Мои конфиги")
@@ -49,7 +89,7 @@ async def my_configs(message: types.Message):
                         remaining_seconds = user['time_end'] - int(time.time())
                         if remaining_seconds <= 0:
                             continue
-                        settings = countryies_settings[user['server']]
+                        settings = countries_settings[user['server']]
                         vless_config = (
                             f"vless://{user['user_code']}@{settings['host']}:443?"
                             f"security=reality&encryption=none&pbk={settings['pbk']}&"
@@ -73,7 +113,7 @@ async def my_configs(message: types.Message):
                         config_message = (
                             f"🔐 <b>Конфиг #{i}</b>\n"
                             f"⏰ Действует: <b>{time_text}</b>\n"
-                            f"🌐 Сервер: <code>{countryies_settings[user['server']]['country']}</code>\n\n"
+                            f"🌐 Сервер: <code>{countries_settings[user['server']]['country']}</code>\n\n"
                             f"💡 <i>Нажмите кнопку ниже для добавления в приложение</i>"
                         )
                         await message.answer(config_message, parse_mode="HTML", reply_markup=inline_kb)
@@ -87,6 +127,18 @@ async def my_configs(message: types.Message):
         await message.answer(f"Ошибка соединения: {str(e)}", reply_markup=keyboard.create_profile_keyboard())
     except Exception as e:
         await message.answer(f"Произошла ошибка: {str(e)}", reply_markup=keyboard.create_profile_keyboard())
+
+
+@router.callback_query(F.data == "delmsg")
+async def delete_message_callback(callback: types.CallbackQuery):
+    try:
+        await callback.message.delete()
+    except Exception:
+        pass
+    try:
+        await callback.answer()
+    except Exception:
+        pass
 
 
 @router.message(F.text == "Активировать дни")

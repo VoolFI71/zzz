@@ -118,6 +118,25 @@ async def pay_with_stars(callback_query: CallbackQuery, state: FSMContext, bot: 
     asyncio.create_task(_expire_invoice())
     await callback_query.answer("Создаём счёт для оплаты...")
 
+    # Отдельное сервисное сообщение управления счётом
+    try:
+        from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+        control_kb = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="❌ Отменить счёт", callback_data="cancel_star_invoice")],
+            [InlineKeyboardButton(text="🔙 Назад", callback_data="back")]
+        ])
+        control_msg = await bot.send_message(
+            chat_id=tg_id,
+            text="Для управления счётом используйте кнопки ниже:",
+            reply_markup=control_kb,
+        )
+        try:
+            await state.update_data(invoice_ctrl_msg_id=control_msg.message_id)
+        except Exception:
+            pass
+    except Exception:
+        pass
+
 
 @stars_router.pre_checkout_query(lambda _: True)
 async def pre_checkout_query_handler(pre_checkout_query: PreCheckoutQuery, bot: Bot) -> None:
@@ -157,6 +176,16 @@ async def successful_payment_handler(message: Message, bot: Bot, state: FSMConte
         if invoice_msg_id:
             await bot.delete_message(chat_id=tg_id, message_id=invoice_msg_id)
             await state.update_data(invoice_msg_id=None)
+        ctrl_msg_id = data_state.get("invoice_ctrl_msg_id")
+        if ctrl_msg_id:
+            try:
+                await bot.delete_message(chat_id=tg_id, message_id=ctrl_msg_id)
+            except Exception:
+                pass
+            try:
+                await state.update_data(invoice_ctrl_msg_id=None)
+            except Exception:
+                pass
     except Exception:
         pass
 
@@ -167,5 +196,52 @@ async def successful_payment_handler(message: Message, bot: Bot, state: FSMConte
             await user_db.set_trial_3d_used(str(tg_id))
         except Exception:
             pass
+
+
+@stars_router.callback_query(F.data == "cancel_star_invoice")
+async def cancel_star_invoice(callback_query: CallbackQuery, state: FSMContext, bot: Bot) -> None:
+    tg_id = callback_query.from_user.id
+    try:
+        data_state = await state.get_data()
+        invoice_msg_id = data_state.get("invoice_msg_id")
+        if invoice_msg_id:
+            try:
+                await bot.delete_message(chat_id=tg_id, message_id=invoice_msg_id)
+            except Exception:
+                pass
+            await state.update_data(invoice_msg_id=None)
+        ctrl_msg_id = data_state.get("invoice_ctrl_msg_id")
+        if ctrl_msg_id:
+            try:
+                await bot.delete_message(chat_id=tg_id, message_id=ctrl_msg_id)
+            except Exception:
+                pass
+            await state.update_data(invoice_ctrl_msg_id=None)
+    except Exception:
+        pass
+    # Возвращаемся к выбору способа оплаты
+    try:
+        days = int((await state.get_data()).get("selected_days", 7))
+        star_3d = int(os.getenv("PRICE_3D_STAR", "5"))
+        star_1m = int(os.getenv("PRICE_1M_STAR", "99"))
+        star_3m = int(os.getenv("PRICE_3M_STAR", "229"))
+        rub_3d = int(os.getenv("PRICE_3D_RUB", "5"))
+        rub_1m = int(os.getenv("PRICE_1M_RUB", "79"))
+        rub_3m = int(os.getenv("PRICE_3M_RUB", "199"))
+        if days == 7:
+            star_amount, rub_amount = star_3d, rub_3d
+        elif days == 31:
+            star_amount, rub_amount = star_1m, rub_1m
+        else:
+            star_amount, rub_amount = star_3m, rub_3m
+        from keyboards.keyboard import create_payment_method_keyboard
+        await bot.send_message(
+            tg_id,
+            f"Выбран тариф: {days} дн. Выберите способ оплаты:",
+            reply_markup=create_payment_method_keyboard(star_amount, rub_amount),
+        )
+    except Exception:
+        pass
+    await callback_query.answer("Счёт отменён")
 
 

@@ -105,11 +105,12 @@ async def pay_with_yookassa(callback_query: CallbackQuery, state: FSMContext, bo
     check_kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="💳 Оплатить YooKassa", url=confirmation_url)],
         [InlineKeyboardButton(text="✅ Проверить оплату", callback_data="check_yk")],
-        [InlineKeyboardButton(text="Назад", callback_data="back")],
+        [InlineKeyboardButton(text="❌ Отменить счёт", callback_data="cancel_yk_invoice")],
+        [InlineKeyboardButton(text="🔙 Назад", callback_data="back")],
     ])
     msg = await bot.send_message(
         callback_query.from_user.id,
-        f"Счет создан на {amount_rub} ₽. Оплатите и нажмите \"Проверить оплату\".",
+        f"Счёт создан на {amount_rub} ₽. Оплатите и нажмите \"Проверить оплату\".",
         reply_markup=check_kb,
     )
     # Сохраняем сообщение со ссылкой на оплату для последующего удаления
@@ -144,6 +145,46 @@ async def pay_with_yookassa(callback_query: CallbackQuery, state: FSMContext, bo
             pass
 
     _asyncio.create_task(_expire_yk_invoice())
+
+
+@yookassa_router.callback_query(F.data == "cancel_yk_invoice")
+async def cancel_yk_invoice(callback_query: CallbackQuery, state: FSMContext, bot: Bot) -> None:
+    tg_id = callback_query.from_user.id
+    try:
+        data_state = await state.get_data()
+        yk_msg_id = data_state.get("yookassa_msg_id")
+        if yk_msg_id:
+            try:
+                await bot.delete_message(chat_id=tg_id, message_id=yk_msg_id)
+            except Exception:
+                pass
+            await state.update_data(yookassa_msg_id=None, yookassa_payment_id=None)
+    except Exception:
+        pass
+    # Вернём клавиатуру способов оплаты
+    try:
+        days = int((await state.get_data()).get("selected_days", 7))
+        star_3d = int(os.getenv("PRICE_3D_STAR", "5"))
+        star_1m = int(os.getenv("PRICE_1M_STAR", "99"))
+        star_3m = int(os.getenv("PRICE_3M_STAR", "229"))
+        rub_3d = int(os.getenv("PRICE_3D_RUB", "5"))
+        rub_1m = int(os.getenv("PRICE_1M_RUB", "79"))
+        rub_3m = int(os.getenv("PRICE_3M_RUB", "199"))
+        if days == 7:
+            star_amount, rub_amount = star_3d, rub_3d
+        elif days == 31:
+            star_amount, rub_amount = star_1m, rub_1m
+        else:
+            star_amount, rub_amount = star_3m, rub_3m
+        from keyboards.keyboard import create_payment_method_keyboard
+        await bot.send_message(
+            tg_id,
+            f"Выбран тариф: {days} дн. Выберите способ оплаты:",
+            reply_markup=create_payment_method_keyboard(star_amount, rub_amount),
+        )
+    except Exception:
+        pass
+    await callback_query.answer("Счёт отменён")
 
 
 @yookassa_router.callback_query(F.data == "check_yk")
@@ -183,7 +224,12 @@ async def check_yookassa(callback_query: CallbackQuery, state: FSMContext, bot: 
             async with session.post(urlupdate, json=data, headers={"X-API-Key": AUTH_CODE}) as resp:
                 if resp.status == 200:
                     await bot.send_message(tg_id, "Подписка активирована! Конфиг доступен в личном кабинете.")
-                    await bot.send_message(746560409, f"Подписка активирована для пользователя {tg_id}")
+                    try:
+                        admin_id = 746560409
+                        if admin_id:
+                            await bot.send_message(admin_id, f"Подписка активирована для пользователя {tg_id}")
+                    except Exception:
+                        pass
                 elif resp.status == 409:
                     await bot.send_message(tg_id, "Свободных конфигов нет. Свяжитесь с поддержкой.")
                 else:
