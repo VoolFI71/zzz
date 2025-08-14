@@ -19,7 +19,7 @@ router = Router()
 async def start_command(message: types.Message):
     args = message.text.split()
     user_id = message.from_user.id
-    bonus_message_needed = False
+    referral_bonus_message: str | None = None
     logger.info(f"/start received from {user_id} with args={args}")
     if len(args) > 1:
         referral_code = args[1]
@@ -45,8 +45,12 @@ async def start_command(message: types.Message):
                         int(owner_tg_id),
                         "По вашей реферальной ссылке зарегистрировался новый пользователь. На ваш баланс начислено 3 дня. Активируйте дни в Личном кабинете."
                     )
+                    # Сообщение новому пользователю после приветствия
+                    referral_bonus_message = (
+                        "Вы перешли по реферальной ссылке — её владелец получил 3 дня бесплатной подписки."
+                    )
                 except Exception:
-                    pass
+                    logger.exception("Failed to process referral bonus for owner_tg_id=%s", owner_tg_id)
         else:
             # Пользователь уже активировал реферальную ссылку ранее
             await message.answer("Вы уже использовали реферальную ссылку ранее. Это можно сделать только один раз.")
@@ -80,5 +84,9 @@ async def start_command(message: types.Message):
     except Exception:
         # Фолбэк на случай ошибки при отправке изображения
         await message.answer("Добро пожаловать! Выберите действие:", reply_markup=keyboard.create_keyboard())
+
+    # Отправляем уведомление о реферальном бонусе после приветствия
+    if referral_bonus_message:
+        await message.answer(referral_bonus_message)
 
 

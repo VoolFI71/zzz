@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="robots" content="index, follow" />
   <link rel="canonical" href="https://swaga.space/" />
   <meta property="og:type" content="website" />
@@ -225,6 +225,11 @@ body.no-scroll{overflow:hidden}
 .btn.ghost:hover{border-color:#ffffff44}
 .btn.w100{display:block;text-align:center}
 
+/* Mobile tap improvements */
+a, button{-webkit-tap-highlight-color:transparent}
+/* Fluid media */
+img, svg{max-width:100%; height:auto}
+
 /* Theme toggle */
 .theme-toggle{display:inline-flex;align-items:center;gap:8px}
 .theme-toggle .icon{font-size:16px;line-height:1}
@@ -238,6 +243,7 @@ body.no-scroll{overflow:hidden}
 .grid-2 > .hero__art{justify-self:center;width:auto}
 .hero__content h1{font-size:44px;line-height:1.12;margin:0 0 14px;letter-spacing:.2px}
 .hero__content p{color:var(--muted);margin:0 0 22px;font-size:18px}
+.hero__content h1, .section__title{overflow-wrap:anywhere; word-break:break-word}
 .cta{display:flex;gap:12px;flex-wrap:wrap}
 .badges{display:flex;gap:10px;margin-top:18px}
 .badges span{font-size:12px;color:var(--muted);border:1px solid var(--stroke);padding:6px 10px;border-radius:999px}
@@ -335,9 +341,15 @@ footer a:hover{color:var(--text)}
     .hero__content h1{font-size:40px}
     .cards{grid-template-columns:repeat(2,1fr)}
     .pricing{grid-template-columns:repeat(2,1fr)}
+    .country-grid{grid-template-columns:repeat(2,minmax(0,1fr))}
+    .country-card{min-height:220px;padding:22px}
+    .flag{width:84px;height:auto}
+    .section__title{font-size:28px}
   }
 
   @media (max-width: 720px){
+    .header{padding-top:env(safe-area-inset-top)}
+    body{padding-bottom:env(safe-area-inset-bottom)}
     .menu{display:none}
     .hamburger{display:block; padding:12px; margin-right:-8px}
     .hamburger span{width:24px}
@@ -348,13 +360,14 @@ footer a:hover{color:var(--text)}
     .hero__content h1{font-size:34px}
     .btn{font-size:16px; padding:14px 16px}
     .btn.small{font-size:15px; padding:12px 14px}
-    .cta{flex-direction:column; gap:10px; align-items:flex-start}
-    .cta .btn{width:auto}
+    .cta{flex-direction:column; gap:10px; align-items:stretch}
+    .cta .btn{width:100%}
     .cards{grid-template-columns:1fr}
     .pricing{grid-template-columns:1fr}
     .section{padding:42px 0}
     .menu.open{position:absolute;top:64px;left:0;right:0;background:color-mix(in oklab, var(--bg) 96%, transparent);border-bottom:1px solid var(--stroke);display:flex;flex-direction:column;gap:12px;padding:14px 20px}
     .menu.open a, .menu.open .btn{display:block; width:100%; text-align:center}
+    .container{padding-left:calc(16px + env(safe-area-inset-left)); padding-right:calc(16px + env(safe-area-inset-right))}
      /* Hero art mobile tweaks */
       .hero__art{margin-top:14px}
       .hero__art .card{max-width:360px; padding:16px; width:calc(100% - 12px); margin-left:0; margin-right:12px; overflow:hidden}
@@ -363,11 +376,34 @@ footer a:hover{color:var(--text)}
       .stats div:nth-child(3){grid-column:1 / -1}
       .stats div{min-width:0; padding:8px}
       .stats strong, .stats span{word-break:break-word; overflow-wrap:anywhere}
+      /* Countries: mobile layout */
+      .countries{margin-top:18px}
+      .country-grid{grid-template-columns:1fr;gap:12px}
+      .country-card{align-items:flex-start;text-align:left;padding:18px;min-height:initial}
+      .country-flag{justify-content:flex-start}
+      .flag{width:72px;height:auto}
+      .country-name{font-size:20px}
+      .country-desc{font-size:15px;max-width:none}
+      .country-pills{grid-template-columns:1fr 1fr}
+      .pill{padding:12px 14px}
+      /* Pricing: compact */
+      .price-card{padding:18px; gap:10px}
+      .price{font-size:28px}
+      /* Footer: stack */
+      footer .inner{flex-direction:column; align-items:flex-start}
+      footer .links{flex-wrap:wrap; row-gap:8px}
   }
 
   @media (max-width: 420px){
     .hero{padding:44px 0}
+    .hero__content h1{font-size:30px}
     .hero__content p{font-size:16px}
+    /* Countries: extra-compact */
+    .country-card{padding:16px}
+    .flag{width:60px;height:auto}
+    .country-name{font-size:18px}
+    .country-pills{grid-template-columns:1fr}
+    .section__title{font-size:24px}
   }
 
 /* Mobile menu */
