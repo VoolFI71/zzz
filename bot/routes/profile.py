@@ -26,7 +26,7 @@ COUNTRY_SETTINGS: dict[str, dict[str, str]] = {
         "urlupdate": _env_any("URLUPDATE_FI", "urlupdate_fi", default=""),
         "urldelete": _env_any("URLDELETE_FI", "urldelete_fi", default=""),
         # Параметры для генерации VLESS
-        "host": _env_any("HOST_FI", "host_fi", default=""),
+        "host": "77.110.108.194",
         "pbk": _env_any("PBK_FI", "pbk_fi", default=""),
         "sni": "google.com",
         "sid": _env_any("SID_FI", "sid_fi", default=""),
