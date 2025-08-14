@@ -79,7 +79,7 @@ async def go_back(callback_query: CallbackQuery, bot: Bot, state: FSMContext) ->
     current_text = (callback_query.message.text or "").lower()
 
     # Если на экране выбор способа оплаты — вернёмся к выбору тарифа
-    if "выбран тариф" in current_text:
+    if "выбран тариф" in current_text and ("оплат" in current_text or "⭐" in current_text or "₽" in current_text):
         try:
             await callback_query.message.edit_text(
                 text="Выберите тариф:",
@@ -94,12 +94,13 @@ async def go_back(callback_query: CallbackQuery, bot: Bot, state: FSMContext) ->
         await callback_query.answer()
         return
 
-    # Если открыт экран оплаты (есть активный счёт) — вернёмся к выбору способа оплаты
-    try:
-        user_state = await state.get_data()
-    except Exception:
-        user_state = {}
-    if user_state.get("yookassa_payment_id") or user_state.get("invoice_msg_id"):
+    # Если открыт экран с реальным счётом/оплатой — вернёмся к выбору способа оплаты
+    # Важно: опираемся на текущий текст, чтобы не застревать из‑за старых state-значений
+    if any(word in current_text for word in ["счет", "счёт", "оплат", "invoice", "управления счётом"]):
+        try:
+            user_state = await state.get_data()
+        except Exception:
+            user_state = {}
         days = int(user_state.get("selected_days", 7))
         star_3d = int(os.getenv("PRICE_3D_STAR", "5"))
         star_1m = int(os.getenv("PRICE_1M_STAR", "99"))
