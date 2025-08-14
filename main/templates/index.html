@@ -118,6 +118,15 @@
   <meta name="yandex-verification" content="bb185d3a0aa04535" />
   <title>GLS VPN</title>
   <meta name="description" content="VPN с высокой скоростью, шифрованием и простым подключением. Поддержка iOS, Android, Windows, macOS." />
+  <!-- Favicons / PWA basics -->
+  <meta name="application-name" content="GLS VPN" />
+  <meta name="apple-mobile-web-app-title" content="GLS VPN" />
+  <meta name="theme-color" content="#0ea5e9" />
+  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', path='gls-avatar-wordmark.svg') }}" />
+  <!-- Using only SVG as requested -->
+  <link rel="apple-touch-icon" href="{{ url_for('static', path='gls-avatar-wordmark.svg') }}" />
+  <link rel="mask-icon" href="{{ url_for('static', path='gls-avatar-wordmark.svg') }}" color="#0ea5e9" />
+  <link rel="manifest" href="{{ url_for('static', path='site.webmanifest') }}" />
   <link rel="icon" href="{{ url_for('static', path='gls-avatar-wordmark.svg') }}" type="image/svg+xml">
   <link rel="apple-touch-icon" href="{{ url_for('static', path='gls-avatar-wordmark.svg') }}">
   <link rel="preconnect" href="https://fonts.googleapis.com" />
