@@ -174,20 +174,30 @@
   --danger: #dc2626;
 }
 
-*{box-sizing:border-box}
-html,body{height:100%; overflow-x:hidden; overscroll-behavior-x:none}
+ *{box-sizing:border-box}
+ html,body{height:100%; overflow-x:hidden; overscroll-behavior-x:none}
+ html{background:var(--bg-2)}
 html{scroll-behavior:smooth}
-body{
-  margin:0;
-  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji", "Segoe UI Emoji";
-  color:var(--text);
-  line-height:1.6;
-  /* Subtle layered background */
-  background:
-    radial-gradient(1200px 600px at 10% -10%, rgba(109,139,255,0.10), transparent 60%),
-    radial-gradient(1200px 600px at 110% 10%, rgba(154,109,255,0.08), transparent 60%),
-    var(--bg-2);
-}
+ body{
+   margin:0;
+   font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+   color:var(--text);
+   line-height:1.6;
+   background:var(--bg-2);
+ }
+ /* Decorative background kept inside viewport to avoid bottom tint */
+ body::before{
+   content:"";
+   position:fixed;
+  top:0;left:0;right:0;height:70vh;
+   z-index:-1;
+   pointer-events:none;
+   background:
+     radial-gradient(1200px 600px at 10% -10%, rgba(109,139,255,0.10), transparent 60%),
+     radial-gradient(1200px 600px at 110% 10%, rgba(154,109,255,0.08), transparent 60%);
+  -webkit-mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+  mask-image: linear-gradient(to bottom, black 70%, transparent 100%);
+ }
 body.no-scroll{overflow:hidden}
 
 .container{max-width:1120px;margin:0 auto;padding:0 20px}
@@ -324,7 +334,7 @@ img, svg{max-width:100%; height:auto}
 .faq p{color:var(--muted)}
 
 /* Footer */
-footer{border-top:1px solid var(--stroke);background:color-mix(in oklab, var(--bg) 96%, transparent)}
+ footer{border-top:1px solid var(--stroke);background:var(--bg-2)}
 footer .inner{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px 0}
 footer .links{display:flex;align-items:center;gap:14px}
 footer a{color:var(--muted);text-decoration:none}
