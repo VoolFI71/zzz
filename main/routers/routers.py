@@ -59,7 +59,7 @@ COUNTRY_SETTINGS: dict[str, dict[str, str]] = {
         "urlupdate": _env_any("URLUPDATE_NL", "urlupdate_nl", default=""),
         "urldelete": _env_any("URLDELETE_NL", "urldelete_nl", default=""),
         # Параметры для генерации VLESS
-        "host": _env_any("HOST_NL", "host_nl", default=""),
+        "host": _env_any("HOST_NL", "host_nl", default="146.103.102.21"),
         "pbk": _env_any("PBK_NL", "pbk_nl", default=""),
         "sni": "google.com",
         "sid": _env_any("SID_NL", "sid_nl", default=""),
@@ -69,7 +69,7 @@ COUNTRY_SETTINGS: dict[str, dict[str, str]] = {
         "urlupdate": _env_any("URLUPDATE_FI", "urlupdate_fi", default=""),
         "urldelete": _env_any("URLDELETE_FI", "urldelete_fi", default=""),
         # Параметры для генерации VLESS
-        "host": _env_any("HOST_FI", "host_fi", default=""),
+        "host": _env_any("HOST_FI", "host_fi", default="77.110.108.194"),
         "pbk": _env_any("PBK_FI", "pbk_fi", default=""),
         "sni": "google.com",
         "sid": _env_any("SID_FI", "sid_fi", default=""),
@@ -81,6 +81,13 @@ COUNTRY_SETTINGS: dict[str, dict[str, str]] = {
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
 BASE_URL: str = os.getenv("BASE_URL", "https://swaga.space")
+
+# Subscription response metadata (v2RayTun headers)
+SUB_TITLE: str = _env_any("SUBSCRIPTION_TITLE", "sub_title", default="GLS VPN")
+SUB_UPDATE_HOURS: str = _env_any("SUBSCRIPTION_UPDATE_HOURS", "sub_update_hours", default="12")
+SUB_ANNOUNCE: str = _env_any("SUBSCRIPTION_ANNOUNCE", "sub_announce", default="")
+SUB_ANNOUNCE_URL: str = _env_any("SUBSCRIPTION_ANNOUNCE_URL", "sub_announce_url", default="")
+SUB_ROUTING_B64: str = _env_any("SUBSCRIPTION_ROUTING_B64", "sub_routing_b64", default="")
 
 # ---------------------------------------------------------------------------
 # Dependencies
@@ -444,7 +451,14 @@ async def read_user(tg_id: int, _: None = Depends(verify_api_key)):
 
 @router.get("/subscription/{tg_id}")
 async def get_subscription(tg_id: int):
-    """Возвращает подписку из активных конфигов для V2rayTun в plain-text."""
+    """Возвращает подписку из активных конфигов для V2rayTun.
+
+    Добавляет заголовки (как HTTP, так и в теле) совместимые с v2RayTun:
+    - profile-title
+    - subscription-userinfo (expire=...)
+    - profile-update-interval (часы)
+    - routing (base64), announce, announce-url — если заданы в env
+    """
 
     logger.info("Subscription request for tg_id: %s", tg_id)
 
@@ -457,6 +471,7 @@ async def get_subscription(tg_id: int):
 
     current_time = int(time.time())
     active_configs: list[str] = []
+    max_expire_unix: int = 0
 
     for user_code, time_end, server in users:
         if time_end > current_time:
@@ -472,16 +487,48 @@ async def get_subscription(tg_id: int):
                 f"sni={settings['sni']}&sid={settings['sid']}#glsvpn"
             )
             active_configs.append(vless_config)
+            if time_end > max_expire_unix:
+                max_expire_unix = time_end
 
     if not active_configs:
         raise HTTPException(status_code=404, detail="У вас нет активных конфигураций")
 
-    subscription_content = "\n".join(active_configs)
-    logger.info("Returning %s active configs for tg_id: %s", len(active_configs), tg_id)
+    # Compose optional body headers for compatibility
+    body_header_lines: list[str] = []
+    if SUB_TITLE:
+        body_header_lines.append(f'profile-title: "{SUB_TITLE}"')
+    if max_expire_unix > 0:
+        body_header_lines.append(f'subscription-userinfo: "expire={max_expire_unix}"')
+    if SUB_UPDATE_HOURS:
+        body_header_lines.append(f'profile-update-interval: "{SUB_UPDATE_HOURS}"')
+    if SUB_ROUTING_B64:
+        body_header_lines.append(f'routing: "{SUB_ROUTING_B64}"')
+    if SUB_ANNOUNCE:
+        body_header_lines.append(f'announce: "{SUB_ANNOUNCE}"')
+    if SUB_ANNOUNCE_URL:
+        body_header_lines.append(f'announce-url: "{SUB_ANNOUNCE_URL}"')
+
+    subscription_content = ("\n".join(body_header_lines + [""]) if body_header_lines else "") + "\n".join(active_configs)
+    logger.info("Returning %s active configs for tg_id: %s (expire=%s)", len(active_configs), tg_id, max_expire_unix)
+
+    # Also include headers at HTTP level
+    response_headers: dict[str, str] = {"Content-Type": "text/plain; charset=utf-8"}
+    if SUB_TITLE:
+        response_headers["profile-title"] = SUB_TITLE
+    if max_expire_unix > 0:
+        response_headers["subscription-userinfo"] = f"expire={max_expire_unix}"
+    if SUB_UPDATE_HOURS:
+        response_headers["profile-update-interval"] = SUB_UPDATE_HOURS
+    if SUB_ROUTING_B64:
+        response_headers["routing"] = SUB_ROUTING_B64
+    if SUB_ANNOUNCE:
+        response_headers["announce"] = SUB_ANNOUNCE
+    if SUB_ANNOUNCE_URL:
+        response_headers["announce-url"] = SUB_ANNOUNCE_URL
 
     return PlainTextResponse(
         content=subscription_content,
-        headers={"Content-Type": "text/plain; charset=utf-8"},
+        headers=response_headers,
     )
 
 @router.get("/add-config", response_class=HTMLResponse)
