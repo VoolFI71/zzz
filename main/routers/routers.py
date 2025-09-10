@@ -526,10 +526,12 @@ async def get_subscription(tg_id: int):
     if SUB_ANNOUNCE_URL:
         response_headers["announce-url"] = SUB_ANNOUNCE_URL
 
-    return PlainTextResponse(
-        content=subscription_content,
-        headers=response_headers,
-    )
+    # Always return base64-encoded body for V2rayTun compatibility
+    try:
+        encoded_body = base64.b64encode(subscription_content.encode()).decode()
+    except Exception:
+        encoded_body = subscription_content
+    return PlainTextResponse(content=encoded_body, headers=response_headers)
 
 @router.get("/add-config", response_class=HTMLResponse)
 async def add_config_page(
