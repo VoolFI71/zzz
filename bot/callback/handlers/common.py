@@ -21,34 +21,21 @@ import time
 common_router = Router()
 
 
-@common_router.callback_query(F.data.in_({"plan_1m", "plan_3m", "plan_7d"}))
+@common_router.callback_query(F.data.in_({"plan_1m", "plan_3m"}))
 async def select_plan(callback_query: CallbackQuery, state: FSMContext) -> None:
-    if callback_query.data == "plan_7d":
-        days = 7
-    elif callback_query.data == "plan_1m":
+    if callback_query.data == "plan_1m":
         days = 31
     else:
         days = 93
-    # Блокировка повторной покупки тестовой подписки (7 дней)
-    if days == 7:
-        tg_id = str(callback_query.from_user.id)
-        await user_db.ensure_user_row(tg_id)
-        if await user_db.has_used_trial_3d(tg_id):
-            await callback_query.answer("Тестовую подписку можно купить только один раз", show_alert=True)
-            return
     await state.update_data(selected_days=days)
 
     # Цены для отображения методов оплаты
-    star_3d = int(os.getenv("PRICE_3D_STAR", "5"))
     star_1m = int(os.getenv("PRICE_1M_STAR", "99"))
     star_3m = int(os.getenv("PRICE_3M_STAR", "229"))
-    rub_3d = int(os.getenv("PRICE_3D_RUB", "5"))
     rub_1m = int(os.getenv("PRICE_1M_RUB", "79"))
     rub_3m = int(os.getenv("PRICE_3M_RUB", "199"))
 
-    if days == 7:
-        star_amount, rub_amount = star_3d, rub_3d
-    elif days == 31:
+    if days == 31:
         star_amount, rub_amount = star_1m, rub_1m
     else:
         star_amount, rub_amount = star_3m, rub_3m

@@ -45,22 +45,18 @@ async def pay_with_yookassa(callback_query: CallbackQuery, state: FSMContext, bo
     Configuration.secret_key = YOOKASSA_SECRET
 
     days = int(user_data.get("selected_days", 31))
-    payload = "sub_1m" if days == 31 else ("sub_3m" if days == 93 else "sub_7d")
+    payload = "sub_1m" if days == 31 else "sub_3m"
     # Суммы и описания из окружения с адекватными дефолтами
     price_1m = int(os.getenv("PRICE_1M_RUB", "79"))
     price_3m = int(os.getenv("PRICE_3M_RUB", "199"))
-    price_3d = int(os.getenv("PRICE_3D_RUB", "5"))
 
     desc_1m = os.getenv("YK_DESC_1M", "Подписка GLS VPN — 1 месяц")
     desc_3m = os.getenv("YK_DESC_3M", "Подписка GLS VPN — 3 месяца")
-    desc_3d = os.getenv("YK_DESC_3D", "Тестовая подписка GLS VPN — 7 дней")
 
     if days == 31:
         amount_rub, description = price_1m, desc_1m
-    elif days == 93:
-        amount_rub, description = price_3m, desc_3m
     else:
-        amount_rub, description = price_3d, desc_3d
+        amount_rub, description = price_3m, desc_3m
 
     # Чек (receipt) с обязательным блоком customer
     receipt: dict = {

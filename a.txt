@@ -48,8 +48,7 @@ services:
     restart: always
     env_file:
       - ./main/.env
-    environment:
-      - REDIS_URL=redis://redis:6379/0
+    # Redis removed; no rate limiting env needed
     # environment:
     #   - VIRTUAL_HOST=swaga.space,www.swaga.space
     #   - LETSENCRYPT_HOST=swaga.space,www.swaga.space
@@ -58,8 +57,6 @@ services:
       - ./main:/app
     # expose:
     #   - "8080"
-    depends_on:
-      - redis
     ports:
       - "8080:8080"
     healthcheck:
@@ -78,11 +75,6 @@ services:
       - ./main:/app/main
       - ./backup:/app/backup    
       - ./backups:/app/backups    
-
-  redis:
-    image: redis:7-alpine
-    restart: always
-    command: ["redis-server", "--save", "", "--appendonly", "no"]
 
 # volumes:
 #   nginx_certs:

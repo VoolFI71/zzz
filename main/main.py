@@ -10,9 +10,6 @@ from database import db  # noqa: WPS412
 from routers import routers
 
 # Rate limiting
-from fastapi_limiter import FastAPILimiter
-from fastapi_limiter.depends import RateLimiter
-import redis.asyncio as redis
 
 app = FastAPI()
 app.include_router(routers.router)
@@ -49,14 +46,7 @@ async def startup_event() -> None:
         follow_redirects=True,
     )
 
-    # Инициализация Redis и лимитера
-    redis_url = os.getenv("REDIS_URL", "redis://localhost:6379/0")
-    try:
-        app.state.redis = redis.from_url(redis_url, encoding="utf-8", decode_responses=True)
-        await FastAPILimiter.init(app.state.redis)
-    except Exception:
-        # Не блокируем запуск, но логируем
-        logging.getLogger(__name__).warning("Rate limiter init failed; proceeding without limiting")
+    # Rate limiter отключён — Redis не используется
 
     # Опциональная фоновая чистка истёкших конфигов
     enable_sweep = os.getenv("ENABLE_EXPIRE_SWEEP", "true").lower() in {"1", "true", "yes"}
@@ -92,12 +82,6 @@ async def shutdown_event() -> None:
     client = getattr(app.state, "http_client", None)
     if client is not None:
         await client.aclose()
-    r = getattr(app.state, "redis", None)
-    if r is not None:
-        try:
-            await r.close()
-        except Exception:
-            pass
     task = getattr(app.state, "expire_task", None)
     if task is not None:
         task.cancel()

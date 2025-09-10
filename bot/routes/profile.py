@@ -49,6 +49,46 @@ async def my_account(message: types.Message):
     # Переходим в подменю профиля
     await message.answer("Личный кабинет:", reply_markup=keyboard.create_profile_keyboard())
 
+@router.message(F.text == "🎁 Пробная 7 дней")
+async def free_trial(message: types.Message):
+    user_id = message.from_user.id
+    from database import db as user_db
+    try:
+        await user_db.ensure_user_row(str(user_id))
+        if await user_db.has_used_trial_3d(str(user_id)):
+            await message.answer("Вы уже активировали пробную подписку ранее.")
+            return
+    except Exception:
+        await message.answer("Ошибка. Попробуйте позже.")
+        return
+
+    # Проверяем наличие свободных конфигов (не блокирующе)
+    from utils import check_available_configs, get_session
+    available = await check_available_configs("fi")
+    if not available:
+        await message.answer("Свободных конфигов нет. Попробуйте позже.")
+        return
+
+    # Выдаём бесплатные 7 дней на сервере FI
+    data = {"time": 7, "id": str(user_id), "server": "fi"}
+    AUTH_CODE = os.getenv("AUTH_CODE")
+    urlupdate = "http://fastapi:8080/giveconfig"
+    try:
+        session = await get_session()
+        async with session.post(urlupdate, json=data, headers={"X-API-Key": AUTH_CODE}) as resp:
+            if resp.status == 200:
+                await user_db.set_trial_3d_used(str(user_id))
+                base = os.getenv("PUBLIC_BASE_URL", "https://swaga.space").rstrip('/')
+                web_url = f"{base}/add-config?tg_id={user_id}"
+                kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="📲 Добавить в V2rayTun", url=web_url)]])
+                await message.answer("Пробная подписка на 7 дней активирована!", reply_markup=kb)
+            elif resp.status == 409:
+                await message.answer("Свободных конфигов нет. Попробуйте позже.")
+            else:
+                await message.answer(f"Ошибка сервера ({resp.status}). Попробуйте позже.")
+    except aiohttp.ClientError:
+        await message.answer("Ошибка сети. Попробуйте позже.")
+
 @router.callback_query(F.data.startswith("copy_config_"))
 async def copy_config_callback(callback: types.CallbackQuery):
     """Показывает конфиг в виде текста для копирования + кнопку удаления сообщения."""

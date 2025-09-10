@@ -4,6 +4,7 @@ import os
 def create_keyboard():
     kb_list = [
         [KeyboardButton(text="Выбрать тариф"), KeyboardButton(text="Личный кабинет")],
+        [KeyboardButton(text="🎁 Пробная 7 дней")],
         [KeyboardButton(text="Пригласить"), KeyboardButton(text="Инструкция⚙️")]
     ]
     keyboard = ReplyKeyboardMarkup(keyboard=kb_list, resize_keyboard=True, one_time_keyboard=False)
@@ -19,15 +20,12 @@ def create_server_keyboard():
 
 
 def create_tariff_keyboard():
-    star_3d = int(os.getenv("PRICE_3D_STAR", "5"))
     star_1m = int(os.getenv("PRICE_1M_STAR", "99"))
     star_3m = int(os.getenv("PRICE_3M_STAR", "229"))
-    rub_3d = int(os.getenv("PRICE_3D_RUB", "5"))
     rub_1m = int(os.getenv("PRICE_1M_RUB", "79"))
     rub_3m = int(os.getenv("PRICE_3M_RUB", "199"))
 
     kb_list = [
-        [InlineKeyboardButton(text=f"🧪 7 дней — {star_3d} ⭐ / {rub_3d} ₽", callback_data="plan_7d")],
         [InlineKeyboardButton(text=f"📅 1 месяц — {star_1m} ⭐ / {rub_1m} ₽", callback_data="plan_1m")],
         [InlineKeyboardButton(text=f"📆 3 месяца — {star_3m} ⭐ / {rub_3m} ₽", callback_data="plan_3m")],
         [InlineKeyboardButton(text="🔙 Назад", callback_data="back")]

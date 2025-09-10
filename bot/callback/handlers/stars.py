@@ -23,9 +23,9 @@ async def pay_with_stars(callback_query: CallbackQuery, state: FSMContext, bot: 
 
     user_data = await state.get_data()
     # По умолчанию делаем тестовую подписку на 7 дней
-    days = int(user_data.get("selected_days", 7))
+    days = int(user_data.get("selected_days", 31))
     # Маппинг payload по длительности
-    payload = "sub_7d" if days == 7 else ("sub_1m" if days == 31 else "sub_3m")
+    payload = "sub_1m" if days == 31 else "sub_3m"
 
     # Анти-спам и один активный счёт на пользователя
     now_ts = int(time.time())
@@ -54,18 +54,7 @@ async def pay_with_stars(callback_query: CallbackQuery, state: FSMContext, bot: 
         pass
 
     # Создаём счёт
-    if payload == "sub_7d":
-        invoice_msg = await bot.send_invoice(
-            chat_id=tg_id,
-            title="Тестовая подписка — 7 дней",
-            description="GLS VPN доступ на 7 дней",
-            payload=payload,
-            provider_token=provider_token,
-            currency="XTR",
-            prices=[LabeledPrice(label="XTR", amount=int(os.getenv("PRICE_3D_STAR", "5")))],
-            max_tip_amount=0,
-        )
-    elif payload == "sub_1m":
+    if payload == "sub_1m":
         invoice_msg = await bot.send_invoice(
             chat_id=tg_id,
             title="Подписка на 1 месяц",
@@ -221,16 +210,12 @@ async def cancel_star_invoice(callback_query: CallbackQuery, state: FSMContext, 
         pass
     # Возвращаемся к выбору способа оплаты
     try:
-        days = int((await state.get_data()).get("selected_days", 7))
-        star_3d = int(os.getenv("PRICE_3D_STAR", "5"))
+        days = int((await state.get_data()).get("selected_days", 31))
         star_1m = int(os.getenv("PRICE_1M_STAR", "99"))
         star_3m = int(os.getenv("PRICE_3M_STAR", "229"))
-        rub_3d = int(os.getenv("PRICE_3D_RUB", "5"))
         rub_1m = int(os.getenv("PRICE_1M_RUB", "79"))
         rub_3m = int(os.getenv("PRICE_3M_RUB", "199"))
-        if days == 7:
-            star_amount, rub_amount = star_3d, rub_3d
-        elif days == 31:
+        if days == 31:
             star_amount, rub_amount = star_1m, rub_1m
         else:
             star_amount, rub_amount = star_3m, rub_3m
