@@ -21,20 +21,28 @@ def _env_any(*keys: str, default: str = "") -> str:
 
 
 COUNTRY_SETTINGS: dict[str, dict[str, str]] = {
+    "nl": {
+        "urlcreate": _env_any("URLCREATE_NL", "urlcreate_nl", default=""),
+        "urlupdate": _env_any("URLUPDATE_NL", "urlupdate_nl", default=""),
+        "urldelete": _env_any("URLDELETE_NL", "urldelete_nl", default=""),
+        # Параметры для генерации VLESS
+        "host": _env_any("HOST_NL", "host_nl", default=""),
+        "pbk": _env_any("PBK_NL", "pbk_nl", default=""),
+        "sni": "google.com",
+        "sid": _env_any("SID_NL", "sid_nl", default=""),
+    },
     "fi": {
         "urlcreate": _env_any("URLCREATE_FI", "urlcreate_fi", default=""),
         "urlupdate": _env_any("URLUPDATE_FI", "urlupdate_fi", default=""),
         "urldelete": _env_any("URLDELETE_FI", "urldelete_fi", default=""),
         # Параметры для генерации VLESS
-        "host": "77.110.108.194",
+        "host": _env_any("HOST_FI", "host_fi", default=""),
         "pbk": _env_any("PBK_FI", "pbk_fi", default=""),
         "sni": "google.com",
         "sid": _env_any("SID_FI", "sid_fi", default=""),
-        # Отображаемое название страны
-        "country": "Финляндия",
     },
-    # "nl": {...}
 }
+
 
 @router.message(F.text == "Личный кабинет")
 async def my_account(message: types.Message):
@@ -111,10 +119,8 @@ async def my_configs(message: types.Message):
                             f"headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&"
                             f"sni={settings['sni']}&sid={settings['sid']}#glsvpn"
                         )
-                        import base64
-                        encoded_config = base64.b64encode(vless_config.encode()).decode()
                         base = PUBLIC_BASE_URL.rstrip('/')
-                        web_url = f"{base}/add-config?config={encoded_config}&expiry={remaining_seconds}"
+                        web_url = f"{base}/add-config?tg_id={user_id}"
                         inline_kb = InlineKeyboardMarkup(inline_keyboard=[
                             [InlineKeyboardButton(text="📱 Добавить в V2rayTun", url=web_url)],
                             [InlineKeyboardButton(text="📋 Копировать конфиг", callback_data=f"copy_config_{i}")]

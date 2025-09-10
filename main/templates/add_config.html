@@ -95,6 +95,8 @@
     const qs = new URLSearchParams(location.search);
     const configB64 = qs.get('config');
     const expiry = Number(qs.get('expiry') || 0);
+    const subscriptionParam = qs.get('subscription');
+    const tgIdParam = qs.get('tg_id');
 
     const configBox = document.getElementById('config-text');
     const expiryEl = document.getElementById('expiry-time');
@@ -112,8 +114,20 @@
       decoded = configB64 ? atob(configB64) : '';
     }catch{ decoded = ''; }
 
-    if(decoded){ configBox.textContent = decoded; }
-    else{ configBox.textContent = 'Конфиг не найден'; }
+    let subscriptionURL = null;
+    if(subscriptionParam){
+      subscriptionURL = subscriptionParam;
+    }else if(tgIdParam){
+      subscriptionURL = `http://146.103.102.21:8080/subscription/${encodeURIComponent(tgIdParam)}`;
+    }
+
+    if(subscriptionURL){
+      configBox.textContent = subscriptionURL;
+    }else if(decoded){
+      configBox.textContent = decoded;
+    }else{
+      configBox.textContent = 'Конфиг не найден';
+    }
 
     if(expiry){
       const hours = Math.max(0, Math.round(expiry/3600));
@@ -125,12 +139,17 @@
     if(!isMobile){ document.getElementById('platform-chip').textContent = '🖥️ Откройте со смартфона'; }
 
     openBtn.addEventListener('click', () => {
-      if(!configB64){ showToast('Конфиг не найден'); return; }
       if(!isMobile){ showToast('Откройте со смартфона'); return; }
-            const link = document.createElement('a');
-      link.href = `v2raytun://import/${configB64}`;
+      const link = document.createElement('a');
+      if(subscriptionURL){
+        link.href = `v2raytun://import/${encodeURIComponent(subscriptionURL)}`;
+      }else if(configB64){
+        link.href = `v2raytun://import/${configB64}`;
+      }else{
+        showToast('Данные не найдены'); return;
+      }
       document.body.appendChild(link); link.click(); link.remove();
-      setTimeout(()=>{ if(document.hasFocus()) showToast('Если приложение не открылось — скопируйте конфиг'); }, 1200);
+      setTimeout(()=>{ if(document.hasFocus()) showToast('Если приложение не открылось — скопируйте ссылку'); }, 1200);
     });
 
     async function copyToClipboard(text){
@@ -148,9 +167,10 @@
     }
 
     copyBtn.addEventListener('click', async ()=>{
-      if(!decoded){ showToast('Конфиг не найден'); return; }
-      const ok = await copyToClipboard(decoded);
-      showToast(ok ? '✅ Конфиг скопирован' : '❌ Не удалось скопировать');
+      const textToCopy = subscriptionURL || decoded;
+      if(!textToCopy){ showToast('Данные не найдены'); return; }
+      const ok = await copyToClipboard(textToCopy);
+      showToast(ok ? '✅ Скопировано' : '❌ Не удалось скопировать');
     });
     </script>
 </body>

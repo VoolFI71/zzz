@@ -55,6 +55,16 @@ def _env_any(*keys: str, default: str = "") -> str:
     return default
 
 COUNTRY_SETTINGS: dict[str, dict[str, str]] = {
+    "nl": {
+        "urlcreate": _env_any("URLCREATE_NL", "urlcreate_nl", default=""),
+        "urlupdate": _env_any("URLUPDATE_NL", "urlupdate_nl", default=""),
+        "urldelete": _env_any("URLDELETE_NL", "urldelete_nl", default=""),
+        # Параметры для генерации VLESS
+        "host": _env_any("HOST_NL", "host_nl", default=""),
+        "pbk": _env_any("PBK_NL", "pbk_nl", default=""),
+        "sni": "google.com",
+        "sid": _env_any("SID_NL", "sid_nl", default=""),
+    },
     "fi": {
         "urlcreate": _env_any("URLCREATE_FI", "urlcreate_fi", default=""),
         "urlupdate": _env_any("URLUPDATE_FI", "urlupdate_fi", default=""),
@@ -65,7 +75,6 @@ COUNTRY_SETTINGS: dict[str, dict[str, str]] = {
         "sni": "google.com",
         "sid": _env_any("SID_FI", "sid_fi", default=""),
     },
-    # "nl": {...}
 }
 
 
@@ -452,59 +461,59 @@ async def read_user(tg_id: int, _: None = Depends(verify_api_key)):
     ]
     return JSONResponse(content=result)
 
-# @router.get("/subscription/{tg_id}")
-# async def get_subscription(tg_id: int):
-#     """Возвращает подписку из активных конфигов для V2rayTun в plain-text."""
+@router.get("/subscription/{tg_id}")
+async def get_subscription(tg_id: int):
+    """Возвращает подписку из активных конфигов для V2rayTun в plain-text."""
 
-#     logger.info("Subscription request for tg_id: %s", tg_id)
+    logger.info("Subscription request for tg_id: %s", tg_id)
 
-#     # Сначала сбрасываем истёкшие конфиги
-#     #await db.reset_expired_configs()
+    # Сначала сбрасываем истёкшие конфиги
+    #await db.reset_expired_configs()
 
-#     users = await db.get_codes_by_tg_id(tg_id)
-#     if not users:
-#         raise HTTPException(status_code=404, detail="У вас нет активных конфигураций")
+    users = await db.get_codes_by_tg_id(tg_id)
+    if not users:
+        raise HTTPException(status_code=404, detail="У вас нет активных конфигураций")
 
-#     current_time = int(time.time())
-#     active_configs: list[str] = []
+    current_time = int(time.time())
+    active_configs: list[str] = []
 
-#     for user_code, time_end, server in users:
-#         if time_end > current_time:
-#             settings = COUNTRY_SETTINGS.get(server)
-#             if not settings:
-#                 # Если сервер неизвестен – пропускаем
-#                 logger.warning("Unknown server %s for user_code %s", server, user_code)
-#                 continue
-#             vless_config = (
-#                 f"vless://{user_code}@{settings['host']}:443?"
-#                 f"security=reality&encryption=none&pbk={settings['pbk']}&"
-#                 f"headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&"
-#                 f"sni={settings['sni']}&sid={settings['sid']}#glsvpn"
-#             )
-#             active_configs.append(vless_config)
+    for user_code, time_end, server in users:
+        if time_end > current_time:
+            settings = COUNTRY_SETTINGS.get(server)
+            if not settings:
+                # Если сервер неизвестен – пропускаем
+                logger.warning("Unknown server %s for user_code %s", server, user_code)
+                continue
+            vless_config = (
+                f"vless://{user_code}@{settings['host']}:443?"
+                f"security=reality&encryption=none&pbk={settings['pbk']}&"
+                f"headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&"
+                f"sni={settings['sni']}&sid={settings['sid']}#glsvpn"
+            )
+            active_configs.append(vless_config)
 
-#     if not active_configs:
-#         raise HTTPException(status_code=404, detail="У вас нет активных конфигураций")
+    if not active_configs:
+        raise HTTPException(status_code=404, detail="У вас нет активных конфигураций")
 
-#     subscription_content = "\n".join(active_configs)
-#     logger.info("Returning %s active configs for tg_id: %s", len(active_configs), tg_id)
+    subscription_content = "\n".join(active_configs)
+    logger.info("Returning %s active configs for tg_id: %s", len(active_configs), tg_id)
 
-#     return PlainTextResponse(
-#         content=subscription_content,
-#         headers={"Content-Type": "text/plain; charset=utf-8"},
-#     )
+    return PlainTextResponse(
+        content=subscription_content,
+        headers={"Content-Type": "text/plain; charset=utf-8"},
+    )
 
 @router.get("/add-config", response_class=HTMLResponse)
 async def add_config_page(
     request: Request,
     config: str | None = None,
     expiry: int | None = None,
+    tg_id: int | None = None,
+    subscription: str | None = None,
 ):
-    """Веб-страница для добавления конфига в V2rayTun."""
-
     return templates.TemplateResponse(
         "add_config.html",
-        {"request": request, "config": config, "expiry": expiry},
+        {"request": request, "config": config, "expiry": expiry, "tg_id": tg_id, "subscription": subscription},
     )
 
 @router.get("/redirect")
