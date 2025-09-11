@@ -76,6 +76,10 @@ COUNTRY_SETTINGS: dict[str, dict[str, str]] = {
     },
 }
 
+COUNTRY_LABELS: dict[str, str] = {
+    "nl": "Netherlands 🇳🇱",
+    "fi": "Finland 🇫🇮",
+}
 
 
 router = APIRouter()
@@ -476,6 +480,8 @@ async def get_subscription(tg_id: int):
     for user_code, time_end, server in users:
         if time_end > current_time:
             settings = COUNTRY_SETTINGS.get(server)
+            label = COUNTRY_LABELS.get(server, "GLS VPN")
+
             if not settings:
                 # Если сервер неизвестен – пропускаем
                 logger.warning("Unknown server %s for user_code %s", server, user_code)
@@ -484,7 +490,7 @@ async def get_subscription(tg_id: int):
                 f"vless://{user_code}@{settings['host']}:443?"
                 f"security=reality&encryption=none&pbk={settings['pbk']}&"
                 f"headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&"
-                f"sni={settings['sni']}&sid={settings['sid']}#glsvpn"
+                f"sni={settings['sni']}&sid={settings['sid']}#{label}"
             )
             active_configs.append(vless_config)
             if time_end > max_expire_unix:

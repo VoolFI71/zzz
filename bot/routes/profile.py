@@ -148,37 +148,37 @@ async def my_configs(message: types.Message):
             if response.status == 200:
                 response_data = await response.json()
                 if response_data:
-                    for i, user in enumerate(response_data, start=1):
-                        remaining_seconds = user['time_end'] - int(time.time())
-                        if remaining_seconds <= 0:
-                            continue
-                        settings = COUNTRY_SETTINGS[user['server']]
-                        vless_config = (
-                            f"vless://{user['user_code']}@{settings['host']}:443?"
-                            f"security=reality&encryption=none&pbk={settings['pbk']}&"
-                            f"headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&"
-                            f"sni={settings['sni']}&sid={settings['sid']}#glsvpn"
-                        )
-                        base = PUBLIC_BASE_URL.rstrip('/')
-                        web_url = f"{base}/add-config?tg_id={user_id}"
-                        inline_kb = InlineKeyboardMarkup(inline_keyboard=[
-                            [InlineKeyboardButton(text="📱 Добавить в V2rayTun", url=web_url)],
-                            [InlineKeyboardButton(text="📋 Копировать конфиг", callback_data=f"copy_config_{i}")]
-                        ])
-                        remaining_hours = remaining_seconds // 3600
-                        remaining_days = remaining_hours // 24
-                        hours_left = remaining_hours % 24
-                        if remaining_days > 0:
-                            time_text = f"{remaining_days} дн. {hours_left} ч." if hours_left > 0 else f"{remaining_days} дн."
-                        else:
-                            time_text = f"{remaining_hours} ч."
-                        config_message = (
-                            f"🔐 <b>Конфиг #{i}</b>\n"
-                            f"⏰ Действует: <b>{time_text}</b>\n"
-                             f"🌐 Сервер: <code>{COUNTRY_SETTINGS[user['server']].get('country', user['server'])}</code>\n\n"
-                            f"💡 <i>Нажмите кнопку ниже для добавления в приложение</i>"
-                        )
-                        await message.answer(config_message, parse_mode="HTML", reply_markup=inline_kb)
+                    # Сводка по странам
+                    now_ts = int(time.time())
+                    by_server: dict[str, int] = {}
+                    active_total = 0
+                    for user in response_data:
+                        if user.get('time_end', 0) > now_ts:
+                            srv = str(user.get('server', ''))
+                            by_server[srv] = by_server.get(srv, 0) + 1
+                            active_total += 1
+
+                    if active_total == 0:
+                        await message.answer("У вас нет активных конфигураций", reply_markup=keyboard.create_profile_keyboard())
+                        return
+
+                    # Красивые названия стран
+                    server_titles = {
+                        'fi': 'Финляндия',
+                        'nl': 'Нидерланды',
+                    }
+                    lines = ["Ваши активные конфигурации:"]
+                    for srv, cnt in by_server.items():
+                        title = server_titles.get(srv, srv.upper())
+                        lines.append(f"- {title}: {cnt} шт.")
+                    text = "\n".join(lines)
+
+                    base = PUBLIC_BASE_URL.rstrip('/')
+                    web_url = f"{base}/add-config?tg_id={user_id}"
+                    inline_kb = InlineKeyboardMarkup(inline_keyboard=[
+                        [InlineKeyboardButton(text="📲 Добавить подписку в V2rayTun", url=web_url)]
+                    ])
+                    await message.answer(text, reply_markup=inline_kb)
                     await message.answer("Выберите действие:", reply_markup=keyboard.create_profile_keyboard())
                 else:
                     await message.answer("У вас нет конфигов", reply_markup=keyboard.create_profile_keyboard())
