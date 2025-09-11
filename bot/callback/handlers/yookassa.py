@@ -219,7 +219,14 @@ async def check_yookassa(callback_query: CallbackQuery, state: FSMContext, bot: 
         try:
             async with session.post(urlupdate, json=data, headers={"X-API-Key": AUTH_CODE}) as resp:
                 if resp.status == 200:
-                    await bot.send_message(tg_id, "Подписка активирована! Конфиг доступен в личном кабинете.")
+                    try:
+                        from database import db as user_db
+                        sub_key = await user_db.get_or_create_sub_key(str(tg_id))
+                        base = os.getenv("PUBLIC_BASE_URL", "https://swaga.space").rstrip('/')
+                        sub_url = f"{base}/subscription/{sub_key}"
+                        await bot.send_message(tg_id, f"Подписка активирована! Ваша ссылка подписки: {sub_url}")
+                    except Exception:
+                        await bot.send_message(tg_id, "Подписка активирована! Конфиг доступен в личном кабинете.")
                     try:
                         admin_id = 746560409
                         if admin_id:

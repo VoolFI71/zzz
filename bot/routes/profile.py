@@ -173,8 +173,22 @@ async def my_configs(message: types.Message):
                         lines.append(f"- {title}: {cnt} шт.")
                     text = "\n".join(lines)
 
-                    base = PUBLIC_BASE_URL.rstrip('/')
-                    web_url = f"{base}/add-config?tg_id={user_id}"
+                    # Постоянная ссылка подписки по sub_key
+
+                    url = f"swaga.space/sub/{user_id}"
+                    try:
+                        async with aiohttp.ClientSession() as session:
+                            async with session.get(url, timeout=10) as resp:
+                                if resp.status != 200:
+                                    return None
+                                data = await resp.json()
+                    except Exception:
+                        await message.answer("Ошибка. Попробуйте позже.")
+
+                    sub_key = data.get("sub_key")
+                    if not sub_key:
+                        return None
+                    web_url = f"swaga.space/subscription/{sub_key}"
                     inline_kb = InlineKeyboardMarkup(inline_keyboard=[
                         [InlineKeyboardButton(text="📲 Добавить подписку в V2rayTun", url=web_url)]
                     ])

@@ -81,6 +81,26 @@ COUNTRY_LABELS: dict[str, str] = {
     "fi": "Finland 🇫🇮",
 }
 
+def _is_browser_request(headers: dict[str, str]) -> bool:
+    """Грубая эвристика определения браузера для контент-nega.
+
+    Возвращает True для браузеров (отдаём HTML), False для клиентов/приложений (отдаём text/plain).
+    """
+    ua = headers.get("user-agent", "").lower()
+    accept = headers.get("accept", "").lower()
+    # Современные браузеры отправляют Sec-Fetch-* и/или ch-ua заголовки
+    has_sec_fetch = any(h in headers for h in ("sec-fetch-mode", "sec-fetch-site", "sec-ch-ua"))
+    if has_sec_fetch:
+        return True
+    # Явно HTML в Accept → браузер
+    if "text/html" in accept:
+        return True
+    # По User-Agent
+    browser_markers = ("mozilla", "chrome", "safari", "firefox", "edg/")
+    if any(marker in ua for marker in browser_markers):
+        return True
+    return False
+
 
 router = APIRouter()
 templates = Jinja2Templates(directory="templates")
@@ -287,6 +307,11 @@ async def give_config(
         client_data.id,
         client_data.server,
     )
+    # Ensure a permanent subscription key is created for this user (idempotent)
+    try:
+        await db.get_or_create_sub_key(str(client_data.id))
+    except Exception:
+        pass
     return reserved_uid
 
 
@@ -453,7 +478,7 @@ async def read_user(tg_id: int, _: None = Depends(verify_api_key)):
     ]
     return JSONResponse(content=result)
 
-@router.get("/subscription/{tg_id}")
+
 async def get_subscription(tg_id: int):
     """Возвращает подписку из активных конфигов для V2rayTun.
 
@@ -466,9 +491,6 @@ async def get_subscription(tg_id: int):
 
     logger.info("Subscription request for tg_id: %s", tg_id)
 
-    # Сначала сбрасываем истёкшие конфиги
-    #await db.reset_expired_configs()
-
     users = await db.get_codes_by_tg_id(tg_id)
     if not users:
         raise HTTPException(status_code=404, detail="У вас нет активных конфигураций")
@@ -480,12 +502,11 @@ async def get_subscription(tg_id: int):
     for user_code, time_end, server in users:
         if time_end > current_time:
             settings = COUNTRY_SETTINGS.get(server)
-            label = COUNTRY_LABELS.get(server, "GLS VPN")
-
             if not settings:
                 # Если сервер неизвестен – пропускаем
                 logger.warning("Unknown server %s for user_code %s", server, user_code)
                 continue
+            label = COUNTRY_LABELS.get(server, "SHARD VPN")
             vless_config = (
                 f"vless://{user_code}@{settings['host']}:443?"
                 f"security=reality&encryption=none&pbk={settings['pbk']}&"
@@ -532,52 +553,60 @@ async def get_subscription(tg_id: int):
     if SUB_ANNOUNCE_URL:
         response_headers["announce-url"] = SUB_ANNOUNCE_URL
 
-    # Always return base64-encoded body for V2rayTun compatibility
-    try:
-        encoded_body = base64.b64encode(subscription_content.encode()).decode()
-    except Exception:
-        encoded_body = subscription_content
-    return PlainTextResponse(content=encoded_body, headers=response_headers)
+    return PlainTextResponse(
+        content=subscription_content,
+        headers=response_headers,
+    )
 
-@router.get("/add-config", response_class=HTMLResponse)
+@router.get("/subscription/{sub_key}", response_class=HTMLResponse)
 async def add_config_page(
     request: Request,
     config: str | None = None,
     expiry: int | None = None,
-    tg_id: int | None = None,
+    sub_key: str | None = None,
     subscription: str | None = None,
 ):
+    # Контент-нега: если это не браузер — отдаём plain text (для импорта в V2rayTun)
+    if not _is_browser_request({k.lower(): v for k, v in request.headers.items()}):
+        # 1) Если передан subscription=..., отдадим его как есть
+        if subscription:
+            return PlainTextResponse(content=subscription)
+        # 2) Если передан sub_key, разворачиваем его в tg_id и возвращаем подписку
+        if sub_key is not None:
+            tg_id_str = await db.get_tg_id_by_key(sub_key)
+            if tg_id_str is None:
+                raise HTTPException(status_code=404, detail="subscription key not found")
+            sub_resp = await get_subscription(int(tg_id_str))  # reuse существующей логики
+            return PlainTextResponse(content=sub_resp.body.decode("utf-8"), headers=dict(sub_resp.headers))
+        # 3) Если пришёл config (vless/vmess/trojan), отдадим его как текст
+        if config:
+            try:
+                # Если пришёл base64 — проверим и декодируем
+                decoded = base64.b64decode(config, validate=True).decode()
+                if decoded.startswith(("vless://", "vmess://", "trojan://")):
+                    return PlainTextResponse(content=decoded)
+            except Exception:
+                pass
+            # Иначе считаем, что это уже сырой конфиг
+            return PlainTextResponse(content=config)
+        # Нечего отдавать
+        return PlainTextResponse(content="", status_code=204)
+    # Иначе рендерим HTML-страницу для пользователя
     return templates.TemplateResponse(
-        "add_config.html",
-        {"request": request, "config": config, "expiry": expiry, "tg_id": tg_id, "subscription": subscription},
+        "subscription.html",
+        {"request": request, "config": config, "expiry": expiry, "sub_key": sub_key, "subscription": subscription},
     )
 
-@router.get("/redirect")
-async def add_config_redirect(
-    config: str = Query(..., description="Строка конфигурации или base64(config) для импорта в V2rayTun"),
-):
-    """Редиректит на схему v2raytun://import/{base64(config)}.
-
-    Поддерживает как сырой VLESS-текст, так и уже закодированный base64.
-    """
-    raw_config: str
-    # Пробуем распознать base64 → если удачно и похоже на vless, используем его
+@router.get("/sub/{user_id}")
+async def get_sub_key(user_id: str, _: None = Depends(verify_api_key)):
     try:
-        decoded = base64.b64decode(config, validate=True).decode()
-        if decoded.startswith(("vless://", "vmess://", "trojan://")):
-            raw_config = decoded
-        else:
-            raw_config = config
+        sub_key = await db.get_or_create_sub_key(str(user_id))
     except Exception:
-        raw_config = config
-
-    encoded_config = base64.b64encode(raw_config.encode()).decode()
-    return RedirectResponse(url=f"v2raytun://import/{encoded_config}", status_code=307)
+        raise HTTPException(status_code=500, detail="Ошибка. Попробуйте позже.")
+    return JSONResponse({"sub_key": sub_key})
 
 
-# ---------------------------------------------------------------------------
-# Landing page
-# ---------------------------------------------------------------------------
+
 
 @router.get("/", response_class=HTMLResponse)
 async def landing(request: Request):  # noqa: D401

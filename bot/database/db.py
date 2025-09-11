@@ -1,3 +1,5 @@
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+import aiohttp
 import aiosqlite
 import random
 import asyncio
@@ -213,3 +215,25 @@ async def deduct_balance_days(tg_id: str, days: int) -> bool:
             await cursor.execute("UPDATE users SET balance = ? WHERE tg_id = ?", (current_balance - int(days), str(tg_id)))
             await conn.commit()
             return True
+
+async def build_subscription_kb(user_id: int):
+    url = f"swaga.space/sub/{user_id}"
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, timeout=10) as resp:
+                if resp.status != 200:
+                    # обработка ошибки
+                    return None
+                data = await resp.json()
+    except Exception:
+        return None
+
+    sub_key = data.get("sub_key")
+    if not sub_key:
+        return None
+
+    web_url = f"swaga.space/subscription/{sub_key}"
+    inline_kb = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📲 Добавить подписку в V2rayTun", url=web_url)]
+    ])
+    return inline_kb

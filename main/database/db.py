@@ -1,6 +1,7 @@
 import aiosqlite
 import time
 from typing import Optional
+import uuid
 
 country = {
     "fi": "Финляндия",
@@ -33,6 +34,15 @@ async def init_db():
             WHERE tg_id IS NULL OR tg_id = ''
             """
         )
+        await conn.commit()
+
+        # Таблица ключей подписки: sub_key -> tg_id
+        await cursor.execute('''
+            CREATE TABLE IF NOT EXISTS subscription_keys (
+                sub_key TEXT PRIMARY KEY,
+                tg_id   TEXT NOT NULL
+            )
+        ''')
         await conn.commit()
 
 async def insert_into_db(tg_id, user_code, time_end, server_country):
@@ -84,7 +94,6 @@ async def get_one_expired_client(server_country: str | None = None):
             expired_client = await cursor.fetchone()
     
     return expired_client
-
 
 async def reset_expired_configs():
     """
@@ -160,11 +169,42 @@ async def delete_all_user_codes() -> int:
             return cursor.rowcount
 
 
-# -----------------------------
-# Бронирование конфигов (transactional)
-# -----------------------------
+async def get_tg_id_by_key(sub_key: str) -> Optional[str]:
+    """Возвращает tg_id по ключу подписки sub_key или None."""
+    async with aiosqlite.connect("users.db") as conn:
+        async with conn.cursor() as cursor:
+            await cursor.execute(
+                'SELECT tg_id FROM subscription_keys WHERE sub_key = ?',
+                (str(sub_key),),
+            )
+            row = await cursor.fetchone()
+            return str(row[0]) if row else None
 
-RESERVED_PREFIX = "__RESERVED__:"  # tg_id помечается как зарезервированный
+async def get_sub_key_by_tg_id(tg_id: str) -> Optional[str]:
+    async with aiosqlite.connect("users.db") as conn:
+        async with conn.cursor() as cursor:
+            await cursor.execute(
+                'SELECT sub_key FROM subscription_keys WHERE tg_id = ?',
+                (str(tg_id),),
+            )
+            row = await cursor.fetchone()
+            return str(row[0]) if row else None
+
+async def get_or_create_sub_key(tg_id: str) -> str:
+    existing = await get_sub_key_by_tg_id(tg_id)
+    if existing:
+        return existing
+    new_key = uuid.uuid4().hex
+    async with aiosqlite.connect("users.db") as conn:
+        async with conn.cursor() as cursor:
+            await cursor.execute(
+                'INSERT OR REPLACE INTO subscription_keys (sub_key, tg_id) VALUES (?, ?)',
+                (new_key, str(tg_id)),
+            )
+            await conn.commit()
+    return new_key
+
+RESERVED_PREFIX = "__RESERVED__:" 
 
 async def reserve_one_free_config(
     reserver_tg_id: str,

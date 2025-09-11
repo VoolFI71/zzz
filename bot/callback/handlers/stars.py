@@ -149,7 +149,15 @@ async def successful_payment_handler(message: Message, bot: Bot, state: FSMConte
     try:
         async with session.post(urlupdate, json=data, headers={"X-API-Key": AUTH_CODE}) as resp:
             if resp.status == 200:
-                await bot.send_message(tg_id, "Подписка активирована! Конфиг доступен в личном кабинете.")
+                # Выдаём/получаем постоянный sub_key и даём ссылку на подписку
+                try:
+                    from database import db as user_db
+                    sub_key = await user_db.get_or_create_sub_key(str(tg_id))
+                    base = os.getenv("PUBLIC_BASE_URL", "https://swaga.space").rstrip('/')
+                    sub_url = f"{base}/subscription/{sub_key}"
+                    await bot.send_message(tg_id, f"Подписка активирована! Ваша ссылка подписки: {sub_url}")
+                except Exception:
+                    await bot.send_message(tg_id, "Подписка активирована! Подписка доступна в личном кабинете.")
             elif resp.status == 409:
                 await bot.send_message(tg_id, "Свободных конфигов нет. Свяжитесь с поддержкой.")
             else:
