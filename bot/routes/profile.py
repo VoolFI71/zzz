@@ -177,7 +177,7 @@ async def my_configs(message: types.Message):
 
                     sub_url = f"http://swaga.space/sub/{user_id}"
                     try:
-                        async with session.get(sub_url, timeout=10) as resp:
+                        async with session.get(sub_url, timeout=10, headers=headers) as resp:
                             if resp.status != 200:
                                 await message.answer("Ошибка. Попробуйте позже.", reply_markup=keyboard.create_profile_keyboard())
                                 return
