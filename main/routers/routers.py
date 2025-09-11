@@ -467,7 +467,10 @@ async def check_available_configs(
 async def read_user(tg_id: int, _: None = Depends(verify_api_key)):
     # Сначала сбрасываем истёкшие конфиги
     #await db.reset_expired_configs()
-    
+    try:
+        await db.get_or_create_sub_key(str(tg_id))
+    except Exception:
+        pass
     users = await db.get_codes_by_tg_id(tg_id)
     if not users:
         raise HTTPException(status_code=404, detail="У вас нет активных конфигураций")

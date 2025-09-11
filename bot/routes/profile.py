@@ -175,19 +175,27 @@ async def my_configs(message: types.Message):
 
                     # Постоянная ссылка подписки по sub_key
 
-                    url = f"swaga.space/sub/{user_id}"
+                    sub_url = f"http://swaga.space/sub/{user_id}"
                     try:
-                        async with aiohttp.ClientSession() as session:
-                            async with session.get(url, timeout=10) as resp:
-                                if resp.status != 200:
-                                    return None
-                                data = await resp.json()
+                        async with session.get(sub_url, timeout=10) as resp:
+                            if resp.status != 200:
+                                await message.answer("Ошибка. Попробуйте позже.", reply_markup=keyboard.create_profile_keyboard())
+                                return
+                            data = await resp.json()
+                    except aiohttp.ClientError as e:
+                        await message.answer(f"Ошибка соединения: {str(e)}", reply_markup=keyboard.create_profile_keyboard())
+                        return
                     except Exception:
-                        await message.answer("Ошибка. Попробуйте позже.")
+                        await message.answer("Ошибка. Попробуйте позже.", reply_markup=keyboard.create_profile_keyboard())
+                        return
 
                     sub_key = data.get("sub_key")
                     if not sub_key:
-                        return None
+                        await message.answer("Не удалось получить sub_key.", reply_markup=keyboard.create_profile_keyboard())
+                        return
+
+
+                        
                     web_url = f"swaga.space/subscription/{sub_key}"
                     inline_kb = InlineKeyboardMarkup(inline_keyboard=[
                         [InlineKeyboardButton(text="📲 Добавить подписку в V2rayTun", url=web_url)]
