@@ -635,7 +635,7 @@ async def robots_txt() -> PlainTextResponse:
 async def sitemap_xml() -> Response:
     urls: list[str] = [
         f"{BASE_URL}/",
-        f"{BASE_URL}/add-config",
+        f"{BASE_URL}/subscription",
     ]
     urlset = "\n".join(
         f"  <url>\n    <loc>{loc}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>" for loc in urls
