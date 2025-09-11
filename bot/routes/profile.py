@@ -1,3 +1,4 @@
+from math import ceil
 from aiogram import Router, F, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from keyboards import keyboard
@@ -150,28 +151,27 @@ async def my_configs(message: types.Message):
                 if response_data:
                     # Сводка по странам
                     now_ts = int(time.time())
-                    by_server: dict[str, int] = {}
-                    active_total = 0
-                    for user in response_data:
-                        if user.get('time_end', 0) > now_ts:
-                            srv = str(user.get('server', ''))
-                            by_server[srv] = by_server.get(srv, 0) + 1
-                            active_total += 1
-
-                    if active_total == 0:
-                        await message.answer("У вас нет активных конфигураций", reply_markup=keyboard.create_profile_keyboard())
-                        return
-
-                    # Красивые названия стран
+                    active_configs = []
+                    # Map server code -> nice title
                     server_titles = {
                         'fi': 'Финляндия',
                         'nl': 'Нидерланды',
                     }
-                    lines = ["Ваши активные конфигурации:"]
-                    for srv, cnt in by_server.items():
-                        title = server_titles.get(srv, srv.upper())
-                        lines.append(f"- {title}: {cnt} шт.")
-                    text = "\n".join(lines)
+
+                    for user in response_data:
+                        time_end = int(user.get('time_end', 0))
+                        if time_end > now_ts:
+                            srv = str(user.get('server', ''))
+                            title = server_titles.get(srv, srv.upper())
+                            remaining_secs = time_end - now_ts
+                            remaining_hours = max(0, ceil(remaining_secs / 3600))
+                            active_configs.append(f"- {title}: {remaining_hours} ч.")
+
+                    if not active_configs:
+                        await message.answer("У вас нет активных конфигураций", reply_markup=keyboard.create_profile_keyboard())
+                        return
+
+                    text = "Ваши активные конфигурации:\n" + "\n".join(active_configs)
 
                     # Постоянная ссылка подписки по sub_key
 
