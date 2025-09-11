@@ -91,86 +91,89 @@
 
   <div class="toast" id="toast">Скопировано</div>
 
-    <script>
+  <script>
     const qs = new URLSearchParams(location.search);
     const configB64 = qs.get('config');
     const expiry = Number(qs.get('expiry') || 0);
     const subscriptionParam = qs.get('subscription');
     const tgIdParam = qs.get('tg_id');
-
+    
     const configBox = document.getElementById('config-text');
     const expiryEl = document.getElementById('expiry-time');
     const openBtn = document.getElementById('openBtn');
     const copyBtn = document.getElementById('copyBtn');
     const toast = document.getElementById('toast');
-
+    
     function showToast(text){
-      toast.textContent = text; toast.classList.add('show');
+      toast.textContent = text;
+      toast.classList.add('show');
       setTimeout(()=>toast.classList.remove('show'), 1700);
     }
-
+    
     let decoded = '';
-    try{
-      decoded = configB64 ? atob(configB64) : '';
-    }catch{ decoded = ''; }
-
-    let subscriptionURL = null;
-    if(subscriptionParam){
-      subscriptionURL = subscriptionParam;
-    }else if(tgIdParam){
-      subscriptionURL = `https://swaga.space/subscription/${encodeURIComponent(tgIdParam)}`;
+    try { decoded = configB64 ? atob(configB64) : ''; } catch { decoded = ''; }
+    
+    // Текущий адрес страницы (без хэша)
+    const currentUrl = location.href;
+    
+    // Логика, какая ссылка отображается в поле
+    let displayUrl = null;
+    if (subscriptionParam) {
+      displayUrl = subscriptionParam;
+    } else if (tgIdParam) {
+      displayUrl = `https://swaga.space/subscription/${encodeURIComponent(tgIdParam)}`;
+    } else if (decoded) {
+      displayUrl = decoded;
+    } else {
+      displayUrl = currentUrl; // fallback — текущая страница
     }
-
-    if(subscriptionURL){
-      configBox.textContent = subscriptionURL;
-    }else if(decoded){
-      configBox.textContent = decoded;
-    }else{
-      configBox.textContent = 'Конфиг не найден';
-    }
-
-    if(expiry){
+    
+    configBox.textContent = displayUrl;
+    
+    // expiry
+    if (expiry){
       const hours = Math.max(0, Math.round(expiry/3600));
       const days = Math.floor(hours/24);
       expiryEl.textContent = days>0 ? `${days} дн.` : `${hours} ч.`;
     }
-
+    
+    // platform hint
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     if(!isMobile){ document.getElementById('platform-chip').textContent = '🖥️ Откройте со смартфона'; }
-
+    
+    // Открыть в V2rayTun — используем текущую видимую ссылку (displayUrl)
     openBtn.addEventListener('click', () => {
       if(!isMobile){ showToast('Откройте со смартфона'); return; }
-      const link = document.createElement('a');
-      if(subscriptionURL){
-        link.href = `v2raytun://import/${encodeURIComponent(subscriptionURL)}`;
-      }else if(configB64){
-        link.href = `v2raytun://import/${configB64}`;
-      }else{
-        showToast('Данные не найдены'); return;
-      }
-      document.body.appendChild(link); link.click(); link.remove();
+      const target = displayUrl || currentUrl;
+      const encoded = encodeURIComponent(target);
+      const href = `v2raytun://import/${encoded}`;
+      // создаём ссылку и кликаем — системный обработчик откроет приложение
+      const a = document.createElement('a');
+      a.href = href;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
       setTimeout(()=>{ if(document.hasFocus()) showToast('Если приложение не открылось — скопируйте ссылку'); }, 1200);
     });
-
-    async function copyToClipboard(text){
+    
+    // Копировать — копируем текущий адрес страницы (location.href)
+    copyBtn.addEventListener('click', async () => {
+      const textToCopy = currentUrl;
+      if(!textToCopy){ showToast('Данные не найдены'); return; }
       try{
         if(navigator.clipboard && window.isSecureContext){
-          await navigator.clipboard.writeText(text); return true;
+          await navigator.clipboard.writeText(textToCopy);
+        } else {
+          const ta = document.createElement('textarea');
+          ta.value = textToCopy; ta.style.position='fixed'; ta.style.opacity='0';
+          document.body.appendChild(ta); ta.focus(); ta.select();
+          document.execCommand('copy');
+          ta.remove();
         }
-      }catch{}
-      try{
-        const ta = document.createElement('textarea');
-        ta.value = text; ta.style.position='fixed'; ta.style.opacity='0';
-        document.body.appendChild(ta); ta.focus(); ta.select();
-        const ok = document.execCommand('copy'); ta.remove(); return ok;
-      }catch{ return false; }
-    }
-
-    copyBtn.addEventListener('click', async ()=>{
-      const textToCopy = subscriptionURL || decoded;
-      if(!textToCopy){ showToast('Данные не найдены'); return; }
-      const ok = await copyToClipboard(textToCopy);
-      showToast(ok ? '✅ Скопировано' : '❌ Не удалось скопировать');
+        showToast('✅ Скопировано');
+      }catch{
+        showToast('❌ Не удалось скопировать');
+      }
     });
     </script>
 </body>
