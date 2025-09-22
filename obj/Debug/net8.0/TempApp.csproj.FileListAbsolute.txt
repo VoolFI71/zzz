@@ -1,0 +1,15 @@
+D:\projects\zzz\bin\Debug\net8.0\TempApp.exe
+D:\projects\zzz\bin\Debug\net8.0\TempApp.deps.json
+D:\projects\zzz\bin\Debug\net8.0\TempApp.runtimeconfig.json
+D:\projects\zzz\bin\Debug\net8.0\TempApp.dll
+D:\projects\zzz\bin\Debug\net8.0\TempApp.pdb
+D:\projects\zzz\obj\Debug\net8.0\TempApp.GeneratedMSBuildEditorConfig.editorconfig
+D:\projects\zzz\obj\Debug\net8.0\TempApp.AssemblyInfoInputs.cache
+D:\projects\zzz\obj\Debug\net8.0\TempApp.AssemblyInfo.cs
+D:\projects\zzz\obj\Debug\net8.0\TempApp.csproj.CoreCompileInputs.cache
+D:\projects\zzz\obj\Debug\net8.0\TempApp.sourcelink.json
+D:\projects\zzz\obj\Debug\net8.0\TempApp.dll
+D:\projects\zzz\obj\Debug\net8.0\refint\TempApp.dll
+D:\projects\zzz\obj\Debug\net8.0\TempApp.pdb
+D:\projects\zzz\obj\Debug\net8.0\TempApp.genruntimeconfig.cache
+D:\projects\zzz\obj\Debug\net8.0\ref\TempApp.dll

@@ -71,7 +71,7 @@ COUNTRY_SETTINGS: dict[str, dict[str, str]] = {
         # Параметры для генерации VLESS
         "host": _env_any("HOST_FI", "host_fi", default="77.110.108.194"),
         "pbk": _env_any("PBK_FI", "pbk_fi", default=""),
-        "sni": "google.com",
+        "sni": "www.vk.com",
         "sid": _env_any("SID_FI", "sid_fi", default=""),
     },
 }
@@ -561,7 +561,7 @@ async def get_subscription(tg_id: int):
         headers=response_headers,
     )
 
-@router.get("/subscription/{sub_key}", response_class=HTMLResponse)
+@router.get("ц{sub_key}", response_class=HTMLResponse)
 async def add_config_page(
     request: Request,
     config: str | None = None,
