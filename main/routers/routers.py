@@ -561,7 +561,7 @@ async def get_subscription(tg_id: int):
         headers=response_headers,
     )
 
-@router.get("ц{sub_key}", response_class=HTMLResponse)
+@router.get("/subscription/{sub_key}", response_class=HTMLResponse)
 async def add_config_page(
     request: Request,
     config: str | None = None,
