@@ -1,14 +1,16 @@
 from aiogram.types import InlineKeyboardMarkup, ReplyKeyboardMarkup, InlineKeyboardButton, KeyboardButton, LabeledPrice, PreCheckoutQuery, Message, CallbackQuery
 import os
 
+
 def create_keyboard():
     kb_list = [
         [KeyboardButton(text="Выбрать тариф"), KeyboardButton(text="Личный кабинет")],
-        [KeyboardButton(text="🎁 Пробная 7 дней")],
+        [KeyboardButton(text="🎁 Пробная 3 дня")],
         [KeyboardButton(text="Пригласить"), KeyboardButton(text="Инструкция⚙️")]
     ]
     keyboard = ReplyKeyboardMarkup(keyboard=kb_list, resize_keyboard=True, one_time_keyboard=False)
     return keyboard
+
 
 def create_server_keyboard():
     kb_list = [
@@ -19,11 +21,12 @@ def create_server_keyboard():
     return InlineKeyboardMarkup(inline_keyboard=kb_list)
 
 
+
 def create_tariff_keyboard():
-    star_1m = int(os.getenv("PRICE_1M_STAR", "99"))
-    star_3m = int(os.getenv("PRICE_3M_STAR", "229"))
-    rub_1m = int(os.getenv("PRICE_1M_RUB", "79"))
-    rub_3m = int(os.getenv("PRICE_3M_RUB", "199"))
+    star_1m = int(os.getenv("PRICE_1M_STAR", "150"))
+    star_3m = int(os.getenv("PRICE_3M_STAR", "300"))
+    rub_1m = int(os.getenv("PRICE_1M_RUB", "179"))
+    rub_3m = int(os.getenv("PRICE_3M_RUB", "329"))
 
     kb_list = [
         [InlineKeyboardButton(text=f"📅 1 месяц — {star_1m} ⭐ / {rub_1m} ₽", callback_data="plan_1m")],
@@ -34,6 +37,7 @@ def create_tariff_keyboard():
     return keyboard
 
 
+
 def create_payment_method_keyboard(star_amount: int, rub_amount: int):
     kb_list = [
         [InlineKeyboardButton(text=f"Оплатить звёздами — {star_amount} ⭐", callback_data="pay_star")],
@@ -41,6 +45,7 @@ def create_payment_method_keyboard(star_amount: int, rub_amount: int):
         [InlineKeyboardButton(text="🔙 Назад", callback_data="back")],
     ]
     return InlineKeyboardMarkup(inline_keyboard=kb_list)
+
 
 def create_settings_keyboard():
     kb_list = [
@@ -51,6 +56,7 @@ def create_settings_keyboard():
     return keyboard
 
 
+
 def create_profile_keyboard():
     kb_list = [
         [KeyboardButton(text="Мои конфиги")],
@@ -58,6 +64,7 @@ def create_profile_keyboard():
         [KeyboardButton(text="Назад")],
     ]
     return ReplyKeyboardMarkup(keyboard=kb_list, resize_keyboard=True, one_time_keyboard=False)
+
 
 
 def create_activate_balance_inline(balance_days: int):
