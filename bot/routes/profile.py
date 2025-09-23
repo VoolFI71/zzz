@@ -81,7 +81,13 @@ async def free_trial(message: types.Message):
             if resp.status == 200:
                 await user_db.set_trial_3d_used(str(user_id))
                 base = os.getenv("PUBLIC_BASE_URL", "https://swaga.space").rstrip('/')
-                web_url = f"{base}/add-config?tg_id={user_id}"
+                try:
+                    from database import db as user_db
+                    sub_key = await user_db.get_or_create_sub_key(str(user_id))
+                    web_url = f"{base}/subscription/{sub_key}"
+                except Exception:
+                    # Fallback на старую ссылку, если что-то пошло не так
+                    web_url = f"{base}/subscription"
                 kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="📲 Добавить в V2rayTun", url=web_url)]])
                 await message.answer("Пробная подписка на 3 дня активирована!", reply_markup=kb)
             elif resp.status == 409:
