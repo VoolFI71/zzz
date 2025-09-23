@@ -71,7 +71,7 @@ COUNTRY_SETTINGS: dict[str, dict[str, str]] = {
         # Параметры для генерации VLESS
         "host": _env_any("HOST_FI", "host_fi", default="77.110.108.194"),
         "pbk": _env_any("PBK_FI", "pbk_fi", default=""),
-        "sni": "www.vk.com",
+        "sni": "eh.vk.com",
         "sid": _env_any("SID_FI", "sid_fi", default=""),
     },
 }
