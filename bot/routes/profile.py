@@ -161,20 +161,35 @@ async def my_configs(message: types.Message):
                     # Сводка по странам
                     now_ts = int(time.time())
                     active_configs = []
-                    # Map server code -> nice title
+                    # Map server code -> nice title and flag
                     server_titles = {
                         'fi': 'Финляндия',
                         'nl': 'Нидерланды',
                     }
+                    server_flags = {
+                        'fi': '🇫🇮',
+                        'nl': '🇳🇱',
+                    }
+
+                    def _fmt_duration(seconds: int) -> str:
+                        seconds = max(0, int(seconds))
+                        days = seconds // 86400
+                        hours = (seconds % 86400) // 3600
+                        minutes = (seconds % 3600) // 60
+                        if days > 0:
+                            return f"{days} дн {hours} ч"
+                        if hours > 0:
+                            return f"{hours} ч {minutes} мин"
+                        return f"{minutes} мин"
 
                     for user in response_data:
                         time_end = int(user.get('time_end', 0))
                         if time_end > now_ts:
                             srv = str(user.get('server', ''))
                             title = server_titles.get(srv, srv.upper())
+                            flag = server_flags.get(srv, '')
                             remaining_secs = time_end - now_ts
-                            remaining_hours = max(0, ceil(remaining_secs / 3600))
-                            active_configs.append(f"- {title}: {remaining_hours} ч.")
+                            active_configs.append(f"- {flag} {title}: {_fmt_duration(remaining_secs)}")
 
                     if not active_configs:
                         await message.answer("У вас нет активных конфигураций", reply_markup=keyboard.create_profile_keyboard())
@@ -207,9 +222,10 @@ async def my_configs(message: types.Message):
                         
                     web_url = f"swaga.space/subscription/{sub_key}"
                     inline_kb = InlineKeyboardMarkup(inline_keyboard=[
-                        [InlineKeyboardButton(text="📲 Добавить подписку в V2rayTun", url=web_url)]
+                        [InlineKeyboardButton(text="📲 Добавить подписку в V2rayTun", url=web_url)],
+                        [InlineKeyboardButton(text="🔄 Обновить", callback_data="refresh_configs")],
                     ])
-                    await message.answer(text, reply_markup=inline_kb)
+                    await message.answer(text, reply_markup=inline_kb, disable_web_page_preview=True)
                     await message.answer("Выберите действие:", reply_markup=keyboard.create_profile_keyboard())
                 else:
                     await message.answer("У вас нет конфигов", reply_markup=keyboard.create_profile_keyboard())
@@ -221,6 +237,59 @@ async def my_configs(message: types.Message):
     except Exception as e:
         await message.answer(f"Произошла ошибка: {str(e)}", reply_markup=keyboard.create_profile_keyboard())
 
+
+@router.callback_query(F.data == "refresh_configs")
+async def refresh_configs(callback: types.CallbackQuery):
+    # Переиспользуем логику my_configs как компактный рефреш
+    user_id = callback.from_user.id
+    url = f"http://fastapi:8080/usercodes/{user_id}"
+    headers = {"X-API-Key": AUTH_CODE}
+
+    try:
+        from utils import get_session
+        session = await get_session()
+        async with session.get(url, headers=headers) as response:
+            if response.status != 200:
+                await callback.answer("Ошибка", show_alert=True)
+                return
+            data = await response.json()
+            now_ts = int(time.time())
+            server_titles = {'fi': 'Финляндия', 'nl': 'Нидерланды'}
+            server_flags = {'fi': '🇫🇮', 'nl': '🇳🇱'}
+
+            def _fmt_duration(seconds: int) -> str:
+                seconds = max(0, int(seconds))
+                days = seconds // 86400
+                hours = (seconds % 86400) // 3600
+                minutes = (seconds % 3600) // 60
+                if days > 0:
+                    return f"{days} дн {hours} ч"
+                if hours > 0:
+                    return f"{hours} ч {minutes} мин"
+                return f"{minutes} мин"
+
+            active_lines = []
+            for user in data or []:
+                time_end = int(user.get('time_end', 0))
+                if time_end > now_ts:
+                    srv = str(user.get('server', ''))
+                    title = server_titles.get(srv, srv.upper())
+                    flag = server_flags.get(srv, '')
+                    remaining_secs = time_end - now_ts
+                    active_lines.append(f"- {flag} {title}: {_fmt_duration(remaining_secs)}")
+
+            if not active_lines:
+                await callback.answer("Нет активных конфигураций", show_alert=True)
+                return
+
+            text = "Ваши активные конфигурации:\n" + "\n".join(active_lines)
+            try:
+                await callback.message.edit_text(text)
+            except Exception:
+                pass
+            await callback.answer("Обновлено")
+    except Exception:
+        await callback.answer("Ошибка", show_alert=True)
 
 @router.callback_query(F.data == "delmsg")
 async def delete_message_callback(callback: types.CallbackQuery):
