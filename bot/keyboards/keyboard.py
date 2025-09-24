@@ -4,9 +4,9 @@ import os
 
 def create_keyboard():
     kb_list = [
-        [KeyboardButton(text="Выбрать тариф"), KeyboardButton(text="Личный кабинет")],
+        [KeyboardButton(text="📦 Выбрать тариф"), KeyboardButton(text="👤 Личный кабинет")],
         [KeyboardButton(text="🎁 Пробная 3 дня")],
-        [KeyboardButton(text="Пригласить"), KeyboardButton(text="Инструкция⚙️")]
+        [KeyboardButton(text="🤝 Пригласить"), KeyboardButton(text="🛠️ Инструкция")]
     ]
     keyboard = ReplyKeyboardMarkup(keyboard=kb_list, resize_keyboard=True, one_time_keyboard=False)
     return keyboard
@@ -49,8 +49,8 @@ def create_payment_method_keyboard(star_amount: int, rub_amount: int):
 
 def create_settings_keyboard():
     kb_list = [
-        [KeyboardButton(text="Установка на Телефон"), KeyboardButton(text="Установка на PC")],
-        [KeyboardButton(text="Назад")]
+        [KeyboardButton(text="📱 Установка на Телефон"), KeyboardButton(text="💻 Установка на PC")],
+        [KeyboardButton(text="🔙 Назад")]
     ]
     keyboard = ReplyKeyboardMarkup(keyboard=kb_list, resize_keyboard=True, one_time_keyboard=False)
     return keyboard
@@ -59,9 +59,9 @@ def create_settings_keyboard():
 
 def create_profile_keyboard():
     kb_list = [
-        [KeyboardButton(text="Мои конфиги")],
-        [KeyboardButton(text="Активировать дни")],
-        [KeyboardButton(text="Назад")],
+        [KeyboardButton(text="📂 Мои конфиги")],
+        [KeyboardButton(text="✨ Активировать дни")],
+        [KeyboardButton(text="🔙 Назад")],
     ]
     return ReplyKeyboardMarkup(keyboard=kb_list, resize_keyboard=True, one_time_keyboard=False)
 
@@ -71,6 +71,18 @@ def create_activate_balance_inline(balance_days: int):
     text = f"Активировать {balance_days} дн." if balance_days > 0 else "Обновить"
     kb_list = [
         [InlineKeyboardButton(text=text, callback_data="activate_balance")],
-        [InlineKeyboardButton(text="Назад", callback_data="back")],
+        [InlineKeyboardButton(text="🔙 Назад", callback_data="back")],
     ]
+    return InlineKeyboardMarkup(inline_keyboard=kb_list)
+
+
+def create_settings_inline(prefs: dict, fav_server: str | None):
+    # Stub preserved only if referenced accidentally; not used now
+    kb_list = [[InlineKeyboardButton(text="🔙 Назад", callback_data="back")]]
+    return InlineKeyboardMarkup(inline_keyboard=kb_list)
+
+
+def create_pref_server_inline(current: str | None):
+    # Stub preserved only if referenced accidentally; not used now
+    kb_list = [[InlineKeyboardButton(text="🔙 Назад", callback_data="back")]]
     return InlineKeyboardMarkup(inline_keyboard=kb_list)

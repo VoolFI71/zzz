@@ -24,13 +24,13 @@ async def init_db():
             ''')
             await conn.commit()
         else:
-            # Миграции для уже существующей таблицы: убеждаемся, что есть колонка balance
+            # Миграции для уже существующей таблицы (только баланс)
             await cursor.execute("PRAGMA table_info(users)")
             columns = await cursor.fetchall()
             col_names = {row[1] for row in columns}
             if "balance" not in col_names:
                 await cursor.execute("ALTER TABLE users ADD COLUMN balance INTEGER DEFAULT 0")
-                await conn.commit()
+            await conn.commit()
 
 user_locks = {}
 async def get_referral_code(tg_id):

@@ -3,7 +3,8 @@ from keyboards import keyboard
 
 router = Router()
 
-@router.message(F.text == "Выбрать тариф")
+# Поддерживаем старый и новый варианты текста кнопки
+@router.message(F.text.in_({"Выбрать тариф", "📦 Выбрать тариф"}))
 async def choose_tariff(message: types.Message):
     # Сначала предлагаем выбрать сервер
     text = (

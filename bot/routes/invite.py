@@ -5,7 +5,7 @@ from database import db
 
 router = Router()
 
-@router.message(F.text == "Пригласить")
+@router.message(F.text.in_({"Пригласить", "🤝 Пригласить"}))
 async def invite_handler(message: types.Message):
     tg_id = str(message.from_user.id)
     referral_code = await db.get_referral_code(tg_id)

@@ -45,7 +45,8 @@ COUNTRY_SETTINGS: dict[str, dict[str, str]] = {
 }
 
 
-@router.message(F.text == "Личный кабинет")
+# Поддерживаем старый и новый варианты кнопки
+@router.message(F.text.in_({"Личный кабинет", "👤 Личный кабинет"}))
 async def my_account(message: types.Message):
     # Переходим в подменю профиля
     await message.answer("Личный кабинет:", reply_markup=keyboard.create_profile_keyboard())
@@ -144,7 +145,7 @@ async def copy_config_callback(callback: types.CallbackQuery):
         await callback.answer("Ошибка", show_alert=True)
 
 
-@router.message(F.text == "Мои конфиги")
+@router.message(F.text.in_({"Мои конфиги", "📂 Мои конфиги"}))
 async def my_configs(message: types.Message):
     user_id = message.from_user.id
     url = f"http://fastapi:8080/usercodes/{user_id}"
@@ -233,7 +234,7 @@ async def delete_message_callback(callback: types.CallbackQuery):
         pass
 
 
-@router.message(F.text == "Активировать дни")
+@router.message(F.text.in_({"Активировать дни", "✨ Активировать дни"}))
 async def show_balance_activation(message: types.Message):
     tg_id = str(message.from_user.id)
     try:

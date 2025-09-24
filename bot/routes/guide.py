@@ -4,27 +4,34 @@ from keyboards import keyboard
 
 router = Router()
 
-@router.message(F.text == "Инструкция⚙️")
+# Поддерживаем старый и новый варианты кнопки
+@router.message(F.text.in_({"Инструкция⚙️", "🛠️ Инструкция"}))
 async def guide_command(message: types.Message):
-    await message.answer("Выберите способ установки:", reply_markup=keyboard.create_settings_keyboard())
+    await message.answer("📚 Выберите способ установки:", reply_markup=keyboard.create_settings_keyboard())
 
-@router.message(F.text == "Установка на Телефон")
+@router.message(F.text.in_({"Установка на Телефон", "📱 Установка на Телефон"}))
 async def tel_guide_command(message: types.Message):
     await message.answer(
-        "Установка подключения на [Android](https://play.google.com/store/apps/details?id=com.v2raytun.android) и [iOS](https://apps.apple.com/ru/app/v2raytun/id6476628951) идентична. Чтобы подключиться к серверу необходимо установить приложение v2RayTun. Нажать на кнопку на сайте или скопировать конфиг подключения из личного кабинета и вставить вручную.",
+        "📱 Установка на телефон (Android/iOS):\n\n"
+        "1) Установите v2RayTun: [Android](https://play.google.com/store/apps/details?id=com.v2raytun.android), [iOS](https://apps.apple.com/ru/app/v2raytun/id6476628951).\n"
+        "2) Получите конфиг в Личном кабинете.\n"
+        "3) Добавьте конфиг в приложение и подключитесь.",
         reply_markup=keyboard.create_keyboard(),
         parse_mode='Markdown',
         disable_web_page_preview=True
     )
 
-@router.message(F.text == "Установка на PC")
+@router.message(F.text.in_({"Установка на PC", "💻 Установка на PC"}))
 async def pc_guide_command(message: types.Message):
-    await message.answer("Чтобы подключиться к серверу необходимо установить приложение v2RayN [IOS](https://apps.apple.com/ru/app/v2raytun/id6476628951), [Windows, Linux](https://github.com/2dust/v2rayN/releases/download/7.13.2/v2rayN-windows-64.zip). Простая установка для всех устройств [Amneziavpn](https://amnezia.app/ru/downloads). Скопировать конфиг подключения из личного кабинета в боте. Вставить конфиг из буфера обмена в установленном приложении и подключиться", 
+    await message.answer("💻 Установка на компьютер:\n\n"
+    "- v2RayN: [Windows/Linux](https://github.com/2dust/v2rayN/releases/download/7.13.2/v2rayN-windows-64.zip)\n"
+    "- Альтернатива: [AmneziaVPN](https://amnezia.app/ru/downloads)\n\n"
+    "Скопируйте конфиг из Личного кабинета, вставьте в приложение и подключайтесь.", 
     reply_markup=keyboard.create_keyboard(),
     parse_mode='Markdown',
     disable_web_page_preview=True
     )
 
-@router.message(F.text == "Назад")
+@router.message(F.text.in_({"Назад", "🔙 Назад"}))
 async def back_command(message: types.Message):
     await message.answer("Выберите действие:", reply_markup=keyboard.create_keyboard())
