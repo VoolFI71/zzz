@@ -159,18 +159,15 @@ async def cancel_yk_invoice(callback_query: CallbackQuery, state: FSMContext, bo
         pass
     # Вернём клавиатуру способов оплаты
     try:
-        days = int((await state.get_data()).get("selected_days", 7))
-        star_3d = int(os.getenv("PRICE_3D_STAR", "5"))
-        star_1m = int(os.getenv("PRICE_1M_STAR", "99"))
-        star_3m = int(os.getenv("PRICE_3M_STAR", "229"))
-        rub_3d = int(os.getenv("PRICE_3D_RUB", "5"))
-        rub_1m = int(os.getenv("PRICE_1M_RUB", "79"))
-        rub_3m = int(os.getenv("PRICE_3M_RUB", "199"))
-        if days == 7:
-            star_amount, rub_amount = star_3d, rub_3d
-        elif days == 31:
+        days = int((await state.get_data()).get("selected_days", 31))
+        star_1m = int(os.getenv("PRICE_1M_STAR", "149"))
+        star_3m = int(os.getenv("PRICE_3M_STAR", "299"))
+        rub_1m = int(os.getenv("PRICE_1M_RUB", "149"))
+        rub_3m = int(os.getenv("PRICE_3M_RUB", "329"))
+        if days == 31:
             star_amount, rub_amount = star_1m, rub_1m
         else:
+            # Любое значение, отличное от 31, считаем тарифом на 3 месяца (93 дня)
             star_amount, rub_amount = star_3m, rub_3m
         from keyboards.keyboard import create_payment_method_keyboard
         await bot.send_message(
@@ -209,7 +206,7 @@ async def check_yookassa(callback_query: CallbackQuery, state: FSMContext, bot: 
         user_data = await state.get_data()
         server = user_data.get("server") or "fi"
         payload = payment.metadata.get("payload") if hasattr(payment, "metadata") else "sub_1m"
-        days = 31 if payload == "sub_1m" else (93 if payload == "sub_3m" else 7)
+        days = 31 if payload == "sub_1m" else 93
 
         AUTH_CODE = os.getenv("AUTH_CODE")
         urlupdate = "http://fastapi:8080/giveconfig"
@@ -254,12 +251,6 @@ async def check_yookassa(callback_query: CallbackQuery, state: FSMContext, bot: 
         except Exception:
             pass
 
-        # Помечаем одноразовый тест, если был оплачен 7‑дневный тариф
-        if payload == "sub_7d":
-            try:
-                from database import db as user_db
-                await user_db.set_trial_3d_used(str(tg_id))
-            except Exception:
-                pass
+        # Тарифов на 7 дней нет — дополнительной отметки не требуется
 
 
