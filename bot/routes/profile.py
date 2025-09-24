@@ -91,6 +91,13 @@ async def free_trial(message: types.Message):
                     web_url = f"{base}/subscription"
                 kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="📲 Добавить в V2rayTun", url=web_url)]])
                 await message.answer("Пробная подписка на 3 дня активирована!", reply_markup=kb)
+                # Уведомление администратору об активации пробы
+                try:
+                    admin_id = 746560409
+                    at_username = (f"@{message.from_user.username}" if getattr(message.from_user, "username", None) else "—")
+                    await message.bot.send_message(admin_id, f"Активирована пробная подписка: user_id={user_id}, user={at_username}, сервер=fi, срок=3 дн.")
+                except Exception:
+                    pass
             elif resp.status == 409:
                 await message.answer("Свободных конфигов нет. Попробуйте позже.")
             else:

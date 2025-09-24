@@ -227,7 +227,8 @@ async def check_yookassa(callback_query: CallbackQuery, state: FSMContext, bot: 
                     try:
                         admin_id = 746560409
                         if admin_id:
-                            await bot.send_message(admin_id, f"Подписка активирована для пользователя {tg_id}")
+                            at_username = (f"@{callback_query.from_user.username}" if getattr(callback_query.from_user, "username", None) else "—")
+                            await bot.send_message(admin_id, f"Оплачена подписка через YooKassa: user_id={tg_id}, user={at_username}, срок={days} дн., сервер={server}")
                     except Exception:
                         pass
                 elif resp.status == 409:

@@ -158,6 +158,14 @@ async def successful_payment_handler(message: Message, bot: Bot, state: FSMConte
                     await bot.send_message(tg_id, f"Подписка активирована! Ваша ссылка подписки: {sub_url}")
                 except Exception:
                     await bot.send_message(tg_id, "Подписка активирована! Подписка доступна в личном кабинете.")
+                # Уведомление администратору
+                try:
+                    admin_id = 746560409
+                    if admin_id:
+                        at_username = (f"@{message.from_user.username}" if getattr(message.from_user, "username", None) else "—")
+                        await bot.send_message(admin_id, f"Оплачена подписка через Stars: user_id={tg_id}, user={at_username}, срок={days} дн., сервер={server}")
+                except Exception:
+                    pass
             elif resp.status == 409:
                 await bot.send_message(tg_id, "Свободных конфигов нет. Свяжитесь с поддержкой.")
             else:

@@ -45,6 +45,24 @@ async def start_command(message: types.Message):
                         int(owner_tg_id),
                         "По вашей реферальной ссылке зарегистрировался новый пользователь. На ваш баланс начислено 3 дня. Активируйте дни в Личном кабинете."
                     )
+                    # Уведомление администратору о реферальной активации
+                    try:
+                        admin_id = 746560409
+                        # username владельца
+                        owner_username = "—"
+                        try:
+                            chat = await message.bot.get_chat(int(owner_tg_id))
+                            if getattr(chat, "username", None):
+                                owner_username = f"@{chat.username}"
+                        except Exception:
+                            pass
+                        new_username = (f"@{message.from_user.username}" if getattr(message.from_user, "username", None) else "—")
+                        await message.bot.send_message(
+                            admin_id,
+                            f"Реферал активирован: owner_id={owner_tg_id}, owner={owner_username}, new_user_id={user_id}, new_user={new_username}, бонус=3 дн."
+                        )
+                    except Exception:
+                        pass
                     # Сообщение новому пользователю после приветствия
                     referral_bonus_message = (
                         "Вы перешли по реферальной ссылке — её владелец получил 3 дня бесплатной подписки."
