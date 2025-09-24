@@ -62,7 +62,7 @@ async def pay_with_stars(callback_query: CallbackQuery, state: FSMContext, bot: 
             payload=payload,
             provider_token=provider_token,
             currency="XTR",
-            prices=[LabeledPrice(label="XTR", amount=int(os.getenv("PRICE_1M_STAR", "99")))],
+            prices=[LabeledPrice(label="XTR", amount=int(os.getenv("PRICE_1M_STAR", "149")))],
             max_tip_amount=0,
         )
     else:
@@ -73,7 +73,7 @@ async def pay_with_stars(callback_query: CallbackQuery, state: FSMContext, bot: 
             payload=payload,
             provider_token=provider_token,
             currency="XTR",
-            prices=[LabeledPrice(label="XTR", amount=int(os.getenv("PRICE_3M_STAR", "229")))],
+            prices=[LabeledPrice(label="XTR", amount=int(os.getenv("PRICE_3M_STAR", "329")))],
             max_tip_amount=0,
         )
 
@@ -219,10 +219,10 @@ async def cancel_star_invoice(callback_query: CallbackQuery, state: FSMContext, 
     # Возвращаемся к выбору способа оплаты
     try:
         days = int((await state.get_data()).get("selected_days", 31))
-        star_1m = int(os.getenv("PRICE_1M_STAR", "99"))
-        star_3m = int(os.getenv("PRICE_3M_STAR", "229"))
-        rub_1m = int(os.getenv("PRICE_1M_RUB", "79"))
-        rub_3m = int(os.getenv("PRICE_3M_RUB", "199"))
+        star_1m = int(os.getenv("PRICE_1M_STAR", "149"))
+        star_3m = int(os.getenv("PRICE_3M_STAR", "329"))
+        rub_1m = int(os.getenv("PRICE_1M_RUB", "149"))
+        rub_3m = int(os.getenv("PRICE_3M_RUB", "329"))
         if days == 31:
             star_amount, rub_amount = star_1m, rub_1m
         else:
