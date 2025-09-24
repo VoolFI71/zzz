@@ -220,9 +220,9 @@ async def cancel_star_invoice(callback_query: CallbackQuery, state: FSMContext, 
     try:
         days = int((await state.get_data()).get("selected_days", 31))
         star_1m = int(os.getenv("PRICE_1M_STAR", "149"))
-        star_3m = int(os.getenv("PRICE_3M_STAR", "329"))
+        star_3m = int(os.getenv("PRICE_3M_STAR", "299"))
         rub_1m = int(os.getenv("PRICE_1M_RUB", "149"))
-        rub_3m = int(os.getenv("PRICE_3M_RUB", "329"))
+        rub_3m = int(os.getenv("PRICE_3M_RUB", "299"))
         if days == 31:
             star_amount, rub_amount = star_1m, rub_1m
         else:
