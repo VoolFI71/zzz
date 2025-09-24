@@ -5,7 +5,6 @@ from keyboards import keyboard
 import aiohttp
 import os
 import time
-import urllib.parse
 from database import db
 router = Router()
 
@@ -83,9 +82,17 @@ async def free_trial(message: types.Message):
                 await user_db.set_trial_3d_used(str(user_id))
                 base = os.getenv("PUBLIC_BASE_URL", "https://swaga.space").rstrip('/')
                 try:
-                    from database import db as user_db
-                    sub_key = await user_db.get_or_create_sub_key(str(user_id))
-                    web_url = f"{base}/subscription/{sub_key}"
+                    sub_url = f"http://fastapi:8080/sub/{user_id}"
+                    async with session.get(sub_url, headers={"X-API-Key": AUTH_CODE}) as sub_resp:
+                        if sub_resp.status == 200:
+                            sub_data = await sub_resp.json()
+                            sub_key = sub_data.get("sub_key")
+                            if sub_key:
+                                web_url = f"{base}/subscription/{sub_key}"
+                            else:
+                                web_url = f"{base}/subscription"
+                        else:
+                            web_url = f"{base}/subscription"
                 except Exception:
                     # Fallback на старую ссылку, если что-то пошло не так
                     web_url = f"{base}/subscription"

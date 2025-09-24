@@ -3,6 +3,7 @@ import aiohttp
 import aiosqlite
 import random
 import asyncio
+import os
 
 async def init_db():
     async with aiosqlite.connect("users.db") as conn:
@@ -237,3 +238,27 @@ async def build_subscription_kb(user_id: int):
         [InlineKeyboardButton(text="📲 Добавить подписку в V2rayTun", url=web_url)]
     ])
     return inline_kb
+
+
+# -----------------------------
+# Subscription key helpers
+# -----------------------------
+
+async def get_or_create_sub_key(tg_id: str) -> str:
+    """Returns a persistent subscription key for the user (idempotent).
+
+    Delegates to the FastAPI backend which stores keys in its DB.
+    """
+    auth_code = os.getenv("AUTH_CODE", "")
+    url = f"http://fastapi:8080/sub/{tg_id}"
+    headers = {"X-API-Key": auth_code} if auth_code else {}
+    async with aiohttp.ClientSession() as session:
+        async with session.get(url, headers=headers) as resp:
+            if resp.status != 200:
+                # Propagate for caller to handle fallback if needed
+                raise RuntimeError(f"Failed to get sub_key: HTTP {resp.status}")
+            data = await resp.json()
+            sub_key = data.get("sub_key")
+            if not sub_key:
+                raise RuntimeError("sub_key missing in response")
+            return sub_key
