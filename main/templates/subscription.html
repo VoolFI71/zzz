@@ -74,7 +74,6 @@
     <div class="subtitle">Добавьте конфигурацию в V2rayTun в один клик</div>
 
     <div class="info">
-      <div class="chip">⏳ Срок действия: <span id="expiry-time">—</span></div>
       <div class="chip ok" id="platform-chip">📱 Готово для мобильного</div>
         </div>
 
@@ -94,12 +93,10 @@
   <script>
     const qs = new URLSearchParams(location.search);
     const configB64 = qs.get('config');
-    const expiry = Number(qs.get('expiry') || 0);
     const subscriptionParam = qs.get('subscription');
     const tgIdParam = qs.get('tg_id');
     
     const configBox = document.getElementById('config-text');
-    const expiryEl = document.getElementById('expiry-time');
     const openBtn = document.getElementById('openBtn');
     const copyBtn = document.getElementById('copyBtn');
     const toast = document.getElementById('toast');
@@ -130,12 +127,7 @@
     
     configBox.textContent = displayUrl;
     
-    // expiry
-    if (expiry){
-      const hours = Math.max(0, Math.round(expiry/3600));
-      const days = Math.floor(hours/24);
-      expiryEl.textContent = days>0 ? `${days} дн.` : `${hours} ч.`;
-    }
+    // убрано отображение срока действия подписки
     
     // platform hint
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
