@@ -3,7 +3,7 @@ from aiogram import Bot, Dispatcher
 import asyncio
 import os
 from keyboards import keyboard
-from routes import guide, start, profile, invite, tariff
+from routes import guide, start, profile, invite, tariff, admin
 from callback import callback
 from database import db
 
@@ -14,7 +14,7 @@ logging.basicConfig(level=logging.INFO)
 
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher()
-dp.include_routers(guide.router, start.router, tariff.router, profile.router, callback.callback_router, invite.router)
+dp.include_routers(guide.router, start.router, tariff.router, profile.router, callback.callback_router, invite.router, admin.router)
 
 
 async def main():

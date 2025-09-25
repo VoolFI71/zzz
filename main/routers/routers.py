@@ -433,6 +433,68 @@ async def delete_all_configs(request: Request, _: None = Depends(verify_api_key)
     logger.info("Bulk delete done: success=%s, failed=%s", deleted, failed)
     return f"Удалено {deleted} конфигураций, ошибок {failed}"
 
+
+@router.post(
+    "/reprovision-all",
+    response_model=dict,
+)
+
+async def reprovision_all(
+    request: Request,
+    server: str = Query(default="fi", description="Страна, которую переносим и куда создаём (например, fi)"),
+    _: None = Depends(verify_api_key),
+):
+    """Переносит в новую панель только пользователей указанной страны и создаёт их на том же сервере.
+
+    Правила:
+    - Обрабатываем только записи, у которых `server_country == server`.
+    - Для каждой активной записи отправляем CREATE на панель этой же страны (`server`) с `enable=True` и `expiryTime=time_end`.
+    - Неактивные (`time_end <= now`) пропускаем. Параллелизм ограничен семафором.
+    """
+
+    if server not in COUNTRY_SETTINGS:
+        raise HTTPException(status_code=400, detail="Неизвестный сервер")
+
+    rows = await db.get_all_rows()
+    if not rows:
+        return {"processed": 0, "updated": 0, "skipped": 0, "failed": 0, "server": server}
+
+    updated = 0
+    skipped = 0
+    failed = 0
+
+    for row in rows:
+        tg_id, user_code, time_end, current_server = row
+        # Пропускаем пустые/неактивные
+        if not user_code or not isinstance(time_end, int) or time_end <= int(time.time()):
+            skipped += 1
+            continue
+
+        # Обрабатываем ТОЛЬКО записи указанной страны
+        if str(current_server) != str(server):
+            skipped += 1
+            continue
+
+        payload = build_payload(str(user_code), enable=True, expiry_time=int(time_end))
+        url = COUNTRY_SETTINGS[server]['urlcreate']
+
+        try:
+            resp = await panel_request(request, url, server, payload)
+            if resp.status_code == 200:
+                updated += 1
+            else:
+                failed += 1
+        except HTTPException:
+            failed += 1
+
+    return {
+        "processed": len(rows),
+        "updated": updated,
+        "skipped": skipped,
+        "failed": failed,
+        "server": server,
+    }
+
 @router.get(
     "/check-available-configs",
 )

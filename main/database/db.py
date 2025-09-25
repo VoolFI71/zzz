@@ -69,6 +69,14 @@ async def get_all_user_codes() -> list[tuple[str, str]]:
             rows = await cursor.fetchall()
     return rows
 
+async def get_all_rows() -> list[tuple[str | None, str, int, str]]:
+    """Возвращает все строки users как (tg_id, user_code, time_end, server_country)."""
+    async with aiosqlite.connect("users.db") as conn:
+        async with conn.cursor() as cursor:
+            await cursor.execute('SELECT tg_id, user_code, time_end, server_country FROM users')
+            rows = await cursor.fetchall()
+    return rows
+
 async def get_one_expired_client(server_country: str | None = None):
     async with aiosqlite.connect("users.db") as conn:
         async with conn.cursor() as cursor:
@@ -127,6 +135,21 @@ async def update_user_code(tg_id: str, user_code: str, time_end: int, server_cou
             updated_rows = cursor.rowcount
     
     return updated_rows
+
+async def update_server_country(user_code: str, new_server: str) -> int:
+    """Обновляет только поле server_country для указанного user_code."""
+    async with aiosqlite.connect("users.db") as conn:
+        async with conn.cursor() as cursor:
+            await cursor.execute(
+                '''
+                UPDATE users
+                SET server_country = ?
+                WHERE user_code = ?
+                ''',
+                (new_server, user_code),
+            )
+            await conn.commit()
+            return cursor.rowcount
 
 async def get_time_end_by_code(user_code: str):
     """

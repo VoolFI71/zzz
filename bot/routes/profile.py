@@ -1,4 +1,3 @@
-from math import ceil
 from aiogram import Router, F, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from keyboards import keyboard
@@ -10,7 +9,6 @@ from database import db
 router = Router()
 
 AUTH_CODE = os.getenv("AUTH_CODE")
-PUBLIC_BASE_URL = os.getenv("PUBLIC_BASE_URL", "https://swaga.space")
 
 # Читает первое непустое значение из списка env-ключей
 def _env_any(*keys: str, default: str = "") -> str:
@@ -21,28 +19,7 @@ def _env_any(*keys: str, default: str = "") -> str:
     return default
 
 
-COUNTRY_SETTINGS: dict[str, dict[str, str]] = {
-    "nl": {
-        "urlcreate": _env_any("URLCREATE_NL", "urlcreate_nl", default=""),
-        "urlupdate": _env_any("URLUPDATE_NL", "urlupdate_nl", default=""),
-        "urldelete": _env_any("URLDELETE_NL", "urldelete_nl", default=""),
-        # Параметры для генерации VLESS
-        "host": _env_any("HOST_NL", "host_nl", default=""),
-        "pbk": _env_any("PBK_NL", "pbk_nl", default=""),
-        "sni": "google.com",
-        "sid": _env_any("SID_NL", "sid_nl", default=""),
-    },
-    "fi": {
-        "urlcreate": _env_any("URLCREATE_FI", "urlcreate_fi", default=""),
-        "urlupdate": _env_any("URLUPDATE_FI", "urlupdate_fi", default=""),
-        "urldelete": _env_any("URLDELETE_FI", "urldelete_fi", default=""),
-        # Параметры для генерации VLESS
-        "host": _env_any("HOST_FI", "host_fi", default="77.110.108.194"),
-        "pbk": _env_any("PBK_FI", "pbk_fi", default=""),
-        "sni": "google.com",
-        "sid": _env_any("SID_FI", "sid_fi", default=""),
-    },
-}
+# Note: COUNTRY_SETTINGS and PUBLIC_BASE_URL are maintained in FastAPI app; not needed in bot layer
 
 
 # Поддерживаем старый и новый варианты кнопки
@@ -122,45 +99,37 @@ async def free_trial(message: types.Message):
 
 @router.callback_query(F.data.startswith("copy_config_"))
 async def copy_config_callback(callback: types.CallbackQuery):
-    """Показывает конфиг в виде текста для копирования + кнопку удаления сообщения."""
+    """Теперь отдаём ссылку на подписку, которая подтянет все конфиги автоматически."""
     try:
-        idx_str = callback.data.split("_")[-1]
-        idx = int(idx_str)
+        # idx из callback нам больше не нужен, но парсим безопасно для обратной совместимости
+        _ = int(callback.data.split("_")[-1]) if callback.data.rsplit("_", 1)[-1].isdigit() else None
     except Exception:
-        await callback.answer("Ошибка", show_alert=True)
-        return
+        pass
 
     user_id = callback.from_user.id
-    url = f"http://fastapi:8080/usercodes/{user_id}"
     headers = {"X-API-Key": AUTH_CODE}
 
     try:
         from utils import get_session
         session = await get_session()
         async with acquire_action_lock(user_id, "copy_config"):
-            async with session.get(url, headers=headers) as response:
-                if response.status != 200:
-                    await callback.answer("Конфиг не найден", show_alert=True)
+            # Получаем постоянный sub_key из внутреннего API
+            sub_url_api = f"http://fastapi:8080/sub/{user_id}"
+            async with session.get(sub_url_api, timeout=10, headers=headers) as resp:
+                if resp.status != 200:
+                    await callback.answer("Ошибка. Попробуйте позже", show_alert=True)
                     return
-                response_data = await response.json()
-                if not response_data or idx < 1 or idx > len(response_data):
-                    await callback.answer("Конфиг не найден", show_alert=True)
+                data = await resp.json()
+                sub_key = data.get("sub_key")
+                if not sub_key:
+                    await callback.answer("Не удалось получить ссылку", show_alert=True)
                     return
-                user = response_data[idx - 1]
-                remaining_seconds = user['time_end'] - int(time.time())
-                if remaining_seconds <= 0:
-                    await callback.answer("Срок действия истёк", show_alert=True)
-                    return
-                settings = COUNTRY_SETTINGS[user['server']]
-                vless_config = (
-                    f"vless://{user['user_code']}@{settings['host']}:443?"
-                    f"security=reality&encryption=none&pbk={settings['pbk']}&"
-                    f"headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&"
-                    f"sni={settings['sni']}&sid={settings['sid']}#glsvpn"
-                )
-                kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🗑 Удалить это сообщение", callback_data="delmsg")]])
-                await callback.message.answer(f"<code>{vless_config}</code>", parse_mode="HTML", reply_markup=kb)
-                await callback.answer()
+            # Формируем публичную ссылку подписки
+            base = os.getenv("PUBLIC_BASE_URL", "https://swaga.space").rstrip('/')
+            web_url = f"{base}/subscription/{sub_key}"
+            kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="📲 Добавить подписку в V2rayTun", url=web_url)]])
+            await callback.message.answer("Ваша подписка:", reply_markup=kb, disable_web_page_preview=True)
+            await callback.answer()
     except aiohttp.ClientError:
         await callback.answer("Ошибка сети", show_alert=True)
     except Exception:
@@ -181,52 +150,62 @@ async def my_configs(message: types.Message):
         from utils import get_session
         session = await get_session()
         async with acquire_action_lock(user_id, "my_configs"):
-            async with session.get(url, headers=headers) as response:
+            async with session.get(url, timeout=10, headers=headers) as response:
                 if response.status == 200:
                     response_data = await response.json()
                     if response_data:
+                        def _parse_time_end(raw: object) -> int:
+                            try:
+                                val = int(raw)
+                            except Exception:
+                                return 0
+                            # Heuristic: if value looks like milliseconds, convert to seconds
+                            if val > 10**11:
+                                val = val // 1000
+                            return val
+                        skew_tolerance = 5  # seconds
                         # Сводка по странам
                         now_ts = int(time.time())
-                    active_configs = []
-                    # Map server code -> nice title and flag
-                    server_titles = {
-                        'fi': 'Финляндия',
-                        'nl': 'Нидерланды',
-                    }
-                    server_flags = {
-                        'fi': '🇫🇮',
-                        'nl': '🇳🇱',
-                    }
+                    
+                        active_configs = []
+                        # Map server code -> nice title and flag
+                        server_titles = {
+                            'fi': 'Финляндия',
+                            'nl': 'Нидерланды',
+                        }
+                        server_flags = {
+                            'fi': '🇫🇮',
+                            'nl': '🇳🇱',
+                        }
 
-                    def _fmt_duration(seconds: int) -> str:
-                        seconds = max(0, int(seconds))
-                        days = seconds // 86400
-                        hours = (seconds % 86400) // 3600
-                        minutes = (seconds % 3600) // 60
-                        if days > 0:
-                            return f"{days} дн {hours} ч"
-                        if hours > 0:
-                            return f"{hours} ч {minutes} мин"
-                        return f"{minutes} мин"
+                        def _fmt_duration(seconds: int) -> str:
+                            seconds = max(0, int(seconds))
+                            days = seconds // 86400
+                            hours = (seconds % 86400) // 3600
+                            minutes = (seconds % 3600) // 60
+                            if days > 0:
+                                return f"{days} дн {hours} ч"
+                            if hours > 0:
+                                return f"{hours} ч {minutes} мин"
+                            return f"{minutes} мин"
 
                         for user in response_data:
-                            time_end = int(user.get('time_end', 0))
-                            if time_end > now_ts:
+                            time_end = _parse_time_end(user.get('time_end', 0))
+                            if time_end >= (now_ts - skew_tolerance):
                                 srv = str(user.get('server', ''))
                                 title = server_titles.get(srv, srv.upper())
                                 flag = server_flags.get(srv, '')
                                 remaining_secs = time_end - now_ts
                                 active_configs.append(f"- {flag} {title}: {_fmt_duration(remaining_secs)}")
 
-                    if not active_configs:
-                        await message.answer("У вас нет активных конфигураций", reply_markup=keyboard.create_profile_keyboard())
-                        return
+                        if not active_configs:
+                            await message.answer("У вас нет активных конфигураций", reply_markup=keyboard.create_profile_keyboard())
+                            return
 
                         text = "Ваши активные конфигурации:\n" + "\n".join(active_configs)
 
-                    # Постоянная ссылка подписки по sub_key
-
-                        sub_url = f"http://swaga.space/sub/{user_id}"
+                        # Постоянная ссылка подписки по sub_key
+                        sub_url = f"http://fastapi:8080/sub/{user_id}"
                         try:
                             async with session.get(sub_url, timeout=10, headers=headers) as resp:
                                 if resp.status != 200:
@@ -245,8 +224,6 @@ async def my_configs(message: types.Message):
                             await message.answer("Не удалось получить sub_key.", reply_markup=keyboard.create_profile_keyboard())
                             return
 
-
-                        
                         web_url = f"https://swaga.space/subscription/{sub_key}"
                         inline_kb = InlineKeyboardMarkup(inline_keyboard=[
                             [InlineKeyboardButton(text="📲 Добавить подписку в V2rayTun", url=web_url)],
@@ -304,9 +281,18 @@ async def refresh_configs(callback: types.CallbackQuery):
                 return f"{minutes} мин"
 
             active_lines = []
+            def _parse_time_end(raw: object) -> int:
+                try:
+                    val = int(raw)
+                except Exception:
+                    return 0
+                if val > 10**11:
+                    val = val // 1000
+                return val
+            skew_tolerance = 5
             for user in data or []:
-                time_end = int(user.get('time_end', 0))
-                if time_end > now_ts:
+                time_end = _parse_time_end(user.get('time_end', 0))
+                if time_end >= (now_ts - skew_tolerance):
                     srv = str(user.get('server', ''))
                     title = server_titles.get(srv, srv.upper())
                     flag = server_flags.get(srv, '')
@@ -321,7 +307,7 @@ async def refresh_configs(callback: types.CallbackQuery):
 
             # Получаем актуальную ссылку подписки и восстанавливаем клавиатуру
             try:
-                sub_url = f"http://swaga.space/sub/{user_id}"
+                sub_url = f"http://fastapi:8080/sub/{user_id}"
                 async with session.get(sub_url, timeout=10, headers=headers) as resp:
                     if resp.status == 200:
                         data_sub = await resp.json()

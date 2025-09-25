@@ -23,10 +23,11 @@ async def tel_guide_command(message: types.Message):
 
 @router.message(F.text.in_({"Установка на PC", "💻 Установка на PC"}))
 async def pc_guide_command(message: types.Message):
-    await message.answer("💻 Установка на компьютер:\n\n"
-    "- v2RayN: [Windows/Linux](https://github.com/2dust/v2rayN/releases/download/7.13.2/v2rayN-windows-64.zip)\n"
-    "- Альтернатива: [AmneziaVPN](https://amnezia.app/ru/downloads)\n\n"
-    "Скопируйте конфиг из Личного кабинета, вставьте в приложение и подключайтесь.", 
+    await message.answer("💻 Установка на компьютер (Windows/macOS/Linux):\n\n"
+    "- Windows: v2RayN — [скачать](https://github.com/2dust/v2rayN/releases/download/7.13.2/v2rayN-windows-64.zip)\n"
+    "- macOS: v2RayTun — [App Store](https://apps.apple.com/ru/app/v2raytun/id6476628951)\n"
+    "- Альтернатива (Win/macOS/Linux): [AmneziaVPN](https://amnezia.app/ru/downloads)\n\n"
+    "Скопируйте конфиг из Личного кабинета, импортируйте в приложение и подключайтесь.", 
     reply_markup=keyboard.create_keyboard(),
     parse_mode='Markdown',
     disable_web_page_preview=True

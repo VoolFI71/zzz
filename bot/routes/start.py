@@ -3,15 +3,12 @@ from aiogram.filters import Command
 from keyboards import keyboard
 from database import db
 import os
-import aiohttp  # добавлен импорт
-from aiogram import Bot  # если нужен тип Bot
 from aiogram.types import FSInputFile
-from utils import check_available_configs
+from routes.admin import is_admin
 import logging
 logger = logging.getLogger(__name__)
 
-AUTH_CODE = os.getenv("AUTH_CODE")
-urlupdate = "http://fastapi:8080/giveconfig"  # внутренний адрес API
+AUTH_CODE = os.getenv("AUTH_CODE")  # not used here; kept only if referenced implicitly elsewhere
 
 router = Router()
 
@@ -98,13 +95,17 @@ async def start_command(message: types.Message):
         ]
 
         image_path_found = next((p for p in candidate_paths if os.path.exists(p)), None)
+        # Выбираем клавиатуру в зависимости от роли пользователя
+        user_keyboard = keyboard.create_admin_keyboard() if is_admin(message.from_user.id) else keyboard.create_keyboard()
+        
         if image_path_found:
-            await message.answer_photo(photo=FSInputFile(image_path_found), caption=start_caption, reply_markup=keyboard.create_keyboard())
+            await message.answer_photo(photo=FSInputFile(image_path_found), caption=start_caption, reply_markup=user_keyboard)
         else:
-            await message.answer("Добро пожаловать! Выберите действие:", reply_markup=keyboard.create_keyboard())
+            await message.answer("Добро пожаловать! Выберите действие:", reply_markup=user_keyboard)
     except Exception:
         # Фолбэк на случай ошибки при отправке изображения
-        await message.answer("Добро пожаловать! Выберите действие:", reply_markup=keyboard.create_keyboard())
+        user_keyboard = keyboard.create_admin_keyboard() if is_admin(message.from_user.id) else keyboard.create_keyboard()
+        await message.answer("Добро пожаловать! Выберите действие:", reply_markup=user_keyboard)
 
     # Отправляем уведомление о реферальном бонусе после приветствия
     if referral_bonus_message:

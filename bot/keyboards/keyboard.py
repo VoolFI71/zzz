@@ -1,4 +1,4 @@
-from aiogram.types import InlineKeyboardMarkup, ReplyKeyboardMarkup, InlineKeyboardButton, KeyboardButton, LabeledPrice, PreCheckoutQuery, Message, CallbackQuery
+from aiogram.types import InlineKeyboardMarkup, ReplyKeyboardMarkup, InlineKeyboardButton, KeyboardButton
 import os
 
 
@@ -7,6 +7,17 @@ def create_keyboard():
         [KeyboardButton(text="📦 Выбрать тариф"), KeyboardButton(text="👤 Личный кабинет")],
         [KeyboardButton(text="🎁 Пробная 2 дня")],
         [KeyboardButton(text="🤝 Пригласить"), KeyboardButton(text="🛠️ Инструкция")]
+    ]
+    keyboard = ReplyKeyboardMarkup(keyboard=kb_list, resize_keyboard=True, one_time_keyboard=False)
+    return keyboard
+
+def create_admin_keyboard():
+    """Создает клавиатуру для администратора."""
+    kb_list = [
+        [KeyboardButton(text="📦 Выбрать тариф"), KeyboardButton(text="👤 Личный кабинет")],
+        [KeyboardButton(text="🎁 Пробная 2 дня")],
+        [KeyboardButton(text="🤝 Пригласить"), KeyboardButton(text="🛠️ Инструкция")],
+        [KeyboardButton(text="🔧 Админ панель")]
     ]
     keyboard = ReplyKeyboardMarkup(keyboard=kb_list, resize_keyboard=True, one_time_keyboard=False)
     return keyboard
@@ -77,12 +88,10 @@ def create_activate_balance_inline(balance_days: int):
 
 
 def create_settings_inline(prefs: dict, fav_server: str | None):
-    # Stub preserved only if referenced accidentally; not used now
     kb_list = [[InlineKeyboardButton(text="🔙 Назад", callback_data="back")]]
     return InlineKeyboardMarkup(inline_keyboard=kb_list)
 
 
 def create_pref_server_inline(current: str | None):
-    # Stub preserved only if referenced accidentally; not used now
     kb_list = [[InlineKeyboardButton(text="🔙 Назад", callback_data="back")]]
     return InlineKeyboardMarkup(inline_keyboard=kb_list)

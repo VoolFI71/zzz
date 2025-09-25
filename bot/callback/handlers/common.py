@@ -12,11 +12,9 @@ from keyboards.keyboard import (
     create_keyboard,
     create_payment_method_keyboard,
 )
-from database import db as user_db
 from database import db
 from utils import get_session
 import aiohttp
-import time
 
 common_router = Router()
 
