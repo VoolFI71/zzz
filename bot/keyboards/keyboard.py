@@ -5,7 +5,7 @@ import os
 def create_keyboard():
     kb_list = [
         [KeyboardButton(text="📦 Выбрать тариф"), KeyboardButton(text="👤 Личный кабинет")],
-        [KeyboardButton(text="🎁 Пробная 3 дня")],
+        [KeyboardButton(text="🎁 Пробная 2 дня")],
         [KeyboardButton(text="🤝 Пригласить"), KeyboardButton(text="🛠️ Инструкция")]
     ]
     keyboard = ReplyKeyboardMarkup(keyboard=kb_list, resize_keyboard=True, one_time_keyboard=False)

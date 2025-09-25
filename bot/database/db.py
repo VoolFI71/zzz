@@ -145,7 +145,7 @@ async def get_tg_id_by_referral_code(referral_code):
 
 
 # -----------------------------
-# Тестовая подписка 3 дня
+# Тестовая подписка 2 дня
 # -----------------------------
 
 async def ensure_user_row(tg_id: str) -> None:

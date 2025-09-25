@@ -51,7 +51,7 @@ async def my_account(message: types.Message):
     await message.answer("Личный кабинет:", reply_markup=keyboard.create_profile_keyboard())
 
 
-@router.message(F.text == "🎁 Пробная 3 дня")
+@router.message(F.text == "🎁 Пробная 2 дня")
 async def free_trial(message: types.Message):
     user_id = message.from_user.id
     from database import db as user_db
@@ -71,8 +71,8 @@ async def free_trial(message: types.Message):
         await message.answer("Свободных конфигов нет. Попробуйте позже.")
         return
 
-    # Выдаём бесплатные 3 дня на сервере FI
-    data = {"time": 3, "id": str(user_id), "server": "fi"}
+    # Выдаём бесплатные 2 дня на сервере FI
+    data = {"time": 2, "id": str(user_id), "server": "fi"}
     AUTH_CODE = os.getenv("AUTH_CODE")
     urlupdate = "http://fastapi:8080/giveconfig"
     try:
@@ -97,12 +97,12 @@ async def free_trial(message: types.Message):
                     # Fallback на старую ссылку, если что-то пошло не так
                     web_url = f"{base}/subscription"
                 kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="📲 Добавить в V2rayTun", url=web_url)]])
-                await message.answer("Пробная подписка на 3 дня активирована!", reply_markup=kb)
+                await message.answer("Пробная подписка на 2 дня активирована!", reply_markup=kb)
                 # Уведомление администратору об активации пробы
                 try:
                     admin_id = 746560409
                     at_username = (f"@{message.from_user.username}" if getattr(message.from_user, "username", None) else "—")
-                    await message.bot.send_message(admin_id, f"Активирована пробная подписка: user_id={user_id}, user={at_username}, сервер=fi, срок=3 дн.")
+                    await message.bot.send_message(admin_id, f"Активирована пробная подписка: user_id={user_id}, user={at_username}, сервер=fi, срок=2 дн.")
                 except Exception:
                     pass
             elif resp.status == 409:
