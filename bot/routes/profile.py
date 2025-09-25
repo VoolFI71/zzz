@@ -2,6 +2,7 @@ from math import ceil
 from aiogram import Router, F, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from keyboards import keyboard
+from utils import should_throttle, acquire_action_lock
 import aiohttp
 import os
 import time
@@ -54,6 +55,11 @@ async def my_account(message: types.Message):
 @router.message(F.text == "🎁 Пробная 2 дня")
 async def free_trial(message: types.Message):
     user_id = message.from_user.id
+    # Throttle repeated clicks
+    throttled, retry_after = should_throttle(user_id, "free_trial", cooldown_seconds=5.0)
+    if throttled:
+        await message.answer(f"Слишком часто. Попробуйте через {int(retry_after)+1} сек.")
+        return
     from database import db as user_db
     try:
         await user_db.ensure_user_row(str(user_id))
@@ -77,38 +83,39 @@ async def free_trial(message: types.Message):
     urlupdate = "http://fastapi:8080/giveconfig"
     try:
         session = await get_session()
-        async with session.post(urlupdate, json=data, headers={"X-API-Key": AUTH_CODE}) as resp:
-            if resp.status == 200:
-                await user_db.set_trial_3d_used(str(user_id))
-                base = os.getenv("PUBLIC_BASE_URL", "https://swaga.space").rstrip('/')
-                try:
-                    sub_url = f"http://fastapi:8080/sub/{user_id}"
-                    async with session.get(sub_url, headers={"X-API-Key": AUTH_CODE}) as sub_resp:
-                        if sub_resp.status == 200:
-                            sub_data = await sub_resp.json()
-                            sub_key = sub_data.get("sub_key")
-                            if sub_key:
-                                web_url = f"{base}/subscription/{sub_key}"
+        async with acquire_action_lock(user_id, "free_trial"):
+            async with session.post(urlupdate, json=data, headers={"X-API-Key": AUTH_CODE}) as resp:
+                if resp.status == 200:
+                    await user_db.set_trial_3d_used(str(user_id))
+                    base = os.getenv("PUBLIC_BASE_URL", "https://swaga.space").rstrip('/')
+                    try:
+                        sub_url = f"http://fastapi:8080/sub/{user_id}"
+                        async with session.get(sub_url, headers={"X-API-Key": AUTH_CODE}) as sub_resp:
+                            if sub_resp.status == 200:
+                                sub_data = await sub_resp.json()
+                                sub_key = sub_data.get("sub_key")
+                                if sub_key:
+                                    web_url = f"{base}/subscription/{sub_key}"
+                                else:
+                                    web_url = f"{base}/subscription"
                             else:
                                 web_url = f"{base}/subscription"
-                        else:
-                            web_url = f"{base}/subscription"
-                except Exception:
-                    # Fallback на старую ссылку, если что-то пошло не так
-                    web_url = f"{base}/subscription"
-                kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="📲 Добавить в V2rayTun", url=web_url)]])
-                await message.answer("Пробная подписка на 2 дня активирована!", reply_markup=kb)
-                # Уведомление администратору об активации пробы
-                try:
-                    admin_id = 746560409
-                    at_username = (f"@{message.from_user.username}" if getattr(message.from_user, "username", None) else "—")
-                    await message.bot.send_message(admin_id, f"Активирована пробная подписка: user_id={user_id}, user={at_username}, сервер=fi, срок=2 дн.")
-                except Exception:
-                    pass
-            elif resp.status == 409:
-                await message.answer("Свободных конфигов нет. Попробуйте позже.")
-            else:
-                await message.answer(f"Ошибка сервера ({resp.status}). Попробуйте позже.")
+                    except Exception:
+                        # Fallback на старую ссылку, если что-то пошло не так
+                        web_url = f"{base}/subscription"
+                    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="📲 Добавить в V2rayTun", url=web_url)]])
+                    await message.answer("Пробная подписка на 2 дня активирована!", reply_markup=kb)
+                    # Уведомление администратору об активации пробы
+                    try:
+                        admin_id = 746560409
+                        at_username = (f"@{message.from_user.username}" if getattr(message.from_user, "username", None) else "—")
+                        await message.bot.send_message(admin_id, f"Активирована пробная подписка: user_id={user_id}, user={at_username}, сервер=fi, срок=2 дн.")
+                    except Exception:
+                        pass
+                elif resp.status == 409:
+                    await message.answer("Свободных конфигов нет. Попробуйте позже.")
+                else:
+                    await message.answer(f"Ошибка сервера ({resp.status}). Попробуйте позже.")
     except aiohttp.ClientError:
         await message.answer("Ошибка сети. Попробуйте позже.")
 
@@ -130,29 +137,30 @@ async def copy_config_callback(callback: types.CallbackQuery):
     try:
         from utils import get_session
         session = await get_session()
-        async with session.get(url, headers=headers) as response:
-            if response.status != 200:
-                await callback.answer("Конфиг не найден", show_alert=True)
-                return
-            response_data = await response.json()
-            if not response_data or idx < 1 or idx > len(response_data):
-                await callback.answer("Конфиг не найден", show_alert=True)
-                return
-            user = response_data[idx - 1]
-            remaining_seconds = user['time_end'] - int(time.time())
-            if remaining_seconds <= 0:
-                await callback.answer("Срок действия истёк", show_alert=True)
-                return
-            settings = COUNTRY_SETTINGS[user['server']]
-            vless_config = (
-                f"vless://{user['user_code']}@{settings['host']}:443?"
-                f"security=reality&encryption=none&pbk={settings['pbk']}&"
-                f"headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&"
-                f"sni={settings['sni']}&sid={settings['sid']}#glsvpn"
-            )
-            kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🗑 Удалить это сообщение", callback_data="delmsg")]])
-            await callback.message.answer(f"<code>{vless_config}</code>", parse_mode="HTML", reply_markup=kb)
-            await callback.answer()
+        async with acquire_action_lock(user_id, "copy_config"):
+            async with session.get(url, headers=headers) as response:
+                if response.status != 200:
+                    await callback.answer("Конфиг не найден", show_alert=True)
+                    return
+                response_data = await response.json()
+                if not response_data or idx < 1 or idx > len(response_data):
+                    await callback.answer("Конфиг не найден", show_alert=True)
+                    return
+                user = response_data[idx - 1]
+                remaining_seconds = user['time_end'] - int(time.time())
+                if remaining_seconds <= 0:
+                    await callback.answer("Срок действия истёк", show_alert=True)
+                    return
+                settings = COUNTRY_SETTINGS[user['server']]
+                vless_config = (
+                    f"vless://{user['user_code']}@{settings['host']}:443?"
+                    f"security=reality&encryption=none&pbk={settings['pbk']}&"
+                    f"headerType=none&fp=chrome&type=tcp&flow=xtls-rprx-vision&"
+                    f"sni={settings['sni']}&sid={settings['sid']}#glsvpn"
+                )
+                kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="🗑 Удалить это сообщение", callback_data="delmsg")]])
+                await callback.message.answer(f"<code>{vless_config}</code>", parse_mode="HTML", reply_markup=kb)
+                await callback.answer()
     except aiohttp.ClientError:
         await callback.answer("Ошибка сети", show_alert=True)
     except Exception:
@@ -162,18 +170,23 @@ async def copy_config_callback(callback: types.CallbackQuery):
 @router.message(F.text.in_({"Мои конфиги", "📂 Мои конфиги"}))
 async def my_configs(message: types.Message):
     user_id = message.from_user.id
+    throttled, retry_after = should_throttle(user_id, "my_configs", cooldown_seconds=3.0)
+    if throttled:
+        await message.answer(f"Слишком часто. Попробуйте через {int(retry_after)} сек.")
+        return
     url = f"http://fastapi:8080/usercodes/{user_id}"
     headers = {"X-API-Key": AUTH_CODE}
 
     try:
         from utils import get_session
         session = await get_session()
-        async with session.get(url, headers=headers) as response:
-            if response.status == 200:
-                response_data = await response.json()
-                if response_data:
-                    # Сводка по странам
-                    now_ts = int(time.time())
+        async with acquire_action_lock(user_id, "my_configs"):
+            async with session.get(url, headers=headers) as response:
+                if response.status == 200:
+                    response_data = await response.json()
+                    if response_data:
+                        # Сводка по странам
+                        now_ts = int(time.time())
                     active_configs = []
                     # Map server code -> nice title and flag
                     server_titles = {
@@ -196,56 +209,56 @@ async def my_configs(message: types.Message):
                             return f"{hours} ч {minutes} мин"
                         return f"{minutes} мин"
 
-                    for user in response_data:
-                        time_end = int(user.get('time_end', 0))
-                        if time_end > now_ts:
-                            srv = str(user.get('server', ''))
-                            title = server_titles.get(srv, srv.upper())
-                            flag = server_flags.get(srv, '')
-                            remaining_secs = time_end - now_ts
-                            active_configs.append(f"- {flag} {title}: {_fmt_duration(remaining_secs)}")
+                        for user in response_data:
+                            time_end = int(user.get('time_end', 0))
+                            if time_end > now_ts:
+                                srv = str(user.get('server', ''))
+                                title = server_titles.get(srv, srv.upper())
+                                flag = server_flags.get(srv, '')
+                                remaining_secs = time_end - now_ts
+                                active_configs.append(f"- {flag} {title}: {_fmt_duration(remaining_secs)}")
 
                     if not active_configs:
                         await message.answer("У вас нет активных конфигураций", reply_markup=keyboard.create_profile_keyboard())
                         return
 
-                    text = "Ваши активные конфигурации:\n" + "\n".join(active_configs)
+                        text = "Ваши активные конфигурации:\n" + "\n".join(active_configs)
 
                     # Постоянная ссылка подписки по sub_key
 
-                    sub_url = f"http://swaga.space/sub/{user_id}"
-                    try:
-                        async with session.get(sub_url, timeout=10, headers=headers) as resp:
-                            if resp.status != 200:
-                                await message.answer("Ошибка. Попробуйте позже.", reply_markup=keyboard.create_profile_keyboard())
-                                return
-                            data = await resp.json()
-                    except aiohttp.ClientError as e:
-                        await message.answer(f"Ошибка соединения: {str(e)}", reply_markup=keyboard.create_profile_keyboard())
-                        return
-                    except Exception:
-                        await message.answer("Ошибка. Попробуйте позже.", reply_markup=keyboard.create_profile_keyboard())
-                        return
+                        sub_url = f"http://swaga.space/sub/{user_id}"
+                        try:
+                            async with session.get(sub_url, timeout=10, headers=headers) as resp:
+                                if resp.status != 200:
+                                    await message.answer("Ошибка. Попробуйте позже.", reply_markup=keyboard.create_profile_keyboard())
+                                    return
+                                data = await resp.json()
+                        except aiohttp.ClientError as e:
+                            await message.answer(f"Ошибка соединения: {str(e)}", reply_markup=keyboard.create_profile_keyboard())
+                            return
+                        except Exception:
+                            await message.answer("Ошибка. Попробуйте позже.", reply_markup=keyboard.create_profile_keyboard())
+                            return
 
-                    sub_key = data.get("sub_key")
-                    if not sub_key:
-                        await message.answer("Не удалось получить sub_key.", reply_markup=keyboard.create_profile_keyboard())
-                        return
+                        sub_key = data.get("sub_key")
+                        if not sub_key:
+                            await message.answer("Не удалось получить sub_key.", reply_markup=keyboard.create_profile_keyboard())
+                            return
 
 
                         
-                    web_url = f"https://swaga.space/subscription/{sub_key}"
-                    inline_kb = InlineKeyboardMarkup(inline_keyboard=[
-                        [InlineKeyboardButton(text="📲 Добавить подписку в V2rayTun", url=web_url)],
-                        [InlineKeyboardButton(text="🔄 Обновить", callback_data="refresh_configs")],
-                    ])
-                    await message.answer(text, reply_markup=inline_kb, disable_web_page_preview=True)
-                    await message.answer("Выберите действие:", reply_markup=keyboard.create_profile_keyboard())
+                        web_url = f"https://swaga.space/subscription/{sub_key}"
+                        inline_kb = InlineKeyboardMarkup(inline_keyboard=[
+                            [InlineKeyboardButton(text="📲 Добавить подписку в V2rayTun", url=web_url)],
+                            [InlineKeyboardButton(text="🔄 Обновить", callback_data="refresh_configs")],
+                        ])
+                        await message.answer(text, reply_markup=inline_kb, disable_web_page_preview=True)
+                        await message.answer("Выберите действие:", reply_markup=keyboard.create_profile_keyboard())
+                    else:
+                        await message.answer("У вас нет конфигов", reply_markup=keyboard.create_profile_keyboard())
                 else:
-                    await message.answer("У вас нет конфигов", reply_markup=keyboard.create_profile_keyboard())
-            else:
-                error_message = await response.json()
-                await message.answer(f"{error_message.get('detail', 'Неизвестная ошибка')}", reply_markup=keyboard.create_profile_keyboard())
+                    error_message = await response.json()
+                    await message.answer(f"{error_message.get('detail', 'Неизвестная ошибка')}", reply_markup=keyboard.create_profile_keyboard())
     except aiohttp.ClientError as e:
         await message.answer(f"Ошибка соединения: {str(e)}", reply_markup=keyboard.create_profile_keyboard())
     except Exception as e:
@@ -256,17 +269,25 @@ async def my_configs(message: types.Message):
 async def refresh_configs(callback: types.CallbackQuery):
     # Переиспользуем логику my_configs как компактный рефреш
     user_id = callback.from_user.id
+    throttled, retry_after = should_throttle(user_id, "refresh_configs", cooldown_seconds=2.0)
+    if throttled:
+        try:
+            await callback.answer("Слишком часто. Подождите...", show_alert=False)
+        except Exception:
+            pass
+        return
     url = f"http://fastapi:8080/usercodes/{user_id}"
     headers = {"X-API-Key": AUTH_CODE}
 
     try:
         from utils import get_session
         session = await get_session()
-        async with session.get(url, headers=headers) as response:
-            if response.status != 200:
-                await callback.answer("Ошибка", show_alert=True)
-                return
-            data = await response.json()
+        async with acquire_action_lock(user_id, "refresh_configs"):
+            async with session.get(url, headers=headers) as response:
+                if response.status != 200:
+                    await callback.answer("Ошибка", show_alert=True)
+                    return
+                data = await response.json()
             now_ts = int(time.time())
             server_titles = {'fi': 'Финляндия', 'nl': 'Нидерланды'}
             server_flags = {'fi': '🇫🇮', 'nl': '🇳🇱'}
