@@ -234,7 +234,7 @@ async def my_configs(message: types.Message):
 
 
                         
-                    web_url = f"swaga.space/subscription/{sub_key}"
+                    web_url = f"https://swaga.space/subscription/{sub_key}"
                     inline_kb = InlineKeyboardMarkup(inline_keyboard=[
                         [InlineKeyboardButton(text="📲 Добавить подписку в V2rayTun", url=web_url)],
                         [InlineKeyboardButton(text="🔄 Обновить", callback_data="refresh_configs")],
@@ -297,8 +297,31 @@ async def refresh_configs(callback: types.CallbackQuery):
                 return
 
             text = "Ваши активные конфигурации:\n" + "\n".join(active_lines)
+
+            # Получаем актуальную ссылку подписки и восстанавливаем клавиатуру
             try:
-                await callback.message.edit_text(text)
+                sub_url = f"http://swaga.space/sub/{user_id}"
+                async with session.get(sub_url, timeout=10, headers=headers) as resp:
+                    if resp.status == 200:
+                        data_sub = await resp.json()
+                        sub_key = data_sub.get("sub_key")
+                    else:
+                        sub_key = None
+            except Exception:
+                sub_key = None
+
+            if sub_key:
+                web_url = f"https://swaga.space/subscription/{sub_key}"
+            else:
+                web_url = "https://swaga.space/subscription"
+
+            inline_kb = InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="📲 Добавить подписку в V2rayTun", url=web_url)],
+                [InlineKeyboardButton(text="🔄 Обновить", callback_data="refresh_configs")],
+            ])
+
+            try:
+                await callback.message.edit_text(text, reply_markup=inline_kb, disable_web_page_preview=True)
             except Exception:
                 pass
             await callback.answer("Обновлено")
