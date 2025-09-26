@@ -80,9 +80,13 @@ async def free_trial(message: types.Message):
                     except Exception:
                         # Fallback на старую ссылку, если что-то пошло не так
                         web_url = f"{base}/subscription"
-                    kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="📲 Добавить в V2rayTun", url=web_url)]])
+                    kb = InlineKeyboardMarkup(inline_keyboard=[
+                        [InlineKeyboardButton(text="📲 Добавить подписку в V2rayTun", url=web_url)],
+                        [InlineKeyboardButton(text="📋 Скопировать ссылку", callback_data="copy_sub")],
+                    ])
                     await message.answer("Пробная подписка на 2 дня активирована!", reply_markup=kb)
-                    # Уведомление администратору об активации пробы
+                    await message.answer("Подписка может быть не добавлена при нажатии на кнопку на сайте, в этом случае необходимо скопировать ссылку на подписку и вставить в V2rayTun вручную.")
+
                     try:
                         admin_id = 746560409
                         at_username = (f"@{message.from_user.username}" if getattr(message.from_user, "username", None) else "—")
@@ -127,7 +131,10 @@ async def copy_config_callback(callback: types.CallbackQuery):
             # Формируем публичную ссылку подписки
             base = os.getenv("PUBLIC_BASE_URL", "https://swaga.space").rstrip('/')
             web_url = f"{base}/subscription/{sub_key}"
-            kb = InlineKeyboardMarkup(inline_keyboard=[[InlineKeyboardButton(text="📲 Добавить подписку в V2rayTun", url=web_url)]])
+            kb = InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="📲 Добавить подписку в V2rayTun", url=web_url)],
+                [InlineKeyboardButton(text="📋 Скопировать ссылку", callback_data="copy_sub")],
+            ])
             await callback.message.answer("Ваша подписка:", reply_markup=kb, disable_web_page_preview=True)
             await callback.answer()
     except aiohttp.ClientError:
@@ -227,9 +234,10 @@ async def my_configs(message: types.Message):
                         web_url = f"https://swaga.space/subscription/{sub_key}"
                         inline_kb = InlineKeyboardMarkup(inline_keyboard=[
                             [InlineKeyboardButton(text="📲 Добавить подписку в V2rayTun", url=web_url)],
-                            [InlineKeyboardButton(text="🔄 Обновить", callback_data="refresh_configs")],
+                            [InlineKeyboardButton(text="📋 Скопировать ссылку", callback_data="copy_sub")],
                         ])
                         await message.answer(text, reply_markup=inline_kb, disable_web_page_preview=True)
+                        await message.answer("Подписка может быть не добавлена при нажатии на кнопку на сайте, в этом случае необходимо скопировать ссылку на подписку и вставить в V2rayTun вручную.")
                         await message.answer("Выберите действие:", reply_markup=keyboard.create_profile_keyboard())
                     else:
                         await message.answer("У вас нет конфигов", reply_markup=keyboard.create_profile_keyboard())
@@ -241,99 +249,38 @@ async def my_configs(message: types.Message):
     except Exception as e:
         await message.answer(f"Произошла ошибка: {str(e)}", reply_markup=keyboard.create_profile_keyboard())
 
-
-@router.callback_query(F.data == "refresh_configs")
-async def refresh_configs(callback: types.CallbackQuery):
-    # Переиспользуем логику my_configs как компактный рефреш
+        
+@router.callback_query(F.data == "copy_sub")
+async def copy_subscription_callback(callback: types.CallbackQuery):
+    """Отправляет пользователю его ссылку на подписку для копирования."""
     user_id = callback.from_user.id
-    throttled, retry_after = should_throttle(user_id, "refresh_configs", cooldown_seconds=2.0)
-    if throttled:
-        try:
-            await callback.answer("Слишком часто. Подождите...", show_alert=False)
-        except Exception:
-            pass
-        return
-    url = f"http://fastapi:8080/usercodes/{user_id}"
     headers = {"X-API-Key": AUTH_CODE}
-
     try:
         from utils import get_session
         session = await get_session()
-        async with acquire_action_lock(user_id, "refresh_configs"):
-            async with session.get(url, headers=headers) as response:
-                if response.status != 200:
+        sub_url_api = f"http://fastapi:8080/sub/{user_id}"
+        async with acquire_action_lock(user_id, "copy_sub"):
+            async with session.get(sub_url_api, timeout=10, headers=headers) as resp:
+                if resp.status != 200:
                     await callback.answer("Ошибка", show_alert=True)
                     return
-                data = await response.json()
-            now_ts = int(time.time())
-            server_titles = {'fi': 'Финляндия', 'nl': 'Нидерланды'}
-            server_flags = {'fi': '🇫🇮', 'nl': '🇳🇱'}
-
-            def _fmt_duration(seconds: int) -> str:
-                seconds = max(0, int(seconds))
-                days = seconds // 86400
-                hours = (seconds % 86400) // 3600
-                minutes = (seconds % 3600) // 60
-                if days > 0:
-                    return f"{days} дн {hours} ч"
-                if hours > 0:
-                    return f"{hours} ч {minutes} мин"
-                return f"{minutes} мин"
-
-            active_lines = []
-            def _parse_time_end(raw: object) -> int:
-                try:
-                    val = int(raw)
-                except Exception:
-                    return 0
-                if val > 10**11:
-                    val = val // 1000
-                return val
-            skew_tolerance = 5
-            for user in data or []:
-                time_end = _parse_time_end(user.get('time_end', 0))
-                if time_end >= (now_ts - skew_tolerance):
-                    srv = str(user.get('server', ''))
-                    title = server_titles.get(srv, srv.upper())
-                    flag = server_flags.get(srv, '')
-                    remaining_secs = time_end - now_ts
-                    active_lines.append(f"- {flag} {title}: {_fmt_duration(remaining_secs)}")
-
-            if not active_lines:
-                await callback.answer("Нет активных конфигураций", show_alert=True)
-                return
-
-            text = "Ваши активные конфигурации:\n" + "\n".join(active_lines)
-
-            # Получаем актуальную ссылку подписки и восстанавливаем клавиатуру
-            try:
-                sub_url = f"http://fastapi:8080/sub/{user_id}"
-                async with session.get(sub_url, timeout=10, headers=headers) as resp:
-                    if resp.status == 200:
-                        data_sub = await resp.json()
-                        sub_key = data_sub.get("sub_key")
-                    else:
-                        sub_key = None
-            except Exception:
-                sub_key = None
-
-            if sub_key:
-                web_url = f"https://swaga.space/subscription/{sub_key}"
-            else:
-                web_url = "https://swaga.space/subscription"
-
-            inline_kb = InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="📲 Добавить подписку в V2rayTun", url=web_url)],
-                [InlineKeyboardButton(text="🔄 Обновить", callback_data="refresh_configs")],
-            ])
-
-            try:
-                await callback.message.edit_text(text, reply_markup=inline_kb, disable_web_page_preview=True)
-            except Exception:
-                pass
-            await callback.answer("Обновлено")
+                data = await resp.json()
+                sub_key = data.get("sub_key")
+                if not sub_key:
+                    await callback.answer("Нет ссылки", show_alert=True)
+                    return
+        base = os.getenv("PUBLIC_BASE_URL", "https://swaga.space").rstrip('/')
+        web_url = f"{base}/subscription/{sub_key}"
+        try:
+            await callback.message.answer(web_url, disable_web_page_preview=True)
+        except Exception:
+            pass
+        await callback.answer("Ссылка скопирована", show_alert=False)
     except Exception:
-        await callback.answer("Ошибка", show_alert=True)
+        try:
+            await callback.answer("Ошибка", show_alert=True)
+        except Exception:
+            pass
 
 @router.callback_query(F.data == "delmsg")
 async def delete_message_callback(callback: types.CallbackQuery):
