@@ -94,7 +94,8 @@
     const qs = new URLSearchParams(location.search);
     const configB64 = qs.get('config');
     const subscriptionParam = qs.get('subscription');
-    const tgIdParam = qs.get('tg_id');
+    const subKeyParam = qs.get('sub_key');
+    // Не используем tg_id: подписка работает только по sub_key
     
     const configBox = document.getElementById('config-text');
     const openBtn = document.getElementById('openBtn');
@@ -129,10 +130,12 @@
     
     // Логика, какая ссылка отображается в поле
     let displayUrl = null;
-    if (subscriptionParam) {
+    if (subKeyParam) {
+      // Всегда предпочитаем ссылку-подписку по sub_key для автообновления
+      displayUrl = `https://swaga.space/subscription/${encodeURIComponent(subKeyParam)}`;
+    } else if (subscriptionParam) {
+      // Если передан subscription и это уже URL, используем как есть; если это сырой список конфигов — это будет одноразовый импорт
       displayUrl = subscriptionParam;
-    } else if (tgIdParam) {
-      displayUrl = `https://swaga.space/subscription/${encodeURIComponent(tgIdParam)}`;
     } else if (decoded) {
       displayUrl = decoded;
     } else {
