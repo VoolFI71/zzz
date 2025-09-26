@@ -107,8 +107,22 @@
       setTimeout(()=>toast.classList.remove('show'), 1700);
     }
     
+    // Нормализуем URL-safe base64 (замена -_ и добивка "=")
+    function normalizeB64(input){
+      if(!input) return '';
+      let s = input.replace(/-/g, '+').replace(/_/g, '/');
+      const pad = s.length % 4;
+      if(pad === 2) s += '==';
+      else if(pad === 3) s += '=';
+      else if(pad !== 0) s += '==='; // на всякий случай
+      return s;
+    }
     let decoded = '';
-    try { decoded = configB64 ? atob(configB64) : ''; } catch { decoded = ''; }
+    try {
+      decoded = configB64 ? atob(normalizeB64(configB64)) : '';
+    } catch {
+      decoded = '';
+    }
     
     // Текущий адрес страницы (без хэша)
     const currentUrl = location.href;
@@ -133,12 +147,14 @@
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     if(!isMobile){ document.getElementById('platform-chip').textContent = '🖥️ Откройте со смартфона'; }
     
-    // Открыть в V2rayTun — используем текущую видимую ссылку (displayUrl)
+    // Открыть в V2rayTun — используем текущую видимую ссылку (displayUrl), кодируя в base64
     openBtn.addEventListener('click', () => {
       if(!isMobile){ showToast('Откройте со смартфона'); return; }
       const target = displayUrl || currentUrl;
-      const encoded = encodeURIComponent(target);
-      const href = `v2raytun://import/${encoded}`;
+      if(!target){ showToast('Данные не найдены'); return; }
+      // Корректное base64 для UTF-8 строк
+      const base64 = btoa(unescape(encodeURIComponent(target)));
+      const href = `v2raytun://import/${base64}`;
       // создаём ссылку и кликаем — системный обработчик откроет приложение
       const a = document.createElement('a');
       a.href = href;

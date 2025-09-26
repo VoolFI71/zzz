@@ -370,3 +370,45 @@ async def cancel_reserved_config(user_code: str, reserver_tg_id: str) -> int:
             )
             await conn.commit()
             return cursor.rowcount
+
+
+async def get_all_configs_with_status() -> list[dict]:
+    """Возвращает все конфиги с их статусом и информацией.
+    
+    Возвращает список словарей с полями:
+    - uid: user_code (уникальный идентификатор конфига)
+    - time_end: время окончания в unix timestamp
+    - is_owned: принадлежит ли конфиг кому-то в данный момент
+    - server_country: страна сервера
+    """
+    current_time = int(time.time())
+    async with aiosqlite.connect("users.db") as conn:
+        async with conn.cursor() as cursor:
+            await cursor.execute('''
+                SELECT user_code, time_end, tg_id, server_country 
+                FROM users 
+                ORDER BY user_code
+            ''')
+            rows = await cursor.fetchall()
+    
+    configs = []
+    for row in rows:
+        user_code, time_end, tg_id, server_country = row
+        
+        # Определяем, принадлежит ли конфиг кому-то (активная привязка только при неистёкшем сроке)
+        is_owned = bool(
+            tg_id
+            and tg_id.strip()
+            and not tg_id.startswith(RESERVED_PREFIX)
+            and time_end is not None
+            and time_end > current_time
+        )
+        
+        configs.append({
+            "uid": user_code,
+            "time_end": time_end,
+            "is_owned": is_owned,
+            "server_country": server_country
+        })
+    
+    return configs

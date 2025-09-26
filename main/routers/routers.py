@@ -671,6 +671,25 @@ async def get_sub_key(user_id: str, _: None = Depends(verify_api_key)):
     return JSONResponse({"sub_key": sub_key})
 
 
+@router.get("/all-configs")
+async def get_all_configs(_: None = Depends(verify_api_key)):
+    """Возвращает все конфиги с их статусом и суммарным количеством.
+    
+    Возвращает:
+    - configs: список всех конфигов с полями uid, time_end, is_owned, server_country
+    - total_count: общее количество конфигов
+    """
+    try:
+        configs = await db.get_all_configs_with_status()
+        return JSONResponse({
+            "configs": configs,
+            "total_count": len(configs)
+        })
+    except Exception as e:
+        logger.error("Error getting all configs: %s", e)
+        raise HTTPException(status_code=500, detail="Ошибка при получении конфигов")
+
+
 
 
 @router.get("/", response_class=HTMLResponse)
