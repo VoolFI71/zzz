@@ -387,7 +387,7 @@ async def get_all_configs_with_status() -> list[dict]:
             await cursor.execute('''
                 SELECT user_code, time_end, tg_id, server_country 
                 FROM users 
-                ORDER BY user_code
+                ORDER BY time_end ASC
             ''')
             rows = await cursor.fetchall()
     
