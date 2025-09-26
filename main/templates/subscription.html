@@ -157,14 +157,20 @@
       if(!target){ showToast('Данные не найдены'); return; }
       // Корректное base64 для UTF-8 строк
       const base64 = btoa(unescape(encodeURIComponent(target)));
-      const href = `v2raytun://import/${base64}`;
-      // создаём ссылку и кликаем — системный обработчик откроет приложение
-      const a = document.createElement('a');
-      a.href = href;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(()=>{ if(document.hasFocus()) showToast('Если приложение не открылось — скопируйте ссылку'); }, 1200);
+      const href = `v2raytun://subscribe/${base64}`;
+      // iOS: надёжнее через смену window.location
+      try{
+        window.location.href = href;
+        setTimeout(()=>{ if(document.hasFocus()) showToast('Если приложение не открылось — скопируйте ссылку'); }, 1200);
+      }catch{
+        // Fallback
+        const a = document.createElement('a');
+        a.href = href;
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        setTimeout(()=>{ if(document.hasFocus()) showToast('Если приложение не открылось — скопируйте ссылку'); }, 1200);
+      }
     });
     
     // Копировать — копируем текущий адрес страницы (location.href)
