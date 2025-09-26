@@ -511,17 +511,32 @@ async def check_available_configs(
     except Exception:
         pass
     
-    available_config = await db.get_one_expired_client(server)
-    return JSONResponse(
-        content={
-            "available": bool(available_config),
-            "message": (
-                "Свободные конфиги доступны"
-                if available_config
-                else "Свободных конфигов в данный момент нет"
-            ),
-        }
-    )
+    if server is None:
+        # Проверяем общую доступность конфигов
+        has_any = await db.has_any_expired_configs()
+        return JSONResponse(
+            content={
+                "available": has_any,
+                "message": (
+                    "Свободные конфиги доступны на некоторых серверах"
+                    if has_any
+                    else "Свободных конфигов в данный момент нет"
+                ),
+            }
+        )
+    else:
+        # Проверяем доступность для конкретного сервера
+        available_config = await db.get_one_expired_client(server)
+        return JSONResponse(
+            content={
+                "available": bool(available_config),
+                "message": (
+                    "Свободные конфиги доступны"
+                    if available_config
+                    else "Свободных конфигов в данный момент нет"
+                ),
+            }
+        )
 
 @router.get(
     "/usercodes/{tg_id}",

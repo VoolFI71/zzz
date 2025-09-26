@@ -78,30 +78,44 @@ async def get_all_rows() -> list[tuple[str | None, str, int, str]]:
     return rows
 
 async def get_one_expired_client(server_country: str | None = None):
+    """Возвращает один истекший конфиг (с time_end = 0 или time_end < current_time), независимо от tg_id.
+    
+    Если server_country is None, возвращает None, так как нельзя выбрать конкретный конфиг
+    без указания сервера.
+    """
+    if server_country is None:
+        # Нельзя выбрать конкретный конфиг без указания сервера
+        return None
+        
     async with aiosqlite.connect("users.db") as conn:
         async with conn.cursor() as cursor:
             current_time = int(time.time())
             
-            if server_country is None:
-                # Свободный = не забронирован и срок не активен
-                await cursor.execute('''
-                    SELECT * FROM users
-                    WHERE (time_end = 0 OR time_end < ?)
-                      AND (tg_id IS NULL OR tg_id = '')
-                    LIMIT 1
-                ''', (current_time,))
-            else:
-                await cursor.execute('''
-                    SELECT * FROM users
-                    WHERE (time_end = 0 OR time_end < ?)
-                      AND server_country = ?
-                      AND (tg_id IS NULL OR tg_id = '')
-                    LIMIT 1
-                ''', (current_time, server_country))
+            await cursor.execute('''
+                SELECT * FROM users
+                WHERE (time_end = 0 OR time_end < ?)
+                  AND server_country = ?
+                LIMIT 1
+            ''', (current_time, server_country))
             
             expired_client = await cursor.fetchone()
     
     return expired_client
+
+async def has_any_expired_configs() -> bool:
+    """Проверяет, есть ли хотя бы один истекший конфиг на любом сервере."""
+    async with aiosqlite.connect("users.db") as conn:
+        async with conn.cursor() as cursor:
+            current_time = int(time.time())
+            
+            await cursor.execute('''
+                SELECT 1 FROM users
+                WHERE (time_end = 0 OR time_end < ?)
+                LIMIT 1
+            ''', (current_time,))
+            
+            result = await cursor.fetchone()
+            return result is not None
 
 async def reset_expired_configs():
     """
@@ -239,7 +253,7 @@ async def reserve_one_free_config(
     Возвращает `user_code` зарезервированного конфига или None, если свободных нет.
 
     Правила:
-    - Свободный: (time_end = 0 OR time_end < now) и (tg_id NULL/"")
+    - Свободный: (time_end = 0 OR time_end < now) - независимо от tg_id
     - Резервация: tg_id = "__RESERVED__:{reserver_tg_id}", time_end = now + ttl
     - Перед выбором очищаются просроченные резервации.
     """
@@ -274,13 +288,12 @@ async def reserve_one_free_config(
             (now, f"{RESERVED_PREFIX}%"),
         )
 
-        # 2) Найти свободный конфиг
+        # 2) Найти свободный конфиг (с истекшим временем, независимо от tg_id)
         if server_country is None:
             await cursor.execute(
                 '''
                 SELECT user_code FROM users
                 WHERE (time_end = 0 OR time_end < ?)
-                  AND (tg_id IS NULL OR tg_id = '')
                 LIMIT 1
                 ''',
                 (now,),
@@ -291,7 +304,6 @@ async def reserve_one_free_config(
                 SELECT user_code FROM users
                 WHERE (time_end = 0 OR time_end < ?)
                   AND server_country = ?
-                  AND (tg_id IS NULL OR tg_id = '')
                 LIMIT 1
                 ''',
                 (now, server_country),
@@ -309,7 +321,6 @@ async def reserve_one_free_config(
             UPDATE users
             SET tg_id = ?, time_end = ?
             WHERE user_code = ?
-              AND (tg_id IS NULL OR tg_id = '')
               AND (time_end = 0 OR time_end < ?)
             ''',
             (reserved_marker, reservation_expires_at, uid, now),
@@ -344,9 +355,8 @@ async def finalize_reserved_config(
                 SET tg_id = ?, time_end = ?, server_country = ?
                 WHERE user_code = ?
                   AND tg_id = ?
-                  AND time_end >= ?
                 ''',
-                (str(reserver_tg_id), final_time_end, server_country, user_code, reserved_marker, now),
+                (str(reserver_tg_id), final_time_end, server_country, user_code, reserved_marker),
             )
             await conn.commit()
             return cursor.rowcount
