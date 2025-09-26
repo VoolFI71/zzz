@@ -15,6 +15,6 @@ while true; do
     cp $BOT_DB $BACKUP_DIR/bot_db_$(date +%Y%m%d%H%M%S).db
     cp $MAIN_DB $BACKUP_DIR/main_db_$(date +%Y%m%d%H%M%S).db
 
-    # Ждем 60 секунд
-    sleep 1800
+    # Ждем 3 часа
+    sleep 10800
 done

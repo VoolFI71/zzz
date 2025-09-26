@@ -271,16 +271,20 @@ async def copy_subscription_callback(callback: types.CallbackQuery):
                     return
         base = os.getenv("PUBLIC_BASE_URL", "https://swaga.space").rstrip('/')
         web_url = f"{base}/subscription/{sub_key}"
-        # Показываем кнопку с самой ссылкой, нажатие по которой копирует ссылку; рядом даём кнопку Открыть
-        kb = InlineKeyboardMarkup(inline_keyboard=[
-            [InlineKeyboardButton(text=web_url, callback_data="copy_sub")],
-            [InlineKeyboardButton(text="🔗 Открыть", url=web_url)],
-        ])
+        # Редактируем текущее сообщение: показываем только ссылку без кнопок
         try:
-            await callback.message.answer("Нажмите на ссылку ниже, чтобы скопировать:", reply_markup=kb, disable_web_page_preview=True)
+            await callback.message.edit_text(web_url, disable_web_page_preview=True)
+        except Exception:
+            try:
+                # Если редактирование недоступно (старое сообщение) — отправим новым сообщением
+                await callback.message.answer(web_url, disable_web_page_preview=True)
+            except Exception:
+                pass
+        # Сообщаем пользователю
+        try:
+            await callback.answer("Скопируйте ссылку", show_alert=False)
         except Exception:
             pass
-        await callback.answer("Ссылка скопирована", show_alert=False)
     except Exception:
         try:
             await callback.answer("Ошибка", show_alert=True)
