@@ -92,7 +92,7 @@
 
   <script>
     const qs = new URLSearchParams(location.search);
-    const configB64 = qs.get('config');
+    // Поддерживаем только подписки
     const subscriptionParam = qs.get('subscription');
     const subKeyParam = qs.get('sub_key');
     // Не используем tg_id: подписка работает только по sub_key
@@ -108,27 +108,12 @@
       setTimeout(()=>toast.classList.remove('show'), 1700);
     }
     
-    // Нормализуем URL-safe base64 (замена -_ и добивка "=")
-    function normalizeB64(input){
-      if(!input) return '';
-      let s = input.replace(/-/g, '+').replace(/_/g, '/');
-      const pad = s.length % 4;
-      if(pad === 2) s += '==';
-      else if(pad === 3) s += '=';
-      else if(pad !== 0) s += '==='; // на всякий случай
-      return s;
-    }
-    let decoded = '';
-    try {
-      decoded = configB64 ? atob(normalizeB64(configB64)) : '';
-    } catch {
-      decoded = '';
-    }
+    // Одиночные конфиги не поддерживаем, base64 параметр config игнорируем
     
     // Текущий адрес страницы (без хэша)
     const currentUrl = location.href;
     
-    // Логика, какая ссылка отображается в поле
+    // Логика, какая ссылка отображается в поле (только подписка)
     let displayUrl = null;
     if (subKeyParam) {
       // Всегда предпочитаем ссылку-подписку по sub_key для автообновления
@@ -136,13 +121,9 @@
     } else if (subscriptionParam) {
       // Если передан subscription и это уже URL, используем как есть; если это сырой список конфигов — это будет одноразовый импорт
       displayUrl = subscriptionParam;
-    } else if (decoded) {
-      displayUrl = decoded;
-    } else {
-      displayUrl = currentUrl; // fallback — текущая страница
     }
     
-    configBox.textContent = displayUrl;
+    configBox.textContent = displayUrl || 'Подписка не найдена. Откройте страницу с параметром sub_key или subscription.';
     
     // убрано отображение срока действия подписки
     
@@ -150,14 +131,14 @@
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     if(!isMobile){ document.getElementById('platform-chip').textContent = '🖥️ Откройте со смартфона'; }
     
-    // Открыть в V2rayTun — используем текущую видимую ссылку (displayUrl), кодируя в base64
+    // Открыть в V2rayTun — используем ссылку подписки (displayUrl), кодируя в base64 через схему subscribe
     openBtn.addEventListener('click', () => {
       if(!isMobile){ showToast('Откройте со смартфона'); return; }
-      const target = displayUrl || currentUrl;
+      const target = displayUrl;
       if(!target){ showToast('Данные не найдены'); return; }
       // Корректное base64 для UTF-8 строк
       const base64 = btoa(unescape(encodeURIComponent(target)));
-      const href = `v2raytun://import/${base64}`;
+      const href = `v2raytun://subscribe/${base64}`;
       // создаём ссылку и кликаем — системный обработчик откроет приложение
       const a = document.createElement('a');
       a.href = href;
@@ -167,9 +148,9 @@
       setTimeout(()=>{ if(document.hasFocus()) showToast('Если приложение не открылось — скопируйте ссылку'); }, 1200);
     });
     
-    // Копировать — копируем текущий адрес страницы (location.href)
+    // Копировать — копируем ссылку подписки
     copyBtn.addEventListener('click', async () => {
-      const textToCopy = currentUrl;
+      const textToCopy = displayUrl;
       if(!textToCopy){ showToast('Данные не найдены'); return; }
       try{
         if(navigator.clipboard && window.isSecureContext){
