@@ -593,6 +593,8 @@ async def get_subscription(tg_id: int):
         body_header_lines.append(f'subscription-userinfo: "expire={max_expire_unix}"')
     if SUB_UPDATE_HOURS:
         body_header_lines.append(f'profile-update-interval: "{SUB_UPDATE_HOURS}"')
+    # Форсируем обновление профиля при входе в приложение
+    body_header_lines.append('update-always: "true"')
     if SUB_ROUTING_B64:
         body_header_lines.append(f'routing: "{SUB_ROUTING_B64}"')
     if SUB_ANNOUNCE:
@@ -611,6 +613,8 @@ async def get_subscription(tg_id: int):
         response_headers["subscription-userinfo"] = f"expire={max_expire_unix}"
     if SUB_UPDATE_HOURS:
         response_headers["profile-update-interval"] = SUB_UPDATE_HOURS
+    # Заголовок для форс-обновления
+    response_headers["update-always"] = "true"
     if SUB_ROUTING_B64:
         response_headers["routing"] = SUB_ROUTING_B64
     if SUB_ANNOUNCE:
