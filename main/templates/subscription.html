@@ -150,14 +150,10 @@
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     if(!isMobile){ document.getElementById('platform-chip').textContent = '🖥️ Откройте со смартфона'; }
     
-    // Открыть в V2rayTun — используем текущую видимую ссылку (displayUrl), кодируя в base64
+    // Открыть V2rayTun — без передачи данных; пользователь вставит ссылку вручную
     openBtn.addEventListener('click', () => {
       if(!isMobile){ showToast('Откройте со смартфона'); return; }
-      const target = displayUrl || currentUrl;
-      if(!target){ showToast('Данные не найдены'); return; }
-      // Корректное base64 для UTF-8 строк
-      const base64 = btoa(unescape(encodeURIComponent(target)));
-      const href = `v2raytun://import/${base64}`;
+      const href = `v2raytun://`;
       // создаём ссылку и кликаем — системный обработчик откроет приложение
       const a = document.createElement('a');
       a.href = href;
@@ -167,9 +163,9 @@
       setTimeout(()=>{ if(document.hasFocus()) showToast('Если приложение не открылось — скопируйте ссылку'); }, 1200);
     });
     
-    // Копировать — копируем текущий адрес страницы (location.href)
+    // Копировать — копируем ссылку подписки, чтобы вставить в приложении
     copyBtn.addEventListener('click', async () => {
-      const textToCopy = currentUrl;
+      const textToCopy = displayUrl;
       if(!textToCopy){ showToast('Данные не найдены'); return; }
       try{
         if(navigator.clipboard && window.isSecureContext){
