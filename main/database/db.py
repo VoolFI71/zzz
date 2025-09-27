@@ -46,21 +46,17 @@ async def init_db():
         ''')
         await conn.commit()
 
-async def users_with_subscription_expiring_within_5h(db_path: str = "users.db"):
-    """
-    Возвращает список уникальных tg_id, у которых есть хотя бы одна запись
-    с time_end > now и time_end - now <= 5 часов.
-    Игнорирует NULL/пустые tg_id.
-    """
+async def users_with_subscription_expiring_within_5h(db_path: str = "users.db") -> List[Dict]:
     now = int(time.time())
     five_hours = 5 * 3600  # 18000
 
     query = """
-    SELECT DISTINCT tg_id
+    SELECT tg_id, MIN(time_end) AS time_end
     FROM users
     WHERE tg_id IS NOT NULL AND tg_id != ''
       AND time_end > :now
       AND time_end - :now <= :five_hours
+    GROUP BY tg_id
     ;
     """
 
@@ -70,7 +66,7 @@ async def users_with_subscription_expiring_within_5h(db_path: str = "users.db"):
         rows = await cur.fetchall()
         await cur.close()
 
-    return [{"tg_id": r["tg_id"], "time_end": int(r["nearest_time_end"])} for r in rows]
+    return [{"tg_id": r["tg_id"], "time_end": int(r["time_end"])} for r in rows]
 
 async def insert_into_db(tg_id, user_code, time_end, server_country):
     async with aiosqlite.connect("users.db") as conn:
