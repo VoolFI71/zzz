@@ -46,7 +46,7 @@ async def init_db():
         ''')
         await conn.commit()
 
-async def users_with_subscription_expiring_within_5h(db_path: str = "users.db") -> List[Dict]:
+async def users_with_subscription_expiring_within_5h(db_path: str = "users.db"):
     now = int(time.time())
     five_hours = 5 * 3600  # 18000
 
