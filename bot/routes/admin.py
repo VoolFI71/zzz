@@ -62,7 +62,7 @@ async def admin_panel(message: types.Message):
         await message.answer("❌ Ошибка при открытии админ панели.")
 
 @router.callback_query(F.data == "notif")
-async def send_notif(callback: types.CallbackQuery, bot: types.Bot):
+async def send_notif(callback: types.CallbackQuery, bot):
     if not is_admin(callback.from_user.id):
         await callback.answer("Нет доступа", show_alert=True)
         return
