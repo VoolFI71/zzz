@@ -48,7 +48,7 @@ async def init_db():
 
 async def users_with_subscription_expiring_within_5h(db_path: str = "users.db"):
     now = int(time.time())
-    five_hours = 5 * 3600  # 18000
+    five_hours = 8 * 3600  # 18000
 
     query = """
     SELECT tg_id, MIN(time_end) AS time_end
