@@ -4,6 +4,7 @@ from aiogram.fsm.state import State, StatesGroup
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 import logging
 import time
+from datetime import datetime
 import aiohttp
 import os
 
@@ -47,6 +48,8 @@ async def admin_panel(message: types.Message):
             [InlineKeyboardButton(text="⚙️ Управление конфигами", callback_data="admin_configs")],
             [InlineKeyboardButton(text="📈 Детальная статистика", callback_data="admin_detailed_stats")],
             [InlineKeyboardButton(text="🔧 Системные операции", callback_data="admin_system")],
+            [InlineKeyboardButton(text="🔧 Отправить уведомление об окончании подписки", callback_data="notif")],
+
         ])
         
         await message.answer(
@@ -57,6 +60,86 @@ async def admin_panel(message: types.Message):
     except Exception as e:
         logger.error(f"Error in admin_panel: {e}")
         await message.answer("❌ Ошибка при открытии админ панели.")
+
+@router.callback_query(F.data == "notif")
+async def send_notif(callback: types.CallbackQuery, bot: types.Bot):
+    if not is_admin(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
+
+    await callback.answer()  # убрать "часики" у клиента
+
+    url = f"{API_BASE_URL}/getids"
+    headers = {"X-API-Key": AUTH_CODE}
+            
+            # Получаем все конфиги
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, headers=headers, timeout=7) as resp:
+                if resp.status != 200:
+                    text = await resp.text()
+                    logger.error(f"/getids returned {resp.status}: {text}")
+                    await callback.message.answer(f"Ошибка запроса: {resp.status}")
+                    return
+                data = await resp.json()
+    except Exception as e:
+        logger.error(f"Error fetching /getids: {e}")
+        await callback.message.answer(f"Ошибка при подключении к серверу: {e}")
+        return
+
+    if not data:
+        await callback.message.answer("Нет пользователей с подпиской, истекающей в ближайшие 5 часов.")
+        return
+
+    sent = 0
+    failed = 0
+    invalid = 0
+
+    now = int(time.time())
+
+    for item in data:
+        tg = item.get("tg_id")
+        te = item.get("time_end")
+        if not tg or te is None:
+            invalid += 1
+            continue
+
+        try:
+            te = int(te)
+        except (TypeError, ValueError):
+            invalid += 1
+            continue
+
+        # вычисляем оставшиеся секунды/минуты
+        remaining_sec = te - now
+        if remaining_sec < 0:
+            # если уже просрочено — можно пропустить или уведомить как "уже истекло"
+            text = "Ваша подписка на конфиг уже истекла."
+        else:
+            minutes = remaining_sec // 60
+            # округление вверх для отображения "осталось N минут"
+            if remaining_sec % 60:
+                minutes += 1
+            text = f"🔔 Внимание! Подписка на ваш конфиг истекает через {minutes} минут."
+
+        try:
+            await bot.send_message(int(tg), text)
+            sent += 1
+        except Exception as e:
+            logger.warning(f"Failed to send notif to {tg}: {e}")
+            failed += 1
+
+        # небольшая пауза, чтобы не превышать лимиты
+        await asyncio.sleep(0.05)  # 50ms, увеличьте при необходимости
+
+    summary = (
+        f"Уведомления отправлены.\n\n"
+        f"Отправлено: {sent}\n"
+        f"Не доставлено (ошибки): {failed}\n"
+        f"Пропущено (некорректные записи): {invalid}\n"
+        f"Всего проверено записей: {len(data)}"
+    )
+    await callback.message.answer(summary)
 
 @router.callback_query(F.data == "admin_broadcast")
 async def start_broadcast(callback: types.CallbackQuery, state: FSMContext):

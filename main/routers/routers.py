@@ -785,6 +785,9 @@ async def get_all_configs(_: None = Depends(verify_api_key)):
         logger.error("Error getting all configs: %s", e)
         raise HTTPException(status_code=500, detail="Ошибка при получении конфигов")
 
+@router.get("/getids")
+async def get_all_id(_: None = Depends(verify_api_key)):
+    return await db.users_with_subscription_expiring_within_5h("users.db")
 
 
 
