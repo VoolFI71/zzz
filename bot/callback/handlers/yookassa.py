@@ -47,8 +47,8 @@ async def pay_with_yookassa(callback_query: CallbackQuery, state: FSMContext, bo
     days = int(user_data.get("selected_days", 31))
     payload = "sub_1m" if days == 31 else "sub_3m"
     # Суммы и описания из окружения с адекватными дефолтами
-    price_1m = int(os.getenv("PRICE_1M_RUB", "149"))
-    price_3m = int(os.getenv("PRICE_3M_RUB", "299"))
+    price_1m = int(os.getenv("PRICE_1M_RUB", "199"))
+    price_3m = int(os.getenv("PRICE_3M_RUB", "399"))
 
     desc_1m = os.getenv("YK_DESC_1M", "Подписка GLS VPN — 1 месяц")
     desc_3m = os.getenv("YK_DESC_3M", "Подписка GLS VPN — 3 месяца")
@@ -160,10 +160,11 @@ async def cancel_yk_invoice(callback_query: CallbackQuery, state: FSMContext, bo
     # Вернём клавиатуру способов оплаты
     try:
         days = int((await state.get_data()).get("selected_days", 31))
-        star_1m = int(os.getenv("PRICE_1M_STAR", "149"))
-        star_3m = int(os.getenv("PRICE_3M_STAR", "299"))
-        rub_1m = int(os.getenv("PRICE_1M_RUB", "149"))
-        rub_3m = int(os.getenv("PRICE_3M_RUB", "299"))
+        star_1m = int(os.getenv("PRICE_1M_STAR", "199"))
+        star_3m = int(os.getenv("PRICE_3M_STAR", "399"))
+        rub_1m = int(os.getenv("PRICE_1M_RUB", "199"))
+        rub_3m = int(os.getenv("PRICE_3M_RUB", "399"))
+
         if days == 31:
             star_amount, rub_amount = star_1m, rub_1m
         else:
@@ -221,7 +222,7 @@ async def check_yookassa(callback_query: CallbackQuery, state: FSMContext, bot: 
                         sub_key = await user_db.get_or_create_sub_key(str(tg_id))
                         base = os.getenv("PUBLIC_BASE_URL", "https://swaga.space").rstrip('/')
                         sub_url = f"{base}/subscription/{sub_key}"
-                        await bot.send_message(tg_id, f"Подписка активирована! Ваша ссылка подписки: {sub_url}")
+                        await bot.send_message(tg_id, "Подписка активирована! Конфиг доступен в личном кабинете.")
                     except Exception:
                         await bot.send_message(tg_id, "Подписка активирована! Конфиг доступен в личном кабинете.")
                     try:

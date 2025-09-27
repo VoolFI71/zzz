@@ -28,10 +28,11 @@ async def select_plan(callback_query: CallbackQuery, state: FSMContext) -> None:
     await state.update_data(selected_days=days)
 
     # Цены для отображения методов оплаты
-    star_1m = int(os.getenv("PRICE_1M_STAR", "149"))
-    star_3m = int(os.getenv("PRICE_3M_STAR", "299"))
-    rub_1m = int(os.getenv("PRICE_1M_RUB", "149"))
-    rub_3m = int(os.getenv("PRICE_3M_RUB", "299"))
+    star_1m = int(os.getenv("PRICE_1M_STAR", "199"))
+    star_3m = int(os.getenv("PRICE_3M_STAR", "399"))
+    rub_1m = int(os.getenv("PRICE_1M_RUB", "199"))
+    rub_3m = int(os.getenv("PRICE_3M_RUB", "399"))
+
 
     if days == 31:
         star_amount, rub_amount = star_1m, rub_1m
@@ -87,10 +88,11 @@ async def go_back(callback_query: CallbackQuery, bot: Bot, state: FSMContext) ->
         except Exception:
             user_state = {}
         days = int(user_state.get("selected_days", 31))
-        star_1m = int(os.getenv("PRICE_1M_STAR", "149"))
-        star_3m = int(os.getenv("PRICE_3M_STAR", "299"))
-        rub_1m = int(os.getenv("PRICE_1M_RUB", "149"))
-        rub_3m = int(os.getenv("PRICE_3M_RUB", "299"))
+        star_1m = int(os.getenv("PRICE_1M_STAR", "199"))
+        star_3m = int(os.getenv("PRICE_3M_STAR", "399"))
+        rub_1m = int(os.getenv("PRICE_1M_RUB", "199"))
+        rub_3m = int(os.getenv("PRICE_3M_RUB", "399"))
+
 
         if days == 31:
             star_amount, rub_amount = star_1m, rub_1m
