@@ -153,68 +153,50 @@ async def show_admin_stats(callback: types.CallbackQuery):
     await callback.answer()
 
 async def get_all_user_ids() -> list[str]:
-    """Получает список всех tg_id через API."""
+    """Получает список всех tg_id из bot БД."""
     try:
-        async with aiohttp.ClientSession() as session:
-            headers = {"X-API-Key": AUTH_CODE}
-            
-            # Получаем все конфиги и извлекаем уникальных пользователей
-            async with session.get(f"{API_BASE_URL}/all-configs", headers=headers) as resp:
-                if resp.status != 200:
-                    logger.error(f"API error getting all configs: {resp.status}")
-                    return []
-                
-                data = await resp.json()
-                configs = data.get('configs', [])
-                
-                # Извлекаем уникальных пользователей
-                user_ids = set()
-                for config in configs:
-                    tg_id = config.get('tg_id')
-                    if tg_id and tg_id.strip():
-                        user_ids.add(tg_id)
-                
-                return list(user_ids)
+        import aiosqlite
+        
+        async with aiosqlite.connect("users.db") as conn:
+            async with conn.cursor() as cursor:
+                await cursor.execute("SELECT tg_id FROM users")
+                rows = await cursor.fetchall()
+                return [row[0] for row in rows if row[0]]
     except Exception as e:
         logger.error(f"Error getting user IDs: {e}")
         return []
 
 async def get_user_stats() -> dict:
-    """Получает статистику пользователей через API."""
+    """Получает статистику пользователей из локальной БД bot контейнера."""
     try:
-        async with aiohttp.ClientSession() as session:
-            headers = {"X-API-Key": AUTH_CODE}
-            
-            # Получаем все конфиги для анализа
-            async with session.get(f"{API_BASE_URL}/all-configs", headers=headers) as resp:
-                if resp.status != 200:
-                    logger.error(f"API error getting all configs: {resp.status}")
-                    return {
-                        'total_users': 0,
-                        'trial_used': 0,
-                        'with_balance': 0,
-                        'total_referrals': 0
-                    }
+        import aiosqlite
+        
+        # Получаем статистику из локальной БД bot контейнера
+        async with aiosqlite.connect("users.db") as conn:
+            async with conn.cursor() as cursor:
+                # Общее количество пользователей в bot БД
+                await cursor.execute("SELECT COUNT(*) FROM users")
+                total_users = (await cursor.fetchone())[0]
                 
-                data = await resp.json()
-                configs = data.get('configs', [])
+                # Пользователи, использовавшие пробную подписку
+                await cursor.execute("SELECT COUNT(*) FROM users WHERE trial_3d_used = 1")
+                trial_used = (await cursor.fetchone())[0]
                 
-                # Анализируем конфиги для получения статистики пользователей
-                user_ids = set()
-                for config in configs:
-                    tg_id = config.get('tg_id')
-                    if tg_id and tg_id.strip():
-                        user_ids.add(tg_id)
+                # Пользователи с балансом дней
+                await cursor.execute("SELECT COUNT(*) FROM users WHERE balance > 0")
+                with_balance = (await cursor.fetchone())[0]
                 
-                total_users = len(user_ids)
-                
-                # Пока что возвращаем заглушки для полей, которых нет в API
-                return {
-                    'total_users': total_users,
-                    'trial_used': 0,  # Нужно добавить в API
-                    'with_balance': 0,  # Нужно добавить в API
-                    'total_referrals': 0  # Нужно добавить в API
-                }
+                # Общее количество рефералов
+                await cursor.execute("SELECT SUM(referral_count) FROM users")
+                total_referrals_result = await cursor.fetchone()
+                total_referrals = total_referrals_result[0] if total_referrals_result[0] is not None else 0
+        
+        return {
+            'total_users': total_users,
+            'trial_used': trial_used,
+            'with_balance': with_balance,
+            'total_referrals': total_referrals
+        }
     except Exception as e:
         logger.error(f"Error getting user stats: {e}")
         return {
@@ -263,8 +245,9 @@ async def process_user_search(message: types.Message, state: FSMContext):
                 f"🎁 Использовал пробную подписку: {'Да' if user_info['trial_used'] else 'Нет'}\n"
                 f"💰 Баланс дней: {user_info['balance']}\n"
                 f"🤝 Количество рефералов: {user_info['referral_count']}\n"
+                f"🔗 Реферальный код: {user_info['referral_code']}\n"
                 f"📅 Дата регистрации: {user_info['created_at']}\n"
-                f"🔗 Активных конфигов: {user_info['active_configs']}"
+                f"⚙️ Активных конфигов: {user_info['active_configs']}"
             )
             await message.answer(info_text)
         else:
@@ -456,39 +439,48 @@ async def back_to_main_admin(callback: types.CallbackQuery):
 # Вспомогательные функции для новых возможностей
 
 async def get_user_info(tg_id: int) -> dict | None:
-    """Получает информацию о пользователе через API."""
+    """Получает информацию о пользователе из локальной БД и API."""
     try:
-        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as session:
-            headers = {"X-API-Key": AUTH_CODE}
-            
-            # Получаем конфиги пользователя
-            async with session.get(f"{API_BASE_URL}/usercodes/{tg_id}", headers=headers) as resp:
-                if resp.status == 404:
-                    return None
-                elif resp.status != 200:
-                    logger.error(f"API error getting user configs: {resp.status}")
-                    return None
+        import aiosqlite
+        
+        # Получаем информацию из локальной БД bot контейнера
+        async with aiosqlite.connect("users.db") as conn:
+            async with conn.cursor() as cursor:
+                await cursor.execute("""
+                    SELECT tg_id, trial_3d_used, balance, referral_count, referral_code
+                    FROM users WHERE tg_id = ?
+                """, (str(tg_id),))
+                row = await cursor.fetchone()
                 
-                try:
-                    configs = await resp.json()
-                except aiohttp.ContentTypeError as e:
-                    logger.error(f"Invalid JSON response: {e}")
+                if not row:
                     return None
                 
-                active_configs = len([c for c in configs if c.get('time_end', 0) > int(time.time())])
-                
-                # Базовая информация (пока что используем данные из конфигов)
-                return {
-                    'tg_id': str(tg_id),
-                    'trial_used': False,  # Нужно добавить в API
-                    'balance': 0,  # Нужно добавить в API
-                    'referral_count': 0,  # Нужно добавить в API
-                    'created_at': 'Неизвестно',  # Нужно добавить в API
-                    'active_configs': active_configs
-                }
-    except aiohttp.ClientError as e:
-        logger.error(f"Network error getting user info: {e}")
-        return None
+                tg_id_db, trial_used, balance, referral_count, referral_code = row
+        
+        # Получаем информацию о конфигах из API
+        active_configs = 0
+        try:
+            async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as session:
+                headers = {"X-API-Key": AUTH_CODE}
+                async with session.get(f"{API_BASE_URL}/usercodes/{tg_id}", headers=headers) as resp:
+                    if resp.status == 200:
+                        try:
+                            configs = await resp.json()
+                            active_configs = len([c for c in configs if c.get('time_end', 0) > int(time.time())])
+                        except aiohttp.ContentTypeError as e:
+                            logger.error(f"Invalid JSON response: {e}")
+        except Exception as e:
+            logger.warning(f"Could not get config info from API: {e}")
+        
+        return {
+            'tg_id': str(tg_id),
+            'trial_used': bool(trial_used),
+            'balance': balance or 0,
+            'referral_count': referral_count or 0,
+            'referral_code': referral_code or 'Не создан',
+            'created_at': 'Неизвестно',  # В БД нет поля created_at
+            'active_configs': active_configs
+        }
     except Exception as e:
         logger.error(f"Error getting user info: {e}")
         return None
@@ -586,7 +578,7 @@ async def get_config_info(uid: str) -> dict | None:
                 
                 return {
                     'uid': config.get('uid'),
-                    'tg_id': config.get('tg_id'),
+                    'tg_id': config.get('tg_id') or 'Не назначен',
                     'time_end': time_end,
                     'time_end_formatted': time_end_formatted,
                     'server': config.get('server_country'),
@@ -600,80 +592,62 @@ async def get_config_info(uid: str) -> dict | None:
         return None
 
 async def get_detailed_statistics() -> dict:
-    """Получает детальную статистику через API."""
+    """Получает детальную статистику из bot БД и API."""
     try:
-        async with aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=10)) as session:
-            headers = {"X-API-Key": AUTH_CODE}
-            
-            # Получаем все конфиги
-            async with session.get(f"{API_BASE_URL}/all-configs", headers=headers) as resp:
-                if resp.status != 200:
-                    logger.error(f"API error getting all configs: {resp.status}")
-                    return {
-                        'users': {'total': 0, 'active': 0, 'trial_used': 0, 'with_balance': 0},
-                        'configs': {'total': 0, 'active': 0, 'expired': 0, 'fi': 0, 'nl': 0},
-                        'referrals': {'total': 0, 'top_referrer': 'Нет данных'}
-                    }
+        import aiosqlite
+        
+        # Получаем статистику пользователей из bot БД
+        async with aiosqlite.connect("users.db") as conn:
+            async with conn.cursor() as cursor:
+                # Общее количество пользователей
+                await cursor.execute("SELECT COUNT(*) FROM users")
+                total_users = (await cursor.fetchone())[0]
                 
-                try:
-                    data = await resp.json()
-                except aiohttp.ContentTypeError as e:
-                    logger.error(f"Invalid JSON response: {e}")
-                    return {
-                        'users': {'total': 0, 'active': 0, 'trial_used': 0, 'with_balance': 0},
-                        'configs': {'total': 0, 'active': 0, 'expired': 0, 'fi': 0, 'nl': 0},
-                        'referrals': {'total': 0, 'top_referrer': 'Нет данных'}
-                    }
+                # Пользователи, использовавшие пробную подписку
+                await cursor.execute("SELECT COUNT(*) FROM users WHERE trial_3d_used = 1")
+                trial_used = (await cursor.fetchone())[0]
                 
-                configs = data.get('configs', [])
+                # Пользователи с балансом дней
+                await cursor.execute("SELECT COUNT(*) FROM users WHERE balance > 0")
+                with_balance = (await cursor.fetchone())[0]
                 
-                current_time = int(time.time())
+                # Общее количество рефералов
+                await cursor.execute("SELECT SUM(referral_count) FROM users")
+                total_referrals_result = await cursor.fetchone()
+                total_referrals = total_referrals_result[0] if total_referrals_result[0] is not None else 0
                 
-                # Анализируем конфиги для получения статистики
-                total_configs = len(configs)
-                active_configs = len([c for c in configs if c.get('time_end', 0) > current_time])
-                expired_configs = len([c for c in configs if c.get('time_end', 0) <= current_time and c.get('time_end', 0) > 0])
-                fi_configs = len([c for c in configs if c.get('server_country') == 'fi'])
-                nl_configs = len([c for c in configs if c.get('server_country') == 'nl'])
-                
-                # Получаем уникальных пользователей
-                user_ids = set()
-                active_user_ids = set()
-                for config in configs:
-                    tg_id = config.get('tg_id')
-                    if tg_id and tg_id.strip():
-                        user_ids.add(tg_id)
-                        if config.get('time_end', 0) > current_time:
-                            active_user_ids.add(tg_id)
-                
-                total_users = len(user_ids)
-                active_users = len(active_user_ids)
-                
-                return {
-                    'users': {
-                        'total': total_users,
-                        'active': active_users,
-                        'trial_used': 0,  # Нужно добавить в API
-                        'with_balance': 0  # Нужно добавить в API
-                    },
-                    'configs': {
-                        'total': total_configs,
-                        'active': active_configs,
-                        'expired': expired_configs,
-                        'fi': fi_configs,
-                        'nl': nl_configs
-                    },
-                    'referrals': {
-                        'total': 0,  # Нужно добавить в API
-                        'top_referrer': 'Нет данных'  # Нужно добавить в API
-                    }
-                }
-    except aiohttp.ClientError as e:
-        logger.error(f"Network error getting detailed statistics: {e}")
+                # Топ реферер
+                await cursor.execute("""
+                    SELECT tg_id, referral_count 
+                    FROM users 
+                    WHERE referral_count > 0 
+                    ORDER BY referral_count DESC 
+                    LIMIT 1
+                """)
+                top_referrer_row = await cursor.fetchone()
+                top_referrer = f"ID: {top_referrer_row[0]} ({top_referrer_row[1]} рефералов)" if top_referrer_row else "Нет данных"
+        
+        # Получаем статистику конфигов из API
+        config_stats = await get_config_statistics()
+        
         return {
-            'users': {'total': 0, 'active': 0, 'trial_used': 0, 'with_balance': 0},
-            'configs': {'total': 0, 'active': 0, 'expired': 0, 'fi': 0, 'nl': 0},
-            'referrals': {'total': 0, 'top_referrer': 'Нет данных'}
+            'users': {
+                'total': total_users,
+                'active': config_stats['active'],  # Активные пользователи = пользователи с активными конфигами
+                'trial_used': trial_used,
+                'with_balance': with_balance
+            },
+            'configs': {
+                'total': config_stats['total'],
+                'active': config_stats['active'],
+                'expired': config_stats['expired'],
+                'fi': config_stats['fi_count'],
+                'nl': config_stats['nl_count']
+            },
+            'referrals': {
+                'total': total_referrals,
+                'top_referrer': top_referrer
+            }
         }
     except Exception as e:
         logger.error(f"Error getting detailed statistics: {e}")
