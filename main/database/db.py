@@ -46,7 +46,7 @@ async def init_db():
         ''')
         await conn.commit()
 
-async def users_with_subscription_expiring_within_5h(db_path: str = "users.db") -> List[Dict]:
+async def users_with_subscription_expiring_within_5h(db_path: str = "users.db"):
     """
     Возвращает список уникальных tg_id, у которых есть хотя бы одна запись
     с time_end > now и time_end - now <= 5 часов.
