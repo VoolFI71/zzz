@@ -28,8 +28,10 @@ if not AUTH_CODE:
 
 class AdminStates(StatesGroup):
     waiting_for_message = State()
+    waiting_for_notification_type = State()
     waiting_for_user_search = State()
     waiting_for_config_uid = State()
+    waiting_for_promo_message = State()
 
 def is_admin(user_id: int) -> bool:
     """Проверяет, является ли пользователь администратором."""
@@ -50,8 +52,7 @@ async def admin_panel(message: types.Message):
             [InlineKeyboardButton(text="⚙️ Управление конфигами", callback_data="admin_configs")],
             [InlineKeyboardButton(text="📈 Детальная статистика", callback_data="admin_detailed_stats")],
             [InlineKeyboardButton(text="🔧 Системные операции", callback_data="admin_system")],
-            [InlineKeyboardButton(text="🔧 Отправить уведомление об окончании подписки", callback_data="notif")],
-
+            [InlineKeyboardButton(text="🔔 Уведомления о подписке", callback_data="admin_notifications")],
         ])
         
         await message.answer(
@@ -74,10 +75,10 @@ async def send_notif(callback: types.CallbackQuery, bot):
     url = f"{API_BASE_URL}/getids"
     headers = {"X-API-Key": AUTH_CODE}
             
-            # Получаем все конфиги
+    # Получаем все конфиги
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.get(url, headers=headers, timeout=7) as resp:
+            async with session.get(url, headers=headers, timeout=15) as resp:
                 if resp.status != 200:
                     text = await resp.text()
                     logger.error(f"/getids returned {resp.status}: {text}")
@@ -90,7 +91,7 @@ async def send_notif(callback: types.CallbackQuery, bot):
         return
 
     if not data:
-        await callback.message.answer("Нет пользователей с подпиской, истекающей в ближайшие 5 часов.")
+        await callback.message.answer("Нет пользователей с подпиской, истекающей в ближайшие 8 часов.")
         return
 
     sent = 0
@@ -142,6 +143,293 @@ async def send_notif(callback: types.CallbackQuery, bot):
         f"Всего проверено записей: {len(data)}"
     )
     await callback.message.answer(summary)
+
+@router.callback_query(F.data == "admin_notifications")
+async def notifications_menu(callback: types.CallbackQuery):
+    """Меню различных типов уведомлений для увеличения продаж."""
+    if not is_admin(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
+    
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="⏰ Уведомление об окончании подписки", callback_data="notif")],
+        [InlineKeyboardButton(text="🎯 Пользователи без подписки (привлечение)", callback_data="notif_no_sub")],
+        [InlineKeyboardButton(text="💎 Пользователи с истекшей подпиской (возврат)", callback_data="notif_expired")],
+        [InlineKeyboardButton(text="🔥 Акция/скидка", callback_data="notif_promo")],
+        # [InlineKeyboardButton(text="📢 Новые функции/обновления", callback_data="notif_features")],
+        # [InlineKeyboardButton(text="💡 Напоминание о преимуществах", callback_data="notif_benefits")],
+        [InlineKeyboardButton(text="🔙 Назад в админ панель", callback_data="admin_panel")],
+    ])
+    
+    await callback.message.edit_text(
+        "🔔 Уведомления для увеличения продаж\n\n"
+        "Выберите тип рассылки:",
+        reply_markup=keyboard
+    )
+    await callback.answer()
+
+@router.callback_query(F.data == "admin_panel")
+async def back_to_admin_panel(callback: types.CallbackQuery):
+    """Возврат в главное меню админ панели."""
+    if not is_admin(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
+    
+    keyboard = InlineKeyboardMarkup(inline_keyboard=[
+        [InlineKeyboardButton(text="📢 Отправить сообщение всем", callback_data="admin_broadcast")],
+        [InlineKeyboardButton(text="📊 Статистика", callback_data="admin_stats")],
+        [InlineKeyboardButton(text="🔍 Поиск пользователя", callback_data="admin_search_user")],
+        [InlineKeyboardButton(text="⚙️ Управление конфигами", callback_data="admin_configs")],
+        [InlineKeyboardButton(text="📈 Детальная статистика", callback_data="admin_detailed_stats")],
+        [InlineKeyboardButton(text="🔧 Системные операции", callback_data="admin_system")],
+        [InlineKeyboardButton(text="🔔 Уведомления о подписке", callback_data="admin_notifications")],
+    ])
+    
+    await callback.message.edit_text(
+        "🔧 Админ панель\n\n"
+        "Выберите действие:",
+        reply_markup=keyboard
+    )
+    await callback.answer()
+
+@router.callback_query(F.data == "notif_no_sub")
+async def send_no_sub_notification(callback: types.CallbackQuery, bot):
+    """Отправляет уведомления пользователям без подписки."""
+    if not is_admin(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
+    
+    await callback.answer()
+    
+    # Получаем пользователей без подписки
+    try:
+        user_ids = await get_users_without_any_subscription()
+        if not user_ids:
+            await callback.message.answer("Нет пользователей без подписки.")
+            return
+        
+        message_text = (
+            "🚀 Привет! 👋\n\n"
+            "У вас еще нет активной подписки на наш VPN сервис.\n\n"
+            "🔒 Получите полный доступ к:\n"
+            "• Безопасному интернету\n"
+            "• Обходу блокировок\n"
+            "• Защите личных данных\n"
+            "• Высокой скорости соединения\n\n"
+            "💎 Попробуйте прямо сейчас - первыые два дня бесплатно!\n\n"
+            "Нажмите /start для оформления подписки."
+        )
+        
+        sent = 0
+        failed = 0
+        
+        for user_id in user_ids:
+            try:
+                await bot.send_message(user_id, message_text)
+                sent += 1
+            except Exception as e:
+                logger.warning(f"Failed to send no-sub notification to {user_id}: {e}")
+                failed += 1
+            await asyncio.sleep(0.05)
+        
+        await callback.message.answer(
+            f"✅ Рассылка пользователям без подписки завершена!\n\n"
+            f"📊 Статистика:\n"
+            f"• Отправлено: {sent}\n"
+            f"• Ошибок: {failed}\n"
+            f"• Всего пользователей: {len(user_ids)}"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error in send_no_sub_notification: {e}")
+        await callback.message.answer(f"❌ Ошибка при рассылке: {str(e)}")
+
+@router.callback_query(F.data == "notif_expired")
+async def send_expired_notification(callback: types.CallbackQuery, bot):
+    """Отправляет уведомления пользователям с истекшей подпиской."""
+    if not is_admin(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
+    
+    await callback.answer()
+    
+    # Получаем пользователей с истекшей подпиской
+    try:
+        # Получаем всех пользователей из bot БД
+        all_bot_users = await get_all_user_ids()
+        
+        # Получаем пользователей с активной подпиской из FastAPI
+        active_sub_users = await get_users_with_active_subscription()
+        
+        # Пользователи с истекшей подпиской = есть в bot БД, но нет в активных подписках
+        # И при этом использовали пробную подписку или имели баланс
+        user_ids = []
+        for user_id in all_bot_users:
+            if user_id not in active_sub_users:
+                # Проверяем, использовал ли пользователь пробную подписку или имел баланс
+                import aiosqlite
+                async with aiosqlite.connect("users.db") as conn:
+                    async with conn.cursor() as cursor:
+                        await cursor.execute("""
+                            SELECT trial_3d_used, balance FROM users WHERE tg_id = ?
+                        """, (user_id,))
+                        row = await cursor.fetchone()
+                        if row and (row[0] == 1 or row[1] > 0):
+                            user_ids.append(user_id)
+        
+        if not user_ids:
+            await callback.message.answer("Нет пользователей с истекшей подпиской.")
+            return
+        
+        message_text = (
+            "🔄 Мы скучаем! 😊\n\n"
+            "Ваша подписка истекла, но мы подготовили для вас:\n\n"
+            "🎁 Специальное предложение:\n"
+            "• Безлимитный трафик для вашего мобильного интернета, если в тарифе есть функция на безлимитные соцсети \n"
+            "• Бонусные дни при продлении\n"
+            "• Техподдержка 24/7\n\n"
+            "Нажмите /start для возобновления подписки."
+        )
+        
+        sent = 0
+        failed = 0
+        
+        for user_id in user_ids:
+            try:
+                await bot.send_message(user_id, message_text)
+                sent += 1
+            except Exception as e:
+                logger.warning(f"Failed to send expired notification to {user_id}: {e}")
+                failed += 1
+            await asyncio.sleep(0.05)
+        
+        await callback.message.answer(
+            f"✅ Рассылка пользователям с истекшей подпиской завершена!\n\n"
+            f"📊 Статистика:\n"
+            f"• Отправлено: {sent}\n"
+            f"• Ошибок: {failed}\n"
+            f"• Всего пользователей: {len(user_ids)}"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error in send_expired_notification: {e}")
+        await callback.message.answer(f"❌ Ошибка при рассылке: {str(e)}")
+
+@router.callback_query(F.data == "notif_promo")
+async def send_promo_notification(callback: types.CallbackQuery, state: FSMContext):
+    """Начинает процесс отправки промо-уведомления."""
+    if not is_admin(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
+    
+    await callback.message.edit_text(
+        "🔥 Промо-рассылка\n\n"
+        "Введите текст акции/скидки, который хотите отправить пользователям:"
+    )
+    await state.set_state(AdminStates.waiting_for_promo_message)
+    await callback.answer()
+
+@router.callback_query(F.data == "notif_features")
+async def send_features_notification(callback: types.CallbackQuery, bot):
+    """Отправляет уведомления о новых функциях."""
+    if not is_admin(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
+    
+    await callback.answer()
+    
+    try:
+        user_ids = await get_all_user_ids()
+        if not user_ids:
+            await callback.message.answer("В базе данных нет пользователей.")
+            return
+        
+        message_text = (
+            "🆕 Обновление сервиса! 🎉\n\n"
+            "Мы добавили новые возможности:\n\n"
+            "✨ Что нового:\n"
+            "• Улучшенная скорость соединения\n"
+            "• Новые серверы в разных странах\n"
+            "• Обновленный интерфейс\n"
+            "• Расширенная техподдержка\n\n"
+            "🚀 Обновите приложение и наслаждайтесь улучшениями!\n\n"
+            "Спасибо, что остаетесь с нами! 💙"
+        )
+        
+        sent = 0
+        failed = 0
+        
+        for user_id in user_ids:
+            try:
+                await bot.send_message(user_id, message_text)
+                sent += 1
+            except Exception as e:
+                logger.warning(f"Failed to send features notification to {user_id}: {e}")
+                failed += 1
+            await asyncio.sleep(0.05)
+        
+        await callback.message.answer(
+            f"✅ Рассылка о новых функциях завершена!\n\n"
+            f"📊 Статистика:\n"
+            f"• Отправлено: {sent}\n"
+            f"• Ошибок: {failed}\n"
+            f"• Всего пользователей: {len(user_ids)}"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error in send_features_notification: {e}")
+        await callback.message.answer(f"❌ Ошибка при рассылке: {str(e)}")
+
+@router.callback_query(F.data == "notif_benefits")
+async def send_benefits_notification(callback: types.CallbackQuery, bot):
+    """Отправляет напоминание о преимуществах подписки."""
+    if not is_admin(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
+    
+    await callback.answer()
+    
+    try:
+        user_ids = await get_all_user_ids()
+        if not user_ids:
+            await callback.message.answer("В базе данных нет пользователей.")
+            return
+        
+        message_text = (
+            "💎 Напоминание о преимуществах вашей подписки\n\n"
+            "🔒 Что вы получаете:\n"
+            "• Полная анонимность в сети\n"
+            "• Обход любых блокировок\n"
+            "• Доступ к иностранным ресурсам\n"
+            "• Высокая скорость соединения\n"
+            "• Поддержка 24/7\n\n"
+            "🎯 Используйте все возможности вашей подписки!\n\n"
+            "Спасибо за доверие! 💙"
+        )
+        
+        sent = 0
+        failed = 0
+        
+        for user_id in user_ids:
+            try:
+                await bot.send_message(user_id, message_text)
+                sent += 1
+            except Exception as e:
+                logger.warning(f"Failed to send benefits notification to {user_id}: {e}")
+                failed += 1
+            await asyncio.sleep(0.05)
+        
+        await callback.message.answer(
+            f"✅ Рассылка о преимуществах завершена!\n\n"
+            f"📊 Статистика:\n"
+            f"• Отправлено: {sent}\n"
+            f"• Ошибок: {failed}\n"
+            f"• Всего пользователей: {len(user_ids)}"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error in send_benefits_notification: {e}")
+        await callback.message.answer(f"❌ Ошибка при рассылке: {str(e)}")
 
 @router.callback_query(F.data == "admin_broadcast")
 async def start_broadcast(callback: types.CallbackQuery, state: FSMContext):
@@ -212,6 +500,54 @@ async def process_broadcast_message(message: types.Message, state: FSMContext, b
     
     await state.clear()
 
+@router.message(AdminStates.waiting_for_promo_message)
+async def process_promo_message(message: types.Message, state: FSMContext, bot):
+    """Обрабатывает промо-сообщение и отправляет его всем пользователям."""
+    if not is_admin(message.from_user.id):
+        await message.answer("У вас нет доступа.")
+        await state.clear()
+        return
+    
+    promo_text = message.text
+    if not promo_text or len(promo_text.strip()) == 0:
+        await message.answer("Сообщение не может быть пустым. Попробуйте снова:")
+        return
+    
+    try:
+        user_ids = await get_all_user_ids()
+        if not user_ids:
+            await message.answer("В базе данных нет пользователей.")
+            await state.clear()
+            return
+        
+        await message.answer(f"🔥 Начинаю промо-рассылку {len(user_ids)} пользователям...")
+        
+        sent_count = 0
+        failed_count = 0
+        
+        for user_id in user_ids:
+            try:
+                await bot.send_message(user_id, promo_text)
+                sent_count += 1
+            except Exception as e:
+                logger.warning(f"Failed to send promo message to user {user_id}: {e}")
+                failed_count += 1
+            await asyncio.sleep(0.05)
+        
+        await message.answer(
+            f"✅ Промо-рассылка завершена!\n\n"
+            f"📊 Статистика:\n"
+            f"• Отправлено: {sent_count}\n"
+            f"• Ошибок: {failed_count}\n"
+            f"• Всего пользователей: {len(user_ids)}"
+        )
+        
+    except Exception as e:
+        logger.error(f"Error during promo broadcast: {e}")
+        await message.answer(f"❌ Ошибка при промо-рассылке: {str(e)}")
+    
+    await state.clear()
+
 @router.callback_query(F.data == "admin_stats")
 async def show_admin_stats(callback: types.CallbackQuery):
     """Показывает статистику пользователей."""
@@ -250,6 +586,85 @@ async def get_all_user_ids() -> list[str]:
     except Exception as e:
         logger.error(f"Error getting user IDs: {e}")
         return []
+
+async def get_users_without_subscription() -> list[str]:
+    """Получает список пользователей без активной подписки."""
+    try:
+        import aiosqlite
+        
+        async with aiosqlite.connect("users.db") as conn:
+            async with conn.cursor() as cursor:
+                # Пользователи без баланса (без активной подписки)
+                await cursor.execute("SELECT tg_id FROM users WHERE balance <= 0")
+                rows = await cursor.fetchall()
+                return [row[0] for row in rows if row[0]]
+    except Exception as e:
+        logger.error(f"Error getting users without subscription: {e}")
+        return []
+
+async def get_users_with_expired_subscription() -> list[str]:
+    """Получает список пользователей с истекшей подпиской."""
+    try:
+        import aiosqlite
+        
+        async with aiosqlite.connect("users.db") as conn:
+            async with conn.cursor() as cursor:
+                # Пользователи, которые когда-то имели подписку, но сейчас без баланса
+                # (использовали пробную подписку или имели платную, но она истекла)
+                await cursor.execute("""
+                    SELECT tg_id FROM users 
+                    WHERE balance <= 0 
+                    AND (trial_3d_used = 1 OR last_payment_date IS NOT NULL)
+                """)
+                rows = await cursor.fetchall()
+                return [row[0] for row in rows if row[0]]
+    except Exception as e:
+        logger.error(f"Error getting users with expired subscription: {e}")
+        return []
+
+async def get_users_with_active_subscription() -> list[str]:
+    """Получает список пользователей с активной подпиской через FastAPI API."""
+    try:
+        # Поскольку /getids возвращает только пользователей с истекающими подписками,
+        # а нам нужны все активные пользователи, используем простой подход:
+        # получаем всех пользователей из bot БД и проверяем их через /usercodes
+        all_bot_users = await get_all_user_ids()
+        active_users = []
+        
+        async with aiohttp.ClientSession() as session:
+            for user_id in all_bot_users:
+                try:
+                    url = f"{API_BASE_URL}/usercodes/{user_id}"
+                    headers = {"X-API-Key": AUTH_CODE}
+                    
+                    async with session.get(url, headers=headers, timeout=5) as resp:
+                        if resp.status == 200:
+                            active_users.append(user_id)
+                        # 404 означает, что у пользователя нет активных конфигов
+                except Exception:
+                    # Игнорируем ошибки для отдельных пользователей
+                    continue
+        
+        return active_users
+    except Exception as e:
+        logger.error(f"Error getting users with active subscription: {e}")
+        return []
+
+async def get_users_without_any_subscription() -> list[str]:
+    """Получает пользователей без подписки (не в FastAPI БД)."""
+    try:
+        # Получаем всех пользователей из bot БД
+        all_bot_users = await get_all_user_ids()
+        
+        # Получаем пользователей с активной подпиской из FastAPI
+        active_sub_users = await get_users_with_active_subscription()
+        
+        # Возвращаем пользователей, которых нет в списке активных подписок
+        return [user_id for user_id in all_bot_users if user_id not in active_sub_users]
+    except Exception as e:
+        logger.error(f"Error getting users without any subscription: {e}")
+        return []
+
 
 async def get_user_stats() -> dict:
     """Получает статистику пользователей из локальной БД bot контейнера."""
@@ -658,7 +1073,6 @@ async def get_config_info(uid: str) -> dict | None:
                 if time_end == 0:
                     time_end_formatted = "Не установлено"
                 else:
-                    from datetime import datetime
                     time_end_formatted = datetime.fromtimestamp(time_end).strftime("%d.%m.%Y %H:%M")
                 
                 return {
