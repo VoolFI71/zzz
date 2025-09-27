@@ -422,3 +422,65 @@ async def get_all_configs_with_status() -> list[dict]:
         })
     
     return configs
+
+
+async def has_active_reservations(server_country: Optional[str] = None) -> bool:
+    """Проверяет есть ли активные резервации (кто-то начал процесс оплаты).
+    
+    Возвращает True если есть конфиги с tg_id начинающимся с RESERVED_PREFIX
+    и не истекшим временем резервации.
+    """
+    now = int(time.time())
+    
+    async with aiosqlite.connect("users.db") as conn:
+        async with conn.cursor() as cursor:
+            if server_country is None:
+                await cursor.execute(
+                    '''
+                    SELECT COUNT(*) FROM users
+                    WHERE tg_id LIKE ? AND time_end > ?
+                    ''',
+                    (f"{RESERVED_PREFIX}%", now),
+                )
+            else:
+                await cursor.execute(
+                    '''
+                    SELECT COUNT(*) FROM users
+                    WHERE tg_id LIKE ? AND time_end > ? AND server_country = ?
+                    ''',
+                    (f"{RESERVED_PREFIX}%", now, server_country),
+                )
+            
+            count = await cursor.fetchone()
+            return count[0] > 0 if count else False
+
+
+async def has_active_reservations_except_user(server_country: Optional[str] = None, exclude_user_id: Optional[str] = None) -> bool:
+    """Проверяет есть ли активные резервации (кто-то начал процесс оплаты), исключая указанного пользователя.
+    
+    Возвращает True если есть конфиги с tg_id начинающимся с RESERVED_PREFIX
+    и не истекшим временем резервации, но не от exclude_user_id.
+    """
+    now = int(time.time())
+    
+    async with aiosqlite.connect("users.db") as conn:
+        async with conn.cursor() as cursor:
+            if server_country is None:
+                await cursor.execute(
+                    '''
+                    SELECT COUNT(*) FROM users
+                    WHERE tg_id LIKE ? AND time_end > ? AND tg_id != ?
+                    ''',
+                    (f"{RESERVED_PREFIX}%", now, f"{RESERVED_PREFIX}{exclude_user_id}"),
+                )
+            else:
+                await cursor.execute(
+                    '''
+                    SELECT COUNT(*) FROM users
+                    WHERE tg_id LIKE ? AND time_end > ? AND server_country = ? AND tg_id != ?
+                    ''',
+                    (f"{RESERVED_PREFIX}%", now, server_country, f"{RESERVED_PREFIX}{exclude_user_id}"),
+                )
+            
+            count = await cursor.fetchone()
+            return count[0] > 0 if count else False

@@ -106,6 +106,9 @@ router = APIRouter()
 templates = Jinja2Templates(directory="templates")
 BASE_URL: str = os.getenv("BASE_URL", "https://swaga.space")
 
+# Блокировки для предотвращения одновременного создания конфигов на одном сервере
+server_locks: Dict[str, asyncio.Lock] = {}
+
 # Subscription response metadata (v2RayTun headers)
 SUB_TITLE: str = _env_any("SUBSCRIPTION_TITLE", "sub_title", default="GLS VPN")
 SUB_UPDATE_HOURS: str = _env_any("SUBSCRIPTION_UPDATE_HOURS", "sub_update_hours", default="12")
@@ -253,11 +256,85 @@ async def give_config(
         server_country=client_data.server,
         reservation_ttl_seconds=120,
     )
+    
+    # Если свободных конфигов нет, проверяем есть ли активные резервации
     if not reserved_uid:
-        raise HTTPException(
-            status_code=409,
-            detail="Свободных конфигов в данный момент нет, обратитесь в поддержку",
-        )
+        # Получаем блокировку для данного сервера
+        if client_data.server not in server_locks:
+            server_locks[client_data.server] = asyncio.Lock()
+        
+        async with server_locks[client_data.server]:
+            # Двойная проверка: возможно, пока мы ждали блокировки, кто-то уже создал конфиг
+            reserved_uid = await db.reserve_one_free_config(
+                reserver_tg_id=str(client_data.id),
+                server_country=client_data.server,
+                reservation_ttl_seconds=120,
+            )
+            
+            if reserved_uid:
+                logger.info("Config became available while waiting for lock, reserved %s for user %s", reserved_uid, client_data.id)
+            else:
+                # Проверяем есть ли активные резервации (кто-то уже начал оплату)
+                # Исключаем резервации от текущего пользователя
+                has_active_reservations = await db.has_active_reservations_except_user(client_data.server, str(client_data.id))
+                
+                if has_active_reservations:
+                    # Есть активные резервации - создаем новый конфиг для текущего пользователя
+                    logger.info("Active reservations detected, creating new config for server %s", client_data.server)
+                    try:
+                        # Создаем новый конфиг напрямую
+                        uid = str(uuid.uuid4())
+                        payload = build_payload(uid, enable=False)
+                        url = COUNTRY_SETTINGS[client_data.server]["urlcreate"]
+                        logger.info("panel.create URL=%s", url)
+                        response = await panel_request(request, url, client_data.server, payload)
+                        
+                        if response.status_code == 200:
+                            # Сохраняем в БД
+                            await db.insert_into_db(
+                                tg_id=None,
+                                user_code=uid,
+                                time_end=0,
+                                server_country=client_data.server,
+                            )
+                            logger.info("Config %s created", uid)
+                            
+                            # Теперь пытаемся зарезервировать только что созданный конфиг
+                            reserved_uid = await db.reserve_one_free_config(
+                                reserver_tg_id=str(client_data.id),
+                                server_country=client_data.server,
+                                reservation_ttl_seconds=120,
+                            )
+                            
+                            if reserved_uid:
+                                logger.info("Successfully created and reserved new config %s for user %s", reserved_uid, client_data.id)
+                            else:
+                                logger.error("Failed to reserve newly created config for user %s", client_data.id)
+                                raise HTTPException(
+                                    status_code=500,
+                                    detail="Ошибка при создании конфига. Попробуйте еще раз.",
+                                )
+                        else:
+                            logger.error("Failed to create config, status=%s, body=%s", response.status_code, response.text)
+                            raise HTTPException(
+                                status_code=response.status_code,
+                                detail="Ошибка при создании конфигурации",
+                            )
+                    except HTTPException:
+                        raise
+                    except Exception as e:
+                        logger.error("Unexpected error during config creation: %s", e)
+                        raise HTTPException(
+                            status_code=500,
+                            detail="Внутренняя ошибка сервера. Попробуйте позже.",
+                        )
+                else:
+                    # Нет активных резерваций - просто нет свободных конфигов
+                    logger.info("No free configs and no active reservations for server %s", client_data.server)
+                    raise HTTPException(
+                        status_code=409,
+                        detail="Свободных конфигов в данный момент нет, обратитесь в поддержку",
+                    )
 
     expiry_unix = int(time.time()) + (60 * 60 * 24 * client_data.time)
     payload = build_payload(reserved_uid, enable=True, expiry_time=expiry_unix)
@@ -715,6 +792,11 @@ async def get_all_configs(_: None = Depends(verify_api_key)):
 async def landing(request: Request):  # noqa: D401
     """Красочная посадочная страница VPN."""
     return templates.TemplateResponse("index.html", {"request": request})
+
+@router.get("/offer", response_class=HTMLResponse)
+async def offer_page(request: Request):  # noqa: D401
+    """Страница договора оферты."""
+    return templates.TemplateResponse("offer.html", {"request": request})
 
 
 # ---------------------------------------------------------------------------

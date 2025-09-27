@@ -37,6 +37,10 @@ async def pc_guide_command(message: types.Message):
     disable_web_page_preview=True
     )
 
+@router.message(F.text.in_({"Поддержка", "🆘 Поддержка"}))
+async def support_command(message: types.Message):
+    await message.answer("@helpervpn71")
+
 @router.message(F.text.in_({"Назад", "🔙 Назад"}))
 async def back_command(message: types.Message):
     await message.answer("Выберите действие:", reply_markup=keyboard.create_keyboard())
