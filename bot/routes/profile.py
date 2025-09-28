@@ -29,7 +29,7 @@ async def my_account(message: types.Message):
     await message.answer("Личный кабинет:", reply_markup=keyboard.create_profile_keyboard())
 
 
-@router.message(F.text == "🎁 Пробная 3 дня")
+@router.message(F.text.in_({"Пробная 3 дня", "🎁 Пробная 3 дня", "Пробные 3 дня", "🎁 Пробные 3 дня"}))
 async def free_trial(message: types.Message):
     user_id = message.from_user.id
     # Throttle repeated clicks

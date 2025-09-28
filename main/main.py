@@ -58,7 +58,7 @@ async def startup_event() -> None:
                 await db.reset_expired_configs()
             except Exception:
                 # Не падаем из-за фоновой задачи
-                pass
+                logger.exception("Background sweeper task failed")
             await asyncio.sleep(sweep_interval)
 
     app.state.expire_task = None

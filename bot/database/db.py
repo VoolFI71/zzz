@@ -119,11 +119,19 @@ async def get_referral_count(tg_id: str) -> int | None:
             row = await cursor.fetchone()
             return row[0] if row else None
 
-async def add_referral_by(user_id, referral_code, max_invites: int = 7) -> bool:
-    """Добавляет связь реферала и увеличивает счётчик, если лимит не достигнут.
+async def add_referral_by(user_id, referral_code, max_invites: int = 7) -> dict:
+    """Добавляет связь реферала и увеличивает счётчик у пригласившего.
 
-    Возвращает True, если бонус следует начислить (счётчик < max_invites),
-    False – если лимит был исчерпан и счётчик не изменён."""
+    Логика:
+    - Счётчик приглашений растёт без потолка (может быть > max_invites), чтобы отображать, например, 10/7.
+    - Бонус +2 дня выдаётся только если new_count <= max_invites.
+    - Доп. бонус +15 дней выдаётся однократно на достижении new_count == max_invites.
+
+    Возвращает словарь:
+    - award_2d: bool — начислять ли +2 дня за это приглашение
+    - award_15d: bool — начислять ли +15 дней (достигнут порог 7)
+    - new_count: int — новое значение счётчика приглашений
+    """
     async with aiosqlite.connect("users.db") as conn:
         async with conn.cursor() as cursor:
             # 1. Создаём запись пользователя (если её нет) и выставляем referred_by
@@ -144,18 +152,17 @@ async def add_referral_by(user_id, referral_code, max_invites: int = 7) -> bool:
             row = await cursor.fetchone()
             current_count = row[0] if row and row[0] is not None else 0
 
-            if current_count >= max_invites:
-                # Лимит достигнут – просто фиксируем referral, но без бонуса
-                await conn.commit()
-                return False
-
-            # 3. Увеличиваем счётчик
+            # 3. Всегда увеличиваем счётчик (для корректного отображения прогресса > 7)
+            new_count = (current_count or 0) + 1
             await cursor.execute(
                 "UPDATE users SET referral_count = ? WHERE referral_code = ?",
-                (current_count + 1, str(referral_code))
+                (new_count, str(referral_code))
             )
             await conn.commit()
-            return True
+
+            award_2d = new_count <= max_invites
+            award_15d = new_count == max_invites
+            return {"award_2d": award_2d, "award_15d": award_15d, "new_count": new_count}
 
 async def get_tg_id_by_referral_code(referral_code):
     async with aiosqlite.connect("users.db") as conn:
@@ -165,7 +172,7 @@ async def get_tg_id_by_referral_code(referral_code):
 
 
 # -----------------------------
-# Тестовая подписка 2 дня
+# Тестовая подписка 3 дня
 # -----------------------------
 
 async def ensure_user_row(tg_id: str) -> None:
@@ -238,12 +245,13 @@ async def deduct_balance_days(tg_id: str, days: int) -> bool:
             return True
 
 async def build_subscription_kb(user_id: int):
-    url = f"swaga.space/sub/{user_id}"
+    auth_code = os.getenv("AUTH_CODE", "")
+    headers = {"X-API-Key": auth_code} if auth_code else {}
+    api_url = f"http://fastapi:8080/sub/{user_id}"
     try:
         async with aiohttp.ClientSession() as session:
-            async with session.get(url, timeout=10) as resp:
+            async with session.get(api_url, timeout=10, headers=headers) as resp:
                 if resp.status != 200:
-                    # обработка ошибки
                     return None
                 data = await resp.json()
     except Exception:
@@ -253,7 +261,8 @@ async def build_subscription_kb(user_id: int):
     if not sub_key:
         return None
 
-    web_url = f"swaga.space/subscription/{sub_key}"
+    base = os.getenv("PUBLIC_BASE_URL", "https://swaga.space").rstrip('/')
+    web_url = f"{base}/subscription/{sub_key}"
     inline_kb = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="📲 Добавить подписку в V2rayTun", url=web_url)]
     ])

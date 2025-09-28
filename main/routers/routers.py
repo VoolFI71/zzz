@@ -74,11 +74,24 @@ COUNTRY_SETTINGS: dict[str, dict[str, str]] = {
         "sni": "eh.vk.com",
         "sid": _env_any("SID_FI", "sid_fi", default=""),
     },
+    # Дополнительный сервер FI2 (вторая панель). Все параметры берутся из env
+    # Например: URLCREATE_FI2, URLUPDATE_FI2, URLDELETE_FI2, HOST_FI2, PBK_FI2, SID_FI2
+    "fi2": {
+        "urlcreate": _env_any("URLCREATE_FI2", "urlcreate_fi2", default=""),
+        "urlupdate": _env_any("URLUPDATE_FI2", "urlupdate_fi2", default=""),
+        "urldelete": _env_any("URLDELETE_FI2", "urldelete_fi2", default=""),
+        # Параметры для генерации VLESS
+        "host": _env_any("HOST_FI2", "host_fi2", default=""),
+        "pbk": _env_any("PBK_FI2", "pbk_fi2", default=""),
+        "sni": "eh.vk.com",
+        "sid": _env_any("SID_FI2", "sid_fi2", default=""),
+    },
 }
 
 COUNTRY_LABELS: dict[str, str] = {
     "nl": "Netherlands 🇳🇱",
     "fi": "Finland 🇫🇮",
+    "fi2": "Finland-2 🇫🇮",
 }
 
 def _is_browser_request(headers: dict[str, str]) -> bool:
@@ -515,30 +528,42 @@ async def delete_all_configs(request: Request, _: None = Depends(verify_api_key)
     "/reprovision-all",
     response_model=dict,
 )
-
 async def reprovision_all(
     request: Request,
-    server: str = Query(default="fi", description="Страна, которую переносим и куда создаём (например, fi)"),
+    server_from: str = Query(..., description="Код исходного сервера (например, fi)"),
+    server_to: str = Query(..., description="Код целевого сервера (например, fi2)"),
     _: None = Depends(verify_api_key),
 ):
-    """Переносит в новую панель только пользователей указанной страны и создаёт их на том же сервере.
+    """Переносит активных пользователей с `server_from` на панель `server_to`.
 
     Правила:
-    - Обрабатываем только записи, у которых `server_country == server`.
-    - Для каждой активной записи отправляем CREATE на панель этой же страны (`server`) с `enable=True` и `expiryTime=time_end`.
-    - Неактивные (`time_end <= now`) пропускаем. Параллелизм ограничен семафором.
+    - Обрабатываем только записи, у которых `server_country == server_from` и `time_end > now`.
+    - Для каждой активной записи отправляем CREATE на панель `server_to` с `enable=True` и `expiryTime=time_end`.
+    - После успешного CREATE обновляем `server_country` в БД на `server_to`.
+    - Неактивные (`time_end <= now`) пропускаем.
     """
 
-    if server not in COUNTRY_SETTINGS:
-        raise HTTPException(status_code=400, detail="Неизвестный сервер")
+    if server_from not in COUNTRY_SETTINGS:
+        raise HTTPException(status_code=400, detail=f"Неизвестный исходный сервер: {server_from}")
+    if server_to not in COUNTRY_SETTINGS:
+        raise HTTPException(status_code=400, detail=f"Неизвестный целевой сервер: {server_to}")
 
     rows = await db.get_all_rows()
     if not rows:
-        return {"processed": 0, "updated": 0, "skipped": 0, "failed": 0, "server": server}
+        return {
+            "processed": 0,
+            "updated": 0,
+            "skipped": 0,
+            "failed": 0,
+            "server_from": server_from,
+            "server_to": server_to,
+        }
 
     updated = 0
     skipped = 0
     failed = 0
+
+    create_url = COUNTRY_SETTINGS[server_to]['urlcreate']
 
     for row in rows:
         tg_id, user_code, time_end, current_server = row
@@ -547,17 +572,21 @@ async def reprovision_all(
             skipped += 1
             continue
 
-        # Обрабатываем ТОЛЬКО записи указанной страны
-        if str(current_server) != str(server):
+        # Обрабатываем ТОЛЬКО записи исходной страны
+        if str(current_server) != str(server_from):
             skipped += 1
             continue
 
         payload = build_payload(str(user_code), enable=True, expiry_time=int(time_end))
-        url = COUNTRY_SETTINGS[server]['urlcreate']
 
         try:
-            resp = await panel_request(request, url, server, payload)
+            resp = await panel_request(request, create_url, server_to, payload)
             if resp.status_code == 200:
+                try:
+                    await db.update_server_country(str(user_code), server_to)
+                except Exception:
+                    # Если не удалось обновить в БД, всё равно считаем перенос успешным, но логируем
+                    logger.exception("Failed to update server_country in DB for %s -> %s", user_code, server_to)
                 updated += 1
             else:
                 failed += 1
@@ -569,7 +598,8 @@ async def reprovision_all(
         "updated": updated,
         "skipped": skipped,
         "failed": failed,
-        "server": server,
+        "server_from": server_from,
+        "server_to": server_to,
     }
 
 @router.get(
@@ -734,9 +764,12 @@ async def add_config_page(
             return PlainTextResponse(content=subscription)
         # 2) Если передан sub_key, разворачиваем его в tg_id и возвращаем подписку
         if sub_key is not None:
+            logger.info("Subscription request for sub_key: %s", sub_key)
             tg_id_str = await db.get_tg_id_by_key(sub_key)
             if tg_id_str is None:
+                logger.warning("Subscription key not found: %s", sub_key)
                 raise HTTPException(status_code=404, detail="subscription key not found")
+            logger.info("Found tg_id %s for sub_key %s", tg_id_str, sub_key)
             sub_resp = await get_subscription(int(tg_id_str))  # reuse существующей логики
             return PlainTextResponse(content=sub_resp.body.decode("utf-8"), headers=dict(sub_resp.headers))
         # 3) Если пришёл config (vless/vmess/trojan), отдадим его как текст

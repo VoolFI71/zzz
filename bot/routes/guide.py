@@ -9,7 +9,7 @@ router = Router()
 async def guide_command(message: types.Message):
     await message.answer("📚 Выберите способ установки:", reply_markup=keyboard.create_settings_keyboard())
 
-@router.message(F.text.in_({"Установка на Телефон", "📱 Установка на Телефон"}))
+@router.message(F.text.in_({"Установка на Телефон", "📱 Установка на Телефон", "Установка на телефон", "📱 Установка на телефон"}))
 async def tel_guide_command(message: types.Message):
     await message.answer(
         "📱 Установка на телефон (Android/iOS):\n\n"
@@ -25,9 +25,10 @@ async def tel_guide_command(message: types.Message):
         disable_web_page_preview=True
     )
 
-@router.message(F.text.in_({"Установка на PC", "💻 Установка на PC"}))
+@router.message(F.text.in_({"Установка на PC", "💻 Установка на PC", "Установка на ПК", "💻 Установка на ПК"}))
 async def pc_guide_command(message: types.Message):
     await message.answer("💻 Установка на компьютер (Windows/macOS/Linux):\n\n"
+    "- Windows: v2RayTun — [скачать](https://v2raytun.com)\n"
     "- Windows: v2RayN — [скачать](https://github.com/2dust/v2rayN/releases/download/7.13.2/v2rayN-windows-64.zip)\n"
     "- macOS: v2RayTun — [App Store](https://apps.apple.com/ru/app/v2raytun/id6476628951)\n"
     "- Альтернатива (Win/macOS/Linux): [AmneziaVPN](https://amnezia.app/ru/downloads)\n\n"
