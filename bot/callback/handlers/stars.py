@@ -158,7 +158,7 @@ async def successful_payment_handler(message: Message, bot: Bot, state: FSMConte
                     await bot.send_message(tg_id, f"Подписка активирована! Ваша ссылка подписки: {sub_url}")
                 except Exception:
                     await bot.send_message(tg_id, "Подписка активирована! Подписка доступна в личном кабинете.")
-                inviter_tg_id = await db.get_referrer_id_by_tg(str(tg_id))
+                inviter_tg_id = await db.get_referrer_id(str(tg_id))
                 if inviter_tg_id:
                     try:
                         # Начисляем бонусные дни (например, 2 дня)

@@ -223,7 +223,7 @@ async def check_yookassa(callback_query: CallbackQuery, state: FSMContext, bot: 
                         await bot.send_message(tg_id, "Подписка активирована! Конфиг доступен в личном кабинете.")
                     except Exception:
                         await bot.send_message(tg_id, "Подписка активирована! Конфиг доступен в личном кабинете. В случае проблем обратитесь в поддержку.")
-                    inviter_tg_id = await db.get_referrer_id_by_tg(str(tg_id))
+                    inviter_tg_id = await db.get_referrer_id(str(tg_id))
                     if inviter_tg_id:
                         try:
                             # Начисляем бонусные дни (например, 2 дня)
