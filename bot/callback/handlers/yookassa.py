@@ -47,8 +47,8 @@ async def pay_with_yookassa(callback_query: CallbackQuery, state: FSMContext, bo
     days = int(user_data.get("selected_days", 31))
     payload = "sub_1m" if days == 31 else "sub_3m"
     # Суммы и описания из окружения с адекватными дефолтами
-    price_1m = int(os.getenv("PRICE_1M_RUB", "199"))
-    price_3m = int(os.getenv("PRICE_3M_RUB", "399"))
+    price_1m = int(os.getenv("PRICE_1M_RUB", "149"))
+    price_3m = int(os.getenv("PRICE_3M_RUB", "349"))
 
     desc_1m = os.getenv("YK_DESC_1M", "Подписка GLS VPN — 1 месяц")
     desc_3m = os.getenv("YK_DESC_3M", "Подписка GLS VPN — 3 месяца")
@@ -116,7 +116,7 @@ async def pay_with_yookassa(callback_query: CallbackQuery, state: FSMContext, bo
         pass
     await callback_query.answer()
 
-    # Авто-истечение (4 минуты): удаляем сообщение с кнопкой оплаты и очищаем состояние
+    # Авто-истечение (10 минут): удаляем сообщение с кнопкой оплаты и очищаем состояние
     import asyncio as _asyncio
     async def _expire_yk_invoice() -> None:
         try:

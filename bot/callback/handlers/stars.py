@@ -222,10 +222,10 @@ async def cancel_star_invoice(callback_query: CallbackQuery, state: FSMContext, 
     # Возвращаемся к выбору способа оплаты
     try:
         days = int((await state.get_data()).get("selected_days", 31))
-        star_1m = int(os.getenv("PRICE_1M_STAR", "199"))
-        star_3m = int(os.getenv("PRICE_3M_STAR", "399"))
-        rub_1m = int(os.getenv("PRICE_1M_RUB", "199"))
-        rub_3m = int(os.getenv("PRICE_3M_RUB", "399"))
+        star_1m = int(os.getenv("PRICE_1M_STAR", "149"))
+        star_3m = int(os.getenv("PRICE_3M_STAR", "349"))
+        rub_1m = int(os.getenv("PRICE_1M_RUB", "149"))
+        rub_3m = int(os.getenv("PRICE_3M_RUB", "349"))
 
         if days == 31:
             star_amount, rub_amount = star_1m, rub_1m
