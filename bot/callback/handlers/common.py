@@ -166,7 +166,6 @@ async def activate_balance(callback_query: CallbackQuery, bot: Bot, state: FSMCo
                 await db.deduct_balance_days(tg_id, int(days))
                 await bot.send_message(int(tg_id), f"Активировано {days} дн. Конфиг доступен в Личном кабинете → Мои конфиги")
 
-                ref_id
                 await bot.send_message("айди пользователя который тебя пригласил", "Пользователь, которого вы пригласили оплатил подписку. Вы получаете бонусы дни и можете активировать их в личном кабинете.")
 
             elif resp.status == 409:
