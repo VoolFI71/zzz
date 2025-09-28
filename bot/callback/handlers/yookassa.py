@@ -223,19 +223,22 @@ async def check_yookassa(callback_query: CallbackQuery, state: FSMContext, bot: 
                         await bot.send_message(tg_id, "Подписка активирована! Конфиг доступен в личном кабинете.")
                     except Exception:
                         await bot.send_message(tg_id, "Подписка активирована! Конфиг доступен в личном кабинете. В случае проблем обратитесь в поддержку.")
-                    inviter_tg_id = await db.get_referrer_id(str(tg_id))
-                    if inviter_tg_id:
-                        try:
-                            # Начисляем бонусные дни (например, 2 дня)
-                            BONUS_DAYS = int(days//10)
-                            await db.add_balance_days(str(inviter_tg_id), BONUS_DAYS)
+                    inviter_ref_code = await db.get_referrer_id(str(tg_id))
+                    if inviter_ref_code:
+                        inviter_tg_id = await db.get_tg_id_by_referral_code(str(inviter_ref_code))
+                        if inviter_tg_id:
                             try:
-                                await bot.send_message(int(inviter_tg_id),
-                                                    f"Ваш реферал оплатил подписку — вам начислено {BONUS_DAYS} дня(ей) бонуса. Вы можете активировать их в личном кабинете. При активации дни не суммируются с текущим конфигом в подписке." )
-                            except Exception:
-                                pass
-                        except Exception as exc:
-                            logger.error("Ошибка начисления бонуса пригласителю %s: %s", inviter_tg_id, exc)
+                                BONUS_DAYS = int(days//10)
+                                await db.add_balance_days(str(inviter_tg_id), BONUS_DAYS)
+                                try:
+                                    await bot.send_message(int(inviter_tg_id),
+                                                        f"Ваш реферал оплатил подписку — вам начислено {BONUS_DAYS} дня(ей) бонуса. Вы можете активировать их в личном кабинете. При активации дни не суммируются с текущим конфигом в подписке.")
+                                except Exception:
+                                    pass
+                            except Exception as exc:
+                                logger.error("Ошибка начисления бонуса пригласителю %s: %s", inviter_tg_id, exc)
+                        else:
+                            logger.warning("Не удалось найти tg_id по referral_code %s", inviter_ref_code)
 
                     try:
                         admin_id = 746560409
