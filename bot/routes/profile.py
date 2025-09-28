@@ -29,7 +29,7 @@ async def my_account(message: types.Message):
     await message.answer("Личный кабинет:", reply_markup=keyboard.create_profile_keyboard())
 
 
-@router.message(F.text == "🎁 Пробная 2 дня")
+@router.message(F.text == "🎁 Пробная 3 дня")
 async def free_trial(message: types.Message):
     user_id = message.from_user.id
     # Throttle repeated clicks
@@ -54,8 +54,8 @@ async def free_trial(message: types.Message):
         await message.answer("Свободных конфигов нет. Попробуйте позже.")
         return
 
-    # Выдаём бесплатные 2 дня на сервере FI
-    data = {"time": 2, "id": str(user_id), "server": "fi"}
+    # Выдаём бесплатные 3 дня на сервере FI
+    data = {"time": 3, "id": str(user_id), "server": "fi"}
     AUTH_CODE = os.getenv("AUTH_CODE")
     urlupdate = "http://fastapi:8080/giveconfig"
     try:
@@ -84,13 +84,13 @@ async def free_trial(message: types.Message):
                         [InlineKeyboardButton(text="📲 Добавить подписку в V2rayTun", url=web_url)],
                         [InlineKeyboardButton(text="📋 Скопировать ссылку", callback_data="copy_sub")],
                     ])
-                    await message.answer("Пробная подписка на 2 дня активирована!", reply_markup=kb)
+                    await message.answer("Пробная подписка на 3 дня активирована!", reply_markup=kb)
                     await message.answer("Подписка может быть не добавлена при нажатии на кнопку на сайте, в этом случае необходимо скопировать ссылку на подписку и вставить в V2rayTun вручную.")
 
                     try:
                         admin_id = 746560409
                         at_username = (f"@{message.from_user.username}" if getattr(message.from_user, "username", None) else "—")
-                        await message.bot.send_message(admin_id, f"Активирована пробная подписка: user_id={user_id}, user={at_username}, сервер=fi, срок=2 дн.")
+                        await message.bot.send_message(admin_id, f"Активирована пробная подписка: user_id={user_id}, user={at_username}, сервер=fi, срок=3 дн.")
                     except Exception:
                         pass
                 elif resp.status == 409:
