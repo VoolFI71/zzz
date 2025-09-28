@@ -120,7 +120,7 @@ async def pay_with_yookassa(callback_query: CallbackQuery, state: FSMContext, bo
     import asyncio as _asyncio
     async def _expire_yk_invoice() -> None:
         try:
-            await _asyncio.sleep(4 * 60)
+            await _asyncio.sleep(10 * 60)
             data_state = await state.get_data()
             current_pid = data_state.get("yookassa_payment_id")
             current_msg_id = data_state.get("yookassa_msg_id")
@@ -160,10 +160,10 @@ async def cancel_yk_invoice(callback_query: CallbackQuery, state: FSMContext, bo
     # Вернём клавиатуру способов оплаты
     try:
         days = int((await state.get_data()).get("selected_days", 31))
-        star_1m = int(os.getenv("PRICE_1M_STAR", "199"))
-        star_3m = int(os.getenv("PRICE_3M_STAR", "399"))
-        rub_1m = int(os.getenv("PRICE_1M_RUB", "199"))
-        rub_3m = int(os.getenv("PRICE_3M_RUB", "399"))
+        star_1m = int(os.getenv("PRICE_1M_STAR", "149"))
+        star_3m = int(os.getenv("PRICE_3M_STAR", "349"))
+        rub_1m = int(os.getenv("PRICE_1M_RUB", "149"))
+        rub_3m = int(os.getenv("PRICE_3M_RUB", "349"))
 
         if days == 31:
             star_amount, rub_amount = star_1m, rub_1m
