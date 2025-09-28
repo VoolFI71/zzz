@@ -9,7 +9,7 @@ import logging
 from aiogram import Bot, F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, LabeledPrice, Message, PreCheckoutQuery
-
+from database import db
 from utils import check_available_configs
 
 logger = logging.getLogger(__name__)
@@ -152,14 +152,25 @@ async def successful_payment_handler(message: Message, bot: Bot, state: FSMConte
             if resp.status == 200:
                 # Выдаём/получаем постоянный sub_key и даём ссылку на подписку
                 try:
-                    from database import db as user_db
-                    sub_key = await user_db.get_or_create_sub_key(str(tg_id))
+                    sub_key = await db.get_or_create_sub_key(str(tg_id))
                     base = os.getenv("PUBLIC_BASE_URL", "https://swaga.space").rstrip('/')
                     sub_url = f"{base}/subscription/{sub_key}"
                     await bot.send_message(tg_id, f"Подписка активирована! Ваша ссылка подписки: {sub_url}")
                 except Exception:
                     await bot.send_message(tg_id, "Подписка активирована! Подписка доступна в личном кабинете.")
-                # Уведомление администратору
+                inviter_tg_id = await db.get_referrer_id_by_tg(str(tg_id))
+                if inviter_tg_id:
+                    try:
+                        # Начисляем бонусные дни (например, 2 дня)
+                        BONUS_DAYS = int(days//10)
+                        await db.add_balance_days(str(inviter_tg_id), BONUS_DAYS)                                                                                                                                                                                                                                                                        
+                        try:
+                            await bot.send_message(int(inviter_tg_id),
+                                                f"Ваш реферал оплатил подписку — вам начислено {BONUS_DAYS} дня(ей) бонуса. Вы можете активировать их в личном кабинете. При активации дни не суммируются с текущим конфигом в подписке." )
+                        except Exception:
+                            pass
+                    except Exception as exc:
+                        logger.error("Ошибка начисления бонуса пригласителю %s: %s", inviter_tg_id, exc)
                 try:
                     admin_id = 746560409
                     if admin_id:

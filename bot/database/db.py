@@ -34,6 +34,26 @@ async def init_db():
             await conn.commit()
 
 user_locks = {}
+
+import aiosqlite
+
+DB_PATH = "users.db"
+
+async def get_referrer_id(user_tg_id: str):
+    """
+    Возвращает tg_id пользователя, который пригласил пользователя user_tg_id,
+    или None если запись не найдена или referred_by пустой.
+    """
+    async with aiosqlite.connect(DB_PATH) as conn:
+        conn.row_factory = aiosqlite.Row
+        async with conn.execute("SELECT referred_by FROM users WHERE tg_id = ?", (user_tg_id,)) as cursor:
+            row = await cursor.fetchone()
+            if not row:
+                return None
+            ref = row["referred_by"]
+            return ref if ref not in (None, "") else None
+
+
 async def get_referral_code(tg_id):
     if tg_id not in user_locks:
         user_locks[tg_id] = asyncio.Lock()
