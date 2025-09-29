@@ -4,6 +4,7 @@ import aiosqlite
 import random
 import asyncio
 import os
+import time
 
 async def init_db():
     async with aiosqlite.connect("users.db") as conn:
@@ -20,17 +21,40 @@ async def init_db():
                     referred_by TEXT,
                     referral_count INTEGER DEFAULT 0,
                     trial_3d_used INTEGER DEFAULT 0,
-                    balance INTEGER DEFAULT 0
+                    balance INTEGER DEFAULT 0,
+                    paid_count INTEGER DEFAULT 0,
+                    last_payment_at INTEGER DEFAULT 0
                 )
             ''')
             await conn.commit()
         else:
-            # Миграции для уже существующей таблицы (только баланс)
+            # Миграции для уже существующей таблицы (баланс / оплаты)
             await cursor.execute("PRAGMA table_info(users)")
             columns = await cursor.fetchall()
             col_names = {row[1] for row in columns}
             if "balance" not in col_names:
                 await cursor.execute("ALTER TABLE users ADD COLUMN balance INTEGER DEFAULT 0")
+            if "paid_count" not in col_names:
+                await cursor.execute("ALTER TABLE users ADD COLUMN paid_count INTEGER DEFAULT 0")
+            if "last_payment_at" not in col_names:
+                await cursor.execute("ALTER TABLE users ADD COLUMN last_payment_at INTEGER DEFAULT 0")
+            await conn.commit()
+
+        # Таблица агрегатов платежей (одна строка)
+        await cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='payments_agg'")
+        agg_exists = await cursor.fetchone()
+        if not agg_exists:
+            await cursor.execute('''
+                CREATE TABLE payments_agg (
+                    id INTEGER PRIMARY KEY,
+                    total_rub INTEGER DEFAULT 0,
+                    total_stars INTEGER DEFAULT 0,
+                    count_rub INTEGER DEFAULT 0,
+                    count_stars INTEGER DEFAULT 0
+                )
+            ''')
+            # Вставляем дефолтную строку
+            await cursor.execute("INSERT INTO payments_agg (id, total_rub, total_stars, count_rub, count_stars) VALUES (1, 0, 0, 0, 0)")
             await conn.commit()
 
 user_locks = {}
@@ -202,6 +226,97 @@ async def set_trial_3d_used(tg_id: str) -> None:
                 await cursor.execute("INSERT INTO users (tg_id, trial_3d_used) VALUES (?, 1)", (str(tg_id),))
             await conn.commit()
 
+
+# -------------------------------------------------
+# Оплаты: отметка и проверка
+# -------------------------------------------------
+
+async def mark_payment(tg_id: str, days: int) -> None:
+    """Отмечает успешную оплату пользователем.
+
+    - Увеличивает счётчик оплат paid_count
+    - Обновляет last_payment_at текущим timestamp
+    - По необходимости может пополнять баланс (но баланс уже списывается при выдаче конфига)
+    """
+    now_ts = int(time.time())
+    async with aiosqlite.connect("users.db") as conn:
+        async with conn.cursor() as cursor:
+            await cursor.execute("SELECT paid_count FROM users WHERE tg_id = ?", (str(tg_id),))
+            row = await cursor.fetchone()
+            current = int(row[0]) if row and row[0] is not None else 0
+            await cursor.execute(
+                "UPDATE users SET paid_count = ?, last_payment_at = ? WHERE tg_id = ?",
+                (current + 1, now_ts, str(tg_id))
+            )
+            if cursor.rowcount == 0:
+                await cursor.execute(
+                    "INSERT INTO users (tg_id, paid_count, last_payment_at) VALUES (?, ?, ?)",
+                    (str(tg_id), 1, now_ts)
+                )
+            await conn.commit()
+
+
+async def has_any_payment(tg_id: str) -> bool:
+    async with aiosqlite.connect("users.db") as conn:
+        async with conn.cursor() as cursor:
+            await cursor.execute("SELECT paid_count FROM users WHERE tg_id = ?", (str(tg_id),))
+            row = await cursor.fetchone()
+            return bool(row and row[0] and int(row[0]) > 0)
+
+
+# -------------------------------------------------
+# Агрегаты платежей (рубли / звёзды)
+# -------------------------------------------------
+
+async def add_rub_payment(amount_rub: int) -> None:
+    amount_rub = int(amount_rub)
+    if amount_rub <= 0:
+        return
+    async with aiosqlite.connect("users.db") as conn:
+        async with conn.cursor() as cursor:
+            await cursor.execute(
+                "UPDATE payments_agg SET total_rub = total_rub + ?, count_rub = count_rub + 1 WHERE id = 1",
+                (amount_rub,)
+            )
+            if cursor.rowcount == 0:
+                await cursor.execute(
+                    "INSERT INTO payments_agg (id, total_rub, count_rub) VALUES (1, ?, 1)",
+                    (amount_rub,)
+                )
+            await conn.commit()
+
+
+async def add_star_payment(amount_stars: int) -> None:
+    amount_stars = int(amount_stars)
+    if amount_stars <= 0:
+        return
+    async with aiosqlite.connect("users.db") as conn:
+        async with conn.cursor() as cursor:
+            await cursor.execute(
+                "UPDATE payments_agg SET total_stars = total_stars + ?, count_stars = count_stars + 1 WHERE id = 1",
+                (amount_stars,)
+            )
+            if cursor.rowcount == 0:
+                await cursor.execute(
+                    "INSERT INTO payments_agg (id, total_stars, count_stars) VALUES (1, ?, 1)",
+                    (amount_stars,)
+                )
+            await conn.commit()
+
+
+async def get_payments_aggregates() -> dict:
+    async with aiosqlite.connect("users.db") as conn:
+        async with conn.cursor() as cursor:
+            await cursor.execute("SELECT total_rub, total_stars, count_rub, count_stars FROM payments_agg WHERE id = 1")
+            row = await cursor.fetchone()
+            if not row:
+                return {"total_rub": 0, "total_stars": 0, "count_rub": 0, "count_stars": 0}
+            return {
+                "total_rub": int(row[0] or 0),
+                "total_stars": int(row[1] or 0),
+                "count_rub": int(row[2] or 0),
+                "count_stars": int(row[3] or 0),
+            }
 
 # -------------------------------------------------
 # Баланс дней: чтение, начисление, списание

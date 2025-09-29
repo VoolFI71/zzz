@@ -24,12 +24,48 @@ def create_admin_keyboard():
 
 
 def create_server_keyboard():
-    kb_list = [
-        [InlineKeyboardButton(text="Финляндия 🇫🇮", callback_data="server_fi")],
-        # [InlineKeyboardButton(text="Нидерланды 🇳🇱", callback_data="server_nl")],
-        [InlineKeyboardButton(text="🔙 Назад", callback_data="back")]
-    ]
-    return InlineKeyboardMarkup(inline_keyboard=kb_list)
+    # Read ordered list of servers from env, e.g., "fi,nl,de,us"
+    order_env = os.getenv("SERVER_ORDER", "fi").strip()
+    server_codes = [s.strip().lower() for s in order_env.split(',') if s.strip()]
+    if not server_codes:
+        server_codes = ["fi", "nl"]
+
+    # Simple mapping of known titles/flags; unknown codes will be shown uppercased without flag
+    titles = {
+        "fi": "Финляндия",
+        "nl": "Нидерланды",
+        "de": "Германия",
+        "us": "США",
+        "pl": "Польша",
+        "se": "Швеция",
+        "fr": "Франция",
+        "gb": "Великобритания",
+        "uk": "Великобритания",
+        "tr": "Турция",
+    }
+    flags = {
+        "fi": "🇫🇮",
+        "nl": "🇳🇱",
+        "de": "🇩🇪",
+        "us": "🇺🇸",
+        "pl": "🇵🇱",
+        "se": "🇸🇪",
+        "fr": "🇫🇷",
+        "gb": "🇬🇧",
+        "uk": "🇬🇧",
+        "tr": "🇹🇷",
+    }
+
+    rows: list[list[InlineKeyboardButton]] = []
+    for code in server_codes:
+        title = titles.get(code, code.upper())
+        flag = flags.get(code, "")
+        text = f"{title} {flag}".strip()
+        rows.append([InlineKeyboardButton(text=text, callback_data=f"server_{code}")])
+
+    # Add back button
+    rows.append([InlineKeyboardButton(text="🔙 Назад", callback_data="back")])
+    return InlineKeyboardMarkup(inline_keyboard=rows)
 
 
 

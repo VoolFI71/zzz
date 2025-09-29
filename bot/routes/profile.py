@@ -48,14 +48,18 @@ async def free_trial(message: types.Message):
         return
 
     # Проверяем наличие свободных конфигов (не блокирующе)
-    from utils import check_available_configs, get_session
-    available = await check_available_configs("fi")
-    if not available:
+    from utils import get_session
+    # Пытаемся выдать на первом доступном сервере из списка (по умолчанию fi, nl)
+    from utils import pick_first_available_server
+    server_order_env = os.getenv("SERVER_ORDER", "fi,nl")
+    preferred = [s.strip().lower() for s in server_order_env.split(',') if s.strip()]
+    target_server = await pick_first_available_server(preferred)
+    if not target_server:
         await message.answer("Свободных конфигов нет. Попробуйте позже.")
         return
 
     # Выдаём бесплатные 3 дня на сервере FI
-    data = {"time": 3, "id": str(user_id), "server": "fi"}
+    data = {"time": 3, "id": str(user_id), "server": target_server}
     AUTH_CODE = os.getenv("AUTH_CODE")
     urlupdate = "http://fastapi:8080/giveconfig"
     try:

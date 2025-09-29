@@ -47,6 +47,7 @@ async def admin_panel(message: types.Message):
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="📢 Отправить сообщение всем", callback_data="admin_broadcast")],
             [InlineKeyboardButton(text="📊 Статистика", callback_data="admin_stats")],
+            [InlineKeyboardButton(text="💵 Доход (руб / звезды)", callback_data="admin_revenue")],
             [InlineKeyboardButton(text="🔍 Поиск пользователя", callback_data="admin_search_user")],
             [InlineKeyboardButton(text="⚙️ Управление конфигами", callback_data="admin_configs")],
             [InlineKeyboardButton(text="📈 Детальная статистика", callback_data="admin_detailed_stats")],
@@ -153,6 +154,7 @@ async def notifications_menu(callback: types.CallbackQuery):
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="⏰ Уведомление об окончании подписки", callback_data="notif")],
         [InlineKeyboardButton(text="🎯 Пользователи без подписки (привлечение)", callback_data="notif_no_sub")],
+        [InlineKeyboardButton(text="🧪 Только пробная, без покупок", callback_data="notif_trial_only")],
         [InlineKeyboardButton(text="💎 Пользователи с истекшей подпиской (возврат)", callback_data="notif_expired")],
         [InlineKeyboardButton(text="🔥 Акция/скидка", callback_data="notif_promo")],
         # [InlineKeyboardButton(text="📢 Новые функции/обновления", callback_data="notif_features")],
@@ -166,6 +168,33 @@ async def notifications_menu(callback: types.CallbackQuery):
         reply_markup=keyboard
     )
     await callback.answer()
+@router.callback_query(F.data == "admin_revenue")
+async def show_revenue(callback: types.CallbackQuery):
+    """Показывает суммарные агрегаты оплат: рубли и звёзды."""
+    if not is_admin(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
+
+    try:
+        from database import db as _db
+        aggr = await _db.get_payments_aggregates()
+        total_rub = aggr.get("total_rub", 0)
+        total_stars = aggr.get("total_stars", 0)
+        count_rub = aggr.get("count_rub", 0)
+        count_stars = aggr.get("count_stars", 0)
+
+        text = (
+            "💵 Доход сервиса\n\n"
+            f"Рубли: {total_rub} ₽ (платежей: {count_rub})\n"
+            f"Звёзды: {total_stars} ⭐ (платежей: {count_stars})\n\n"
+            "Примечание: суммы рассчитываются по актуальным настройкам цен на момент оплаты."
+        )
+        await callback.message.edit_text(text)
+    except Exception as e:
+        logger.error(f"Error showing revenue: {e}")
+        await callback.message.edit_text("❌ Не удалось получить данные о доходе")
+    await callback.answer()
+
 
 @router.callback_query(F.data == "admin_panel")
 async def back_to_admin_panel(callback: types.CallbackQuery):
@@ -177,6 +206,7 @@ async def back_to_admin_panel(callback: types.CallbackQuery):
     keyboard = InlineKeyboardMarkup(inline_keyboard=[
         [InlineKeyboardButton(text="📢 Отправить сообщение всем", callback_data="admin_broadcast")],
         [InlineKeyboardButton(text="📊 Статистика", callback_data="admin_stats")],
+        [InlineKeyboardButton(text="💵 Доход (руб / звезды)", callback_data="admin_revenue")],
         [InlineKeyboardButton(text="🔍 Поиск пользователя", callback_data="admin_search_user")],
         [InlineKeyboardButton(text="⚙️ Управление конфигами", callback_data="admin_configs")],
         [InlineKeyboardButton(text="📈 Детальная статистика", callback_data="admin_detailed_stats")],
@@ -209,13 +239,13 @@ async def send_no_sub_notification(callback: types.CallbackQuery, bot):
         
         message_text = (
             "🚀 Привет! 👋\n\n"
-            "У вас еще нет активной подписки на наш VPN сервис.\n\n"
+            "У вас ещё нет активной подписки на наш VPN-сервис.\n\n"
             "🔒 Получите полный доступ к:\n"
             "• Безопасному интернету\n"
             "• Обходу блокировок\n"
             "• Защите личных данных\n"
             "• Высокой скорости соединения\n\n"
-            "💎 Попробуйте прямо сейчас - первыые два дня бесплатно!\n\n"
+            "🎁 Попробуйте прямо сейчас — первые 3 дня бесплатно!\n\n"
             "Нажмите /start для оформления подписки."
         )
         
@@ -286,7 +316,7 @@ async def send_expired_notification(callback: types.CallbackQuery, bot):
             "• ♾️ Безлимитный трафик для мобильного интернета (если в тарифе есть опция на безлимитные соцсети, например VK)\n"
             "• 🎁 Бонусные дни при продлении\n"
             "• 🛟 Поддержка 24/7\n\n"
-            "Важно: если у вас МТС, ЙОТА или ТЕЛЕ2 — То в данный момент с нашим VPN вы сможете пользоваться мобильным интернетом даже там, где его отключают.\n\n"
+            "Важно: если у вас МТС, ЙОТА или ТЕЛЕ2 — то с нашим VPN вы сможете пользоваться мобильным интернетом даже там, где его отключают.\n\n"
         )
         
         sent = 0
@@ -609,11 +639,9 @@ async def get_users_with_expired_subscription() -> list[str]:
             async with conn.cursor() as cursor:
                 # Пользователи, которые когда-то имели подписку, но сейчас без баланса
                 # (использовали пробную подписку или имели платную, но она истекла)
-                await cursor.execute("""
-                    SELECT tg_id FROM users 
-                    WHERE balance <= 0 
-                    AND (trial_3d_used = 1 OR last_payment_date IS NOT NULL)
-                """)
+                await cursor.execute(
+                    "SELECT tg_id FROM users WHERE balance <= 0 AND (trial_3d_used = 1 OR paid_count > 0)"
+                )
                 rows = await cursor.fetchall()
                 return [row[0] for row in rows if row[0]]
     except Exception as e:
@@ -679,6 +707,81 @@ async def get_users_without_any_subscription() -> list[str]:
     except Exception as e:
         logger.error(f"Error getting users without any subscription: {e}")
         return []
+
+
+async def get_users_trial_only_no_payments() -> list[int]:
+    """Пользователи, кто активировал пробную (trial_3d_used=1), но ещё ни разу не покупал (paid_count=0).
+
+    Возвращаем список tg_id как int.
+    """
+    try:
+        import aiosqlite
+        async with aiosqlite.connect("users.db") as conn:
+            async with conn.cursor() as cursor:
+                await cursor.execute(
+                    "SELECT tg_id FROM users WHERE trial_3d_used = 1 AND (paid_count IS NULL OR paid_count = 0)"
+                )
+                rows = await cursor.fetchall()
+                res: list[int] = []
+                for row in rows:
+                    try:
+                        res.append(int(row[0]))
+                    except Exception:
+                        continue
+                return res
+    except Exception as e:
+        logger.error(f"Error getting users trial-only: {e}")
+        return []
+
+
+@router.callback_query(F.data == "notif_trial_only")
+async def send_trial_only_notification(callback: types.CallbackQuery, bot):
+    """Рассылка пользователям, кто активировал пробную, но не совершал оплату.
+
+    Текст включает: обход отключений интернета на Теле2/МТС/Йота + дополнительные преимущества.
+    """
+    if not is_admin(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
+
+    await callback.answer()
+
+    try:
+        user_ids = await get_users_trial_only_no_payments()
+        if not user_ids:
+            await callback.message.answer("Нет пользователей, которые только активировали пробную, но не покупали.")
+            return
+
+        message_text = (
+            "👋 Привет! Напоминаем, что после пробной подписки вы ещё не оформили полный доступ.\n\n"
+            "⚡ Важное сейчас: наш VPN помогает обходить отключения мобильного интернета у операторов Теле2, МТС и ЙОТА.\n"
+            "Даже когда связь режут, вы сможете пользоваться мессенджерами, картами и нужными сайтами.\n\n"
+            "Что вы получите с полной подпиской:\n"
+            "• 🔐 Конфиденциальность и шифрование трафика\n"
+            "• ♾️ Безлимитный трафик\n"
+            "• 🚀 Стабильная скорость и быстрые сервера\n"
+            "• 🛟 Поддержка, если что-то пойдёт не так\n\n"
+            "Готовы продолжить? Откройте /start и выберите тариф. Если остались вопросы — напишите в поддержку, поможем."
+        )
+
+        sent = 0
+        failed = 0
+        for uid in user_ids:
+            try:
+                await bot.send_message(uid, message_text, disable_web_page_preview=True)
+                sent += 1
+            except Exception as e:
+                logger.warning(f"Failed to send trial-only message to {uid}: {e}")
+                failed += 1
+            await asyncio.sleep(0.05)
+
+        await callback.message.answer(
+            f"✅ Рассылка по пользователям только с пробной завершена!\n\n"
+            f"Отправлено: {sent}\nОшибок: {failed}\nВсего: {len(user_ids)}"
+        )
+    except Exception as e:
+        logger.error(f"Error in send_trial_only_notification: {e}")
+        await callback.message.answer(f"❌ Ошибка при рассылке: {str(e)}")
 
 
 async def get_user_stats() -> dict:
@@ -935,6 +1038,7 @@ async def back_to_main_admin(callback: types.CallbackQuery):
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="📢 Отправить сообщение всем", callback_data="admin_broadcast")],
             [InlineKeyboardButton(text="📊 Статистика", callback_data="admin_stats")],
+        [InlineKeyboardButton(text="💵 Доход (руб / звезды)", callback_data="admin_revenue")],
             [InlineKeyboardButton(text="🔍 Поиск пользователя", callback_data="admin_search_user")],
             [InlineKeyboardButton(text="⚙️ Управление конфигами", callback_data="admin_configs")],
             [InlineKeyboardButton(text="📈 Детальная статистика", callback_data="admin_detailed_stats")],

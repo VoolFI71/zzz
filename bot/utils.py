@@ -50,6 +50,38 @@ async def check_available_configs(server: str | None = None) -> bool:
         return False
 
 
+# --- Server selection helpers ---
+
+async def pick_first_available_server(preferred_order: list[str] | None = None) -> str | None:
+    """Возвращает первый сервер из списка, на котором есть свободные конфиги.
+
+    Порядок:
+    - Если передан preferred_order — используем его.
+    - Иначе читаем из ENV SERVER_ORDER (например, "fi,nl"), иначе дефолт ["fi", "nl"].
+    """
+    if preferred_order is None:
+        env_order = os.getenv("SERVER_ORDER", "fi,nl")
+        preferred_order = [s.strip().lower() for s in env_order.split(",") if s.strip()]
+        if not preferred_order:
+            preferred_order = ["fi", "nl"]
+
+    # Уникализируем, сохраняем порядок
+    seen: set[str] = set()
+    order: list[str] = []
+    for s in preferred_order:
+        if s and s not in seen:
+            order.append(s)
+            seen.add(s)
+
+    for server in order:
+        try:
+            if await check_available_configs(server):
+                return server
+        except Exception:
+            # Переходим к следующему серверу
+            continue
+    return None
+
 # --- Simple per-user rate limiting and action locks ---
 
 _last_action_at: dict[tuple[int | str, str], float] = {}

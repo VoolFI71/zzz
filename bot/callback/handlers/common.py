@@ -14,6 +14,7 @@ from keyboards.keyboard import (
 )
 from database import db
 from utils import get_session
+from utils import pick_first_available_server
 import aiohttp
 
 common_router = Router()
@@ -46,17 +47,17 @@ async def select_plan(callback_query: CallbackQuery, state: FSMContext) -> None:
     await callback_query.answer()
 
 
-@common_router.callback_query(F.data.in_(["server_fi", "server_nl"]))
+@common_router.callback_query(F.data.startswith("server_"))
 async def select_server(callback_query: CallbackQuery, state: FSMContext) -> None:
-    if callback_query.data == "server_nl":
-        await callback_query.answer("Ещё в разработке", show_alert=True)
-        return
-    elif callback_query.data == "server_fi":
-        await state.update_data(server="fi")
-        await callback_query.message.edit_text(
-            text="Выберите тариф:",
-            reply_markup=keyboard.create_tariff_keyboard(),
-        )
+    # Accept any callback in the form "server_<code>" and persist the code
+    data = callback_query.data or ""
+    server_code = data.split("_", 1)[1].lower() if "_" in data else ""
+    if server_code:
+        await state.update_data(server=server_code)
+    await callback_query.message.edit_text(
+        text="Выберите тариф:",
+        reply_markup=keyboard.create_tariff_keyboard(),
+    )
 
 
 @common_router.callback_query(F.data == "back")
@@ -152,10 +153,25 @@ async def activate_balance(callback_query: CallbackQuery, bot: Bot, state: FSMCo
     if days <= 0:
         await callback_query.answer("Баланс пуст", show_alert=True)
         return
-    # По умолчанию используем сервер из состояния или FI
+    # Выбираем первый доступный сервер: сначала предпочитаем сервер из state, затем список из SERVER_ORDER
     user_data = await state.get_data()
-    server = user_data.get("server") or "fi"
-    data = {"time": int(days), "id": tg_id, "server": server}
+    preferred = []
+    if user_data.get("server"):
+        preferred.append(str(user_data.get("server")).lower())
+    env_order = os.getenv("SERVER_ORDER", "fi,nl")
+    preferred.extend([s.strip().lower() for s in env_order.split(',') if s.strip()])
+    # Уникализируем, сохраняя порядок
+    dedup = []
+    seen = set()
+    for s in preferred:
+        if s and s not in seen:
+            dedup.append(s)
+            seen.add(s)
+    target_server = await pick_first_available_server(dedup)
+    if not target_server:
+        await callback_query.answer("Свободных конфигов нет", show_alert=True)
+        return
+    data = {"time": int(days), "id": tg_id, "server": target_server}
     AUTH_CODE = os.getenv("AUTH_CODE")
     urlupdate = "http://fastapi:8080/giveconfig"
     try:

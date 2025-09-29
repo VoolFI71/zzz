@@ -40,11 +40,29 @@ async def pay_with_stars(callback_query: CallbackQuery, state: FSMContext, bot: 
         await callback_query.answer("У вас уже есть неоплаченный счёт выше ⬆️", show_alert=True)
         return
 
-    # Проверяем свободные конфиги
+    # Проверяем свободные конфиги (с fallback по порядку серверов)
     server = user_data.get("server")
     if not await check_available_configs(server):
-        await bot.send_message(tg_id, "Свободных конфигов для данного сервера нет. Попробуйте выбрать другой сервер.")
-        return
+        # Пытаемся подобрать другой сервер
+        from utils import pick_first_available_server
+        env_order = os.getenv("SERVER_ORDER", "fi,nl")
+        preferred = []
+        if server:
+            preferred.append(str(server).lower())
+        preferred.extend([s.strip().lower() for s in env_order.split(',') if s.strip()])
+        # уникализируем, сохраняя порядок
+        uniq = []
+        seen = set()
+        for s in preferred:
+            if s and s not in seen:
+                uniq.append(s)
+                seen.add(s)
+        fallback = await pick_first_available_server(uniq)
+        if not fallback:
+            await bot.send_message(tg_id, "Свободных конфигов нет. Попробуйте позже или выберите другой сервер.")
+            return
+        server = fallback
+        await state.update_data(server=server)
 
     provider_token = ""
 
@@ -176,6 +194,23 @@ async def successful_payment_handler(message: Message, bot: Bot, state: FSMConte
                     if admin_id:
                         at_username = (f"@{message.from_user.username}" if getattr(message.from_user, "username", None) else "—")
                         await bot.send_message(admin_id, f"Оплачена подписка через Stars: user_id={tg_id}, user={at_username}, срок={days} дн., сервер={server}")
+                except Exception:
+                    pass
+                # Отмечаем оплату в локальной БД и агрегируем звёзды
+                try:
+                    await db.mark_payment(str(tg_id), days)
+                    amt = 0
+                    try:
+                        price_1m = int(os.getenv("PRICE_1M_STAR", "149"))
+                        price_3m = int(os.getenv("PRICE_3M_STAR", "349"))
+                        amt = price_1m if days == 31 else price_3m
+                    except Exception:
+                        amt = 0
+                    if amt > 0:
+                        try:
+                            await db.add_star_payment(amt)
+                        except Exception:
+                            pass
                 except Exception:
                     pass
             elif resp.status == 409:

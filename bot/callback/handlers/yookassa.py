@@ -31,8 +31,25 @@ async def pay_with_yookassa(callback_query: CallbackQuery, state: FSMContext, bo
 
     server = user_data.get("server")
     if not await check_available_configs(server):
-        await bot.send_message(callback_query.from_user.id, "Свободных конфигов для данного сервера нет. Попробуйте выбрать другой сервер.")
-        return
+        # Fallback: подберём первый доступный сервер по SERVER_ORDER
+        from utils import pick_first_available_server
+        env_order = os.getenv("SERVER_ORDER", "fi,nl")
+        preferred = []
+        if server:
+            preferred.append(str(server).lower())
+        preferred.extend([s.strip().lower() for s in env_order.split(',') if s.strip()])
+        uniq = []
+        seen = set()
+        for s in preferred:
+            if s and s not in seen:
+                uniq.append(s)
+                seen.add(s)
+        fallback = await pick_first_available_server(uniq)
+        if not fallback:
+            await bot.send_message(callback_query.from_user.id, "Свободных конфигов нет. Попробуйте позже или выберите другой сервер.")
+            return
+        server = fallback
+        await state.update_data(server=server)
 
     YOOKASSA_SHOP_ID = os.getenv("YOOKASSA_SHOP_ID")
     YOOKASSA_SECRET = os.getenv("YOOKASSA_SECRET_KEY")
@@ -115,6 +132,7 @@ async def pay_with_yookassa(callback_query: CallbackQuery, state: FSMContext, bo
     except Exception:
         pass
     await callback_query.answer()
+    # Пишем агрегат сразу после создания счёта не будем — считаем только по факту успешной оплаты
 
     # Авто-истечение (10 минут): удаляем сообщение с кнопкой оплаты и очищаем состояние
     import asyncio as _asyncio
@@ -205,6 +223,7 @@ async def check_yookassa(callback_query: CallbackQuery, state: FSMContext, bot: 
         await state.update_data(yookassa_payment_id=None)
         tg_id = callback_query.from_user.id
         user_data = await state.get_data()
+        # Используем выбранный/обновлённый сервер
         server = user_data.get("server") or "fi"
         payload = payment.metadata.get("payload") if hasattr(payment, "metadata") else "sub_1m"
         days = 31 if payload == "sub_1m" else 93
@@ -223,6 +242,24 @@ async def check_yookassa(callback_query: CallbackQuery, state: FSMContext, bot: 
                         await bot.send_message(tg_id, "Подписка активирована! Конфиг доступен в личном кабинете.")
                     except Exception:
                         await bot.send_message(tg_id, "Подписка активирована! Конфиг доступен в личном кабинете. В случае проблем обратитесь в поддержку.")
+                    # Отмечаем оплату в локальной БД
+                    try:
+                        await db.mark_payment(str(tg_id), days)
+                        # Агрегируем рублёвые платежи
+                        amt = 0
+                        try:
+                            price_1m = int(os.getenv("PRICE_1M_RUB", "149"))
+                            price_3m = int(os.getenv("PRICE_3M_RUB", "349"))
+                            amt = price_1m if days == 31 else price_3m
+                        except Exception:
+                            amt = 0
+                        if amt > 0:
+                            try:
+                                await db.add_rub_payment(amt)
+                            except Exception:
+                                pass
+                    except Exception:
+                        pass
                     inviter_ref_code = await db.get_referrer_id(str(tg_id))
                     if inviter_ref_code:
                         inviter_tg_id = await db.get_tg_id_by_referral_code(str(inviter_ref_code))
