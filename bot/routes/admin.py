@@ -662,13 +662,14 @@ async def get_users_with_active_subscription() -> list[str]:
                 try:
                     url = f"{API_BASE_URL}/usercodes/{user_id}"
                     headers = {"X-API-Key": AUTH_CODE}
-                    
                     async with session.get(url, headers=headers, timeout=15) as resp:
                         if resp.status == 200:
                             # Разбираем конфиги и ищем действительно АКТИВНЫЕ (time_end > now)
                             try:
                                 data = await resp.json()
                             except Exception:
+                                # Ошибка парсинга — пропускаем пользователя (не рассылаем)
+                                active_users.append(user_id)
                                 continue
                             now_ts = int(time.time())
                             def _parse_time_end(raw: object) -> int:
@@ -683,11 +684,17 @@ async def get_users_with_active_subscription() -> list[str]:
                             has_active = any(_parse_time_end(item.get("time_end", 0)) > now_ts for item in data)
                             if has_active:
                                 active_users.append(user_id)
-                        # 404 — нет конфигов у пользователя (точно не активный)
+                        else:
+                            # 404 — нет конфигов у пользователя (точно не активный)
+                            if resp.status == 404:
+                                pass
+                            else:
+                                # Любая иная ошибка API — подстраховка: пропускаем такого пользователя
+                                active_users.append(user_id)
                 except Exception:
-                    # Игнорируем ошибки для отдельных пользователей
+                    # Сетевая ошибка — пропускаем такого пользователя (не рассылаем)
+                    active_users.append(user_id)
                     continue
-        
         return active_users
     except Exception as e:
         logger.error(f"Error getting users with active subscription: {e}")
