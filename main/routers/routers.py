@@ -549,13 +549,17 @@ async def delete_all_configs(request: Request, _: None = Depends(verify_api_key)
 )
 async def delete_panel_configs(
     request: Request, 
-    server: str = Body(..., description="Код сервера (например, fi)"),
+    data: dict = Body(..., description="JSON с полем server"),
     _: None = Depends(verify_api_key),
 ) -> str:
     """Удаляет все конфиги только с панели, НЕ трогая базу данных.
     
     Позволяет восстановить конфиги через reprovision-all.
     """
+    server = data.get("server")
+    if not server:
+        raise HTTPException(status_code=400, detail="Поле 'server' обязательно")
+    
     rows = await db.get_all_user_codes()
     if not rows:
         return "Нет конфигов для удаления"
