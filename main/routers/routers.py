@@ -651,6 +651,67 @@ async def delete_expired_configs(
     return f"Удалено {deleted} просроченных конфигов, ошибок {failed}"
 
 
+@router.delete(
+    "/delete-free-configs",
+    response_model=str,
+)
+async def delete_free_configs(
+    request: Request,
+    data: dict = Body(..., description="JSON с полем server"),
+    _: None = Depends(verify_api_key),
+) -> str:
+    """Удаляет все свободные (неактивные) конфиги с панели и из базы данных.
+    
+    Свободными считаются конфиги с tg_id IS NULL или tg_id = ''.
+    """
+    server = data.get("server")
+    if not server:
+        raise HTTPException(status_code=400, detail="Поле 'server' обязательно")
+    
+    # Получаем все свободные конфиги для указанного сервера
+    free_configs = await db.get_free_configs_by_server(server)
+    if not free_configs:
+        return f"Нет свободных конфигов на сервере {server} для удаления"
+    
+    deleted, failed = 0, 0
+    
+    for uid, server in free_configs:
+        # 1. Удаляем с панели
+        try:
+            url = f"{COUNTRY_SETTINGS[server]['urldelete']}{uid}"
+        except KeyError:
+            logger.error("Unknown server country %s for uid %s", server, uid)
+            failed += 1
+            continue
+
+        response = await panel_request(request, url, server)
+        if response.status_code == 200:
+            # 2. Удаляем из базы данных
+            try:
+                await db.delete_user_code(uid)
+                deleted += 1
+                logger.info("Deleted free config %s from server %s", uid, server)
+            except Exception as e:
+                logger.error("Failed to delete free config %s from DB: %s", uid, e)
+                failed += 1
+        else:
+            # Если панель вернула ошибку, всё равно удаляем из БД (конфиг свободный)
+            logger.warning(
+                "Panel delete failed for free config %s on %s (%s), but removing from DB anyway",
+                uid, server, response.status_code
+            )
+            try:
+                await db.delete_user_code(uid)
+                deleted += 1
+                logger.info("Force deleted free config %s from DB (panel error)", uid)
+            except Exception as e:
+                logger.error("Failed to force delete free config %s from DB: %s", uid, e)
+                failed += 1
+
+    logger.info("Free configs cleanup: deleted=%s, failed=%s", deleted, failed)
+    return f"Удалено {deleted} свободных конфигов, ошибок {failed}"
+
+
 @router.post(
     "/reprovision-all",
     response_model=dict,

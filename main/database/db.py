@@ -526,3 +526,40 @@ async def get_expired_configs(current_time: int) -> list[tuple[str, str]]:
             )
             rows = await cursor.fetchall()
     return rows
+
+
+async def get_free_configs() -> list[tuple[str, str]]:
+    """Возвращает список свободных (неактивных) конфигов как (user_code, server_country).
+    
+    Свободными считаются конфиги с tg_id IS NULL или tg_id = ''.
+    """
+    async with aiosqlite.connect("users.db") as conn:
+        async with conn.cursor() as cursor:
+            await cursor.execute(
+                '''
+                SELECT user_code, server_country 
+                FROM users 
+                WHERE tg_id IS NULL OR tg_id = ''
+                '''
+            )
+            rows = await cursor.fetchall()
+    return rows
+
+
+async def get_free_configs_by_server(server: str) -> list[tuple[str, str]]:
+    """Возвращает список свободных конфигов для конкретного сервера как (user_code, server_country).
+    
+    Свободными считаются конфиги с tg_id IS NULL или tg_id = '' и server_country = server.
+    """
+    async with aiosqlite.connect("users.db") as conn:
+        async with conn.cursor() as cursor:
+            await cursor.execute(
+                '''
+                SELECT user_code, server_country 
+                FROM users 
+                WHERE (tg_id IS NULL OR tg_id = '') AND server_country = ?
+                ''',
+                (server,)
+            )
+            rows = await cursor.fetchall()
+    return rows
