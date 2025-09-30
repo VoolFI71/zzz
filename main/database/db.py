@@ -507,3 +507,22 @@ async def has_active_reservations_except_user(server_country: Optional[str] = No
             
             count = await cursor.fetchone()
             return count[0] > 0 if count else False
+
+
+async def get_expired_configs(current_time: int) -> list[tuple[str, str]]:
+    """Возвращает список просроченных конфигов как (user_code, server_country).
+    
+    Просроченными считаются конфиги с time_end <= current_time.
+    """
+    async with aiosqlite.connect("users.db") as conn:
+        async with conn.cursor() as cursor:
+            await cursor.execute(
+                '''
+                SELECT user_code, server_country 
+                FROM users 
+                WHERE time_end > 0 AND time_end <= ?
+                ''',
+                (current_time,)
+            )
+            rows = await cursor.fetchall()
+    return rows

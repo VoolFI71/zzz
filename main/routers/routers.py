@@ -593,6 +593,64 @@ async def delete_panel_configs(
     return f"Удалено с панели {deleted} конфигураций, ошибок {failed}. База данных не изменена."
 
 
+@router.delete(
+    "/delete-expired-configs",
+    response_model=str,
+)
+async def delete_expired_configs(
+    request: Request,
+    _: None = Depends(verify_api_key),
+) -> str:
+    """Удаляет все просроченные конфиги с панели и из базы данных.
+    
+    Просроченными считаются конфиги с time_end <= текущее время.
+    """
+    current_time = int(time.time())
+    
+    # Получаем все просроченные конфиги
+    expired_configs = await db.get_expired_configs(current_time)
+    if not expired_configs:
+        return "Нет просроченных конфигов для удаления"
+    
+    deleted, failed = 0, 0
+    
+    for uid, server in expired_configs:
+        # 1. Удаляем с панели
+        try:
+            url = f"{COUNTRY_SETTINGS[server]['urldelete']}{uid}"
+        except KeyError:
+            logger.error("Unknown server country %s for uid %s", server, uid)
+            failed += 1
+            continue
+
+        response = await panel_request(request, url, server)
+        if response.status_code == 200:
+            # 2. Удаляем из базы данных
+            try:
+                await db.delete_user_code(uid)
+                deleted += 1
+                logger.info("Deleted expired config %s from server %s", uid, server)
+            except Exception as e:
+                logger.error("Failed to delete config %s from DB: %s", uid, e)
+                failed += 1
+        else:
+            # Если панель вернула ошибку, всё равно удаляем из БД (конфиг просрочен)
+            logger.warning(
+                "Panel delete failed for %s on %s (%s), but removing from DB anyway (expired)",
+                uid, server, response.status_code
+            )
+            try:
+                await db.delete_user_code(uid)
+                deleted += 1
+                logger.info("Force deleted expired config %s from DB (panel error)", uid)
+            except Exception as e:
+                logger.error("Failed to force delete config %s from DB: %s", uid, e)
+                failed += 1
+
+    logger.info("Expired configs cleanup: deleted=%s, failed=%s", deleted, failed)
+    return f"Удалено {deleted} просроченных конфигов, ошибок {failed}"
+
+
 @router.post(
     "/reprovision-all",
     response_model=dict,
