@@ -543,6 +543,52 @@ async def delete_all_configs(request: Request, _: None = Depends(verify_api_key)
     return f"Удалено {deleted} конфигураций, ошибок {failed}"
 
 
+@router.delete(
+    "/delete-panel-configs",
+    response_model=str,
+)
+async def delete_panel_configs(
+    request: Request, 
+    server: str = Body(..., description="Код сервера (например, fi)"),
+    _: None = Depends(verify_api_key),
+) -> str:
+    """Удаляет все конфиги только с панели, НЕ трогая базу данных.
+    
+    Позволяет восстановить конфиги через reprovision-all.
+    """
+    rows = await db.get_all_user_codes()
+    if not rows:
+        return "Нет конфигов для удаления"
+    
+    # Фильтруем только конфиги указанного сервера
+    server_rows = [(uid, srv) for uid, srv in rows if srv == server]
+    if not server_rows:
+        return f"Нет конфигов на сервере {server} для удаления"
+    
+    deleted, failed = 0, 0
+    for uid, srv in server_rows:
+        try:
+            url = f"{COUNTRY_SETTINGS[srv]['urldelete']}{uid}"
+        except KeyError:
+            logger.error("Unknown server country %s for uid %s", srv, uid)
+            failed += 1
+            continue
+
+        response = await panel_request(request, url, srv)
+        if response.status_code == 200:
+            deleted += 1
+            logger.info("Deleted config %s from panel %s", uid, srv)
+        else:
+            logger.error(
+                "Failed to delete config %s from panel %s: %s / %s",
+                uid, srv, response.status_code, response.text,
+            )
+            failed += 1
+
+    logger.info("Panel delete done: success=%s, failed=%s", deleted, failed)
+    return f"Удалено с панели {deleted} конфигураций, ошибок {failed}. База данных не изменена."
+
+
 @router.post(
     "/reprovision-all",
     response_model=dict,
