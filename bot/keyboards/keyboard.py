@@ -24,8 +24,8 @@ def create_admin_keyboard():
 
 
 def create_server_keyboard():
-    # Read ordered list of servers from env, e.g., "fi,nl,de,us"
-    order_env = os.getenv("SERVER_ORDER", "fi").strip()
+    # Read ordered list of servers from env, e.g., "fi,ge,nl,us"
+    order_env = os.getenv("SERVER_ORDER", "fi,ge").strip()
     server_codes = [s.strip().lower() for s in order_env.split(',') if s.strip()]
     if not server_codes:
         server_codes = ["fi", "nl"]
@@ -35,6 +35,7 @@ def create_server_keyboard():
         "fi": "Финляндия",
         "nl": "Нидерланды",
         "de": "Германия",
+        "ge": "Германия",
         "us": "США",
         "pl": "Польша",
         "se": "Швеция",
@@ -47,6 +48,7 @@ def create_server_keyboard():
         "fi": "🇫🇮",
         "nl": "🇳🇱",
         "de": "🇩🇪",
+        "ge": "🇩🇪",
         "us": "🇺🇸",
         "pl": "🇵🇱",
         "se": "🇸🇪",

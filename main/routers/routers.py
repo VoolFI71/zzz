@@ -40,10 +40,15 @@ if AUTH_CODE is None:
 def _get_cookie(server_code: str) -> str:
     """Возвращает cookie для панели конкретного сервера.
 
-    Ищет переменную окружения вида ``COOKIE_fi`` (регистр не важен).
-    Если не найдено – вернёт пустую строку.
+    Ищет переменную окружения вида ``COOKIE_fi`` или ``cookie_fi`` (регистр ключа не важен).
+    Возвращает пустую строку, если переменная не найдена.
     """
-    return os.getenv(f"COOKIE_{server_code.lower()}", "")
+    target_key = f"cookie_{server_code.lower()}"
+    # Полностью регистронезависимый поиск по окружению
+    for k, v in os.environ.items():
+        if k.lower() == target_key:
+            return v
+    return ""
 
 # Значения читаем из .env, чтобы не хранить в коде
 def _env_any(*keys: str, default: str = "") -> str:
@@ -74,6 +79,18 @@ COUNTRY_SETTINGS: dict[str, dict[str, str]] = {
         "sni": "eh.vk.com",
         "sid": _env_any("SID_FI", "sid_fi", default=""),
     },
+    # Germany (GE)
+    "ge": {
+        # Поддерживаем и правильные, и возможные опечатки ключей
+        "urlcreate": _env_any("URLCREATE_GE", "urlcreate_ge", "urlcreate_ge", default=""),
+        "urlupdate": _env_any("URLUPDATE_GE", "urlupdate_ge", "urlupdate_ge", default=""),
+        "urldelete": _env_any("URLDELETE_GE", "urldelete_ge", default=""),
+        # Параметры для генерации VLESS
+        "host": _env_any("HOST_GE", "host_ge", default=""),
+        "pbk": _env_any("PBK_GE", "pbk_ge", default=""),
+        "sni": "eh.vk.com",
+        "sid": _env_any("SID_GE", "sid_ge", default=""),
+    },
     # Дополнительный сервер FI2 (вторая панель). Все параметры берутся из env
     # Например: URLCREATE_FI2, URLUPDATE_FI2, URLDELETE_FI2, HOST_FI2, PBK_FI2, SID_FI2
     "fi2": {
@@ -91,6 +108,7 @@ COUNTRY_SETTINGS: dict[str, dict[str, str]] = {
 COUNTRY_LABELS: dict[str, str] = {
     "nl": "Netherlands 🇳🇱",
     "fi": "Finland 🇫🇮",
+    "ge": "Germany 🇩🇪",
     "fi2": "Finland-2 🇫🇮",
 }
 
