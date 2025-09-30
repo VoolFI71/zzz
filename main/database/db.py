@@ -563,7 +563,7 @@ async def get_free_configs_by_server(server: str) -> list[tuple[str, str]]:
             )
             rows = await cursor.fetchall()
     return rows
-хоро
+
 
 async def get_configs_by_server(server: str) -> list[dict]:
     """Возвращает все конфиги конкретного сервера с их статусом.
