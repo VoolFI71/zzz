@@ -145,11 +145,51 @@ async def go_back(callback_query: CallbackQuery, bot: Bot, state: FSMContext) ->
 
 @common_router.callback_query(F.data == "activate_balance")
 async def activate_balance(callback_query: CallbackQuery, bot: Bot, state: FSMContext) -> None:
-    # Временно отключена активация конфигов
-    await callback_query.answer(
-        "🚧 Активация конфигов временно недоступна\n\n"
-        "В данный момент мы проводим технические работы.\n"
-        "Попробуйте позже.",
-        show_alert=True
-    )
+    tg_id = str(callback_query.from_user.id)
+    try:
+        days = await db.get_balance_days(tg_id)
+    except Exception:
+        days = 0
+    if days <= 0:
+        await callback_query.answer("Баланс пуст", show_alert=True)
+        return
+    # Выбираем первый доступный сервер: сначала предпочитаем сервер из state, затем список из SERVER_ORDER
+    user_data = await state.get_data()
+    preferred = []
+    if user_data.get("server"):
+        preferred.append(str(user_data.get("server")).lower())
+    env_order = os.getenv("SERVER_ORDER", "fi")
+    preferred.extend([s.strip().lower() for s in env_order.split(',') if s.strip()])
+    # Уникализируем, сохраняя порядок
+    dedup = []
+    seen = set()
+    for s in preferred:
+        if s and s not in seen:
+            dedup.append(s)
+            seen.add(s)
+    target_server = await pick_first_available_server(dedup)
+    if not target_server:
+        await callback_query.answer("Свободных конфигов нет", show_alert=True)
+        return
+    data = {"time": int(days), "id": tg_id, "server": target_server}
+    AUTH_CODE = os.getenv("AUTH_CODE")
+    urlupdate = "http://fastapi:8080/giveconfig"
+    try:
+        session = await get_session()
+        async with session.post(urlupdate, json=data, headers={"X-API-Key": AUTH_CODE}) as resp:
+            if resp.status == 200:
+                # Списываем баланс и уведомляем
+                await db.deduct_balance_days(tg_id, int(days))
+                await bot.send_message(int(tg_id), f"Активировано {days} дн. Конфиг доступен в Личном кабинете → Мои конфиги")
+            elif resp.status == 409:
+                await bot.send_message(int(tg_id), "Свободных конфигов нет. Попробуйте позже.")
+            else:
+                await bot.send_message(int(tg_id), f"Ошибка сервера ({resp.status}). Попробуйте позже.")
+    except (aiohttp.ClientError, Exception):
+        await bot.send_message(int(tg_id), "Ошибка сети. Попробуйте позже.")
+    finally:
+        try:
+            await callback_query.answer()
+        except Exception:
+            pass
 

@@ -33,7 +33,7 @@ async def pay_with_yookassa(callback_query: CallbackQuery, state: FSMContext, bo
     if not await check_available_configs(server):
         # Fallback: подберём первый доступный сервер по SERVER_ORDER
         from utils import pick_first_available_server
-        env_order = os.getenv("SERVER_ORDER", "fi,nl")
+        env_order = os.getenv("SERVER_ORDER", "fi")
         preferred = []
         if server:
             preferred.append(str(server).lower())

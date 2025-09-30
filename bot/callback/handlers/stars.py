@@ -45,7 +45,7 @@ async def pay_with_stars(callback_query: CallbackQuery, state: FSMContext, bot: 
     if not await check_available_configs(server):
         # Пытаемся подобрать другой сервер
         from utils import pick_first_available_server
-        env_order = os.getenv("SERVER_ORDER", "fi,nl")
+        env_order = os.getenv("SERVER_ORDER", "fi")
         preferred = []
         if server:
             preferred.append(str(server).lower())

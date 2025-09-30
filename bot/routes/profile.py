@@ -31,13 +31,78 @@ async def my_account(message: types.Message):
 
 @router.message(F.text.in_({"Пробная 3 дня", "🎁 Пробная 3 дня", "Пробные 3 дня", "🎁 Пробные 3 дня"}))
 async def free_trial(message: types.Message):
-    # Временно отключена пробная подписка
-    await message.answer(
-        "🚧 <b>Пробная подписка временно недоступна</b>\n\n"
-        "В данный момент мы проводим технические работы.\n"
-        "Попробуйте позже.",
-        parse_mode="HTML"
-    )
+    user_id = message.from_user.id
+    # Throttle repeated clicks
+    throttled, retry_after = should_throttle(user_id, "free_trial", cooldown_seconds=5.0)
+    if throttled:
+        await message.answer(f"Слишком часто. Попробуйте через {int(retry_after)+1} сек.")
+        return
+    from database import db as user_db
+    try:
+        await user_db.ensure_user_row(str(user_id))
+        if await user_db.has_used_trial_3d(str(user_id)):
+            await message.answer("Вы уже активировали пробную подписку ранее.")
+            return
+    except Exception:
+        await message.answer("Ошибка. Попробуйте позже.")
+        return
+
+    # Проверяем наличие свободных конфигов (не блокирующе)
+    from utils import get_session
+    # Пытаемся выдать на первом доступном сервере из списка (по умолчанию fi, nl)
+    from utils import pick_first_available_server
+    server_order_env = os.getenv("SERVER_ORDER", "fi")
+    preferred = [s.strip().lower() for s in server_order_env.split(',') if s.strip()]
+    target_server = await pick_first_available_server(preferred)
+    if not target_server:
+        await message.answer("Свободных конфигов нет. Попробуйте позже.")
+        return
+
+    # Выдаём бесплатные 3 дня на сервере FI
+    data = {"time": 3, "id": str(user_id), "server": target_server}
+    AUTH_CODE = os.getenv("AUTH_CODE")
+    urlupdate = "http://fastapi:8080/giveconfig"
+    try:
+        session = await get_session()
+        async with acquire_action_lock(user_id, "free_trial"):
+            async with session.post(urlupdate, json=data, headers={"X-API-Key": AUTH_CODE}) as resp:
+                if resp.status == 200:
+                    await user_db.set_trial_3d_used(str(user_id))
+                    base = os.getenv("PUBLIC_BASE_URL", "https://swaga.space").rstrip('/')
+                    try:
+                        sub_url = f"http://fastapi:8080/sub/{user_id}"
+                        async with session.get(sub_url, headers={"X-API-Key": AUTH_CODE}) as sub_resp:
+                            if sub_resp.status == 200:
+                                sub_data = await sub_resp.json()
+                                sub_key = sub_data.get("sub_key")
+                                if sub_key:
+                                    web_url = f"{base}/subscription/{sub_key}"
+                                else:
+                                    web_url = f"{base}/subscription"
+                            else:
+                                web_url = f"{base}/subscription"
+                    except Exception:
+                        # Fallback на старую ссылку, если что-то пошло не так
+                        web_url = f"{base}/subscription"
+                    kb = InlineKeyboardMarkup(inline_keyboard=[
+                        [InlineKeyboardButton(text="📲 Добавить подписку в V2rayTun", url=web_url)],
+                        [InlineKeyboardButton(text="📋 Скопировать ссылку", callback_data="copy_sub")],
+                    ])
+                    await message.answer("Пробная подписка на 3 дня активирована!", reply_markup=kb)
+                    await message.answer("Подписка может быть не добавлена при нажатии на кнопку на сайте, в этом случае необходимо скопировать ссылку на подписку и вставить в V2rayTun вручную.")
+
+                    try:
+                        admin_id = 746560409
+                        at_username = (f"@{message.from_user.username}" if getattr(message.from_user, "username", None) else "—")
+                        await message.bot.send_message(admin_id, f"Активирована пробная подписка: user_id={user_id}, user={at_username}, сервер=fi, срок=3 дн.")
+                    except Exception:
+                        pass
+                elif resp.status == 409:
+                    await message.answer("Свободных конфигов нет. Попробуйте позже.")
+                else:
+                    await message.answer(f"Ошибка сервера ({resp.status}). Попробуйте позже.")
+    except aiohttp.ClientError:
+        await message.answer("Ошибка сети. Попробуйте позже.")
 
 
 @router.callback_query(F.data.startswith("copy_config_"))
@@ -244,11 +309,15 @@ async def delete_message_callback(callback: types.CallbackQuery):
 
 @router.message(F.text.in_({"Активировать дни", "✨ Активировать дни"}))
 async def show_balance_activation(message: types.Message):
-    # Временно отключена активация конфигов
+    tg_id = str(message.from_user.id)
+    try:
+        days = await db.get_balance_days(tg_id)
+    except Exception:
+        days = 0
+    if days <= 0:
+        await message.answer("На вашем балансе нет дней для активации.", reply_markup=keyboard.create_profile_keyboard())
+        return
     await message.answer(
-        "🚧 <b>Активация конфигов временно недоступна</b>\n\n"
-        "В данный момент мы проводим технические работы.\n"
-        "Попробуйте позже.",
-        reply_markup=keyboard.create_profile_keyboard(),
-        parse_mode="HTML"
+        f"На балансе: {days} дн. Нажмите кнопку ниже, чтобы активировать их как подписку.",
+        reply_markup=keyboard.create_activate_balance_inline(days)
     )

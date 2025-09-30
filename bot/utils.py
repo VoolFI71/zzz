@@ -60,10 +60,10 @@ async def pick_first_available_server(preferred_order: list[str] | None = None) 
     - Иначе читаем из ENV SERVER_ORDER (например, "fi,nl"), иначе дефолт ["fi", "nl"].
     """
     if preferred_order is None:
-        env_order = os.getenv("SERVER_ORDER", "fi,nl")
+        env_order = os.getenv("SERVER_ORDER", "fi")
         preferred_order = [s.strip().lower() for s in env_order.split(",") if s.strip()]
         if not preferred_order:
-            preferred_order = ["fi", "nl"]
+            preferred_order = ["fi"]
 
     # Уникализируем, сохраняем порядок
     seen: set[str] = set()

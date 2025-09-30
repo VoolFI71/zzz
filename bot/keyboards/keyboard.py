@@ -28,7 +28,7 @@ def create_server_keyboard():
     order_env = os.getenv("SERVER_ORDER", "fi").strip()
     server_codes = [s.strip().lower() for s in order_env.split(',') if s.strip()]
     if not server_codes:
-        server_codes = ["fi", "nl"]
+        server_codes = ["fi"]
 
     # Simple mapping of known titles/flags; unknown codes will be shown uppercased without flag
     titles = {
