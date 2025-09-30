@@ -13,6 +13,7 @@ from typing import Any, Dict, List
 import httpx
 from fastapi import (
     APIRouter,
+    Body,
     Depends,
     Header,
     HTTPException,
@@ -548,8 +549,8 @@ async def delete_all_configs(request: Request, _: None = Depends(verify_api_key)
 )
 async def reprovision_all(
     request: Request,
-    server_from: str = Query(..., description="Код исходного сервера (например, fi)"),
-    server_to: str = Query(..., description="Код целевого сервера (например, fi2)"),
+    server_from: str = Body(..., description="Код исходного сервера (например, fi)"),
+    server_to: str = Body(..., description="Код целевого сервера (например, fi2)"),
     _: None = Depends(verify_api_key),
 ):
     """Переносит активных пользователей с `server_from` на панель `server_to`.
