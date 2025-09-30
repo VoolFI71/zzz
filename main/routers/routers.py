@@ -1011,6 +1011,37 @@ async def get_all_id(_: None = Depends(verify_api_key)):
     return await db.users_with_subscription_expiring_within_5h("users.db")
 
 
+@router.post(
+    "/get-server-configs",
+    response_model=dict,
+)
+async def get_server_configs(
+    data: dict = Body(..., description="JSON с полем server"),
+    _: None = Depends(verify_api_key),
+) -> dict:
+    """Возвращает все конфиги конкретного сервера и их количество.
+    
+    Возвращает:
+    - configs: список всех конфигов сервера с полями uid, time_end, is_owned, tg_id
+    - total_count: общее количество конфигов на сервере
+    - server: код сервера
+    """
+    server = data.get("server")
+    if not server:
+        raise HTTPException(status_code=400, detail="Поле 'server' обязательно")
+    
+    try:
+        configs = await db.get_configs_by_server(server)
+        return {
+            "configs": configs,
+            "total_count": len(configs),
+            "server": server
+        }
+    except Exception as e:
+        logger.error("Error getting server configs: %s", e)
+        raise HTTPException(status_code=500, detail="Ошибка при получении конфигов сервера")
+
+
 
 @router.get("/", response_class=HTMLResponse)
 async def landing(request: Request):  # noqa: D401

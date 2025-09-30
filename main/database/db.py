@@ -563,3 +563,49 @@ async def get_free_configs_by_server(server: str) -> list[tuple[str, str]]:
             )
             rows = await cursor.fetchall()
     return rows
+хоро
+
+async def get_configs_by_server(server: str) -> list[dict]:
+    """Возвращает все конфиги конкретного сервера с их статусом.
+    
+    Возвращает список словарей с полями:
+    - uid: user_code (уникальный идентификатор конфига)
+    - time_end: время окончания в unix timestamp
+    - is_owned: принадлежит ли конфиг кому-то в данный момент
+    - tg_id: ID пользователя (если присвоен)
+    """
+    current_time = int(time.time())
+    async with aiosqlite.connect("users.db") as conn:
+        async with conn.cursor() as cursor:
+            await cursor.execute(
+                '''
+                SELECT user_code, time_end, tg_id, server_country 
+                FROM users 
+                WHERE server_country = ?
+                ORDER BY time_end ASC
+                ''',
+                (server,)
+            )
+            rows = await cursor.fetchall()
+    
+    configs = []
+    for row in rows:
+        user_code, time_end, tg_id, server_country = row
+        
+        # Определяем, принадлежит ли конфиг кому-то (активная привязка только при неистёкшем сроке)
+        is_owned = bool(
+            tg_id
+            and tg_id.strip()
+            and not tg_id.startswith(RESERVED_PREFIX)
+            and time_end is not None
+            and time_end > current_time
+        )
+        
+        configs.append({
+            "uid": user_code,
+            "time_end": time_end,
+            "is_owned": is_owned,
+            "tg_id": tg_id if tg_id else None
+        })
+    
+    return configs
