@@ -277,7 +277,12 @@ async def check_yookassa(callback_query: CallbackQuery, state: FSMContext, bot: 
             admin_id = 746560409
             if admin_id:
                 at_username = (f"@{callback_query.from_user.username}" if getattr(callback_query.from_user, "username", None) else "—")
-                await bot.send_message(admin_id, f"Оплачена подписка через YooKassa: user_id={tg_id}, user={at_username}, срок={days} дн.")
+                if existing_configs:
+                    # Продление подписки
+                    await bot.send_message(admin_id, f"Продлена подписка через YooKassa: user_id={tg_id}, user={at_username}, срок={days} дн.")
+                else:
+                    # Новая подписка
+                    await bot.send_message(admin_id, f"Оплачена подписка через YooKassa: user_id={tg_id}, user={at_username}, срок={days} дн.")
         except Exception:
             pass
 
