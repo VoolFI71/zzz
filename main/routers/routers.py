@@ -1061,6 +1061,14 @@ async def get_all_configs(_: None = Depends(verify_api_key)):
 
 @router.get("/getids")
 async def get_all_id(_: None = Depends(verify_api_key)):
+    """Возвращает все конфиги с их статусом и информацией."""
+    configs = await db.get_all_configs_with_status()
+    return {"configs": configs}
+
+
+@router.get("/expiring-users")
+async def get_expiring_users(_: None = Depends(verify_api_key)):
+    """Возвращает пользователей с истекающими подписками (в течение 5 часов)."""
     return await db.users_with_subscription_expiring_within_5h("users.db")
 
 

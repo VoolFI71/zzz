@@ -409,32 +409,78 @@ async def get_or_create_sub_key(tg_id: str) -> str:
 
 
 async def get_all_active_users():
-    """Получает всех пользователей с активными подписками.
+    """Получает всех пользователей с активными подписками через API бэкенда.
     
     Returns:
         List[Tuple[int, int]]: Список кортежей (user_id, days_left)
     """
+    from utils import get_session
     import time
-    current_time = int(time.time())
     
-    async with aiosqlite.connect("users.db") as conn:
-        async with conn.cursor() as cursor:
-            # Получаем всех пользователей с активными конфигами
-            await cursor.execute('''
-                SELECT DISTINCT tg_id, time_end 
-                FROM users 
-                WHERE tg_id IS NOT NULL 
-                AND tg_id != '' 
-                AND time_end > ?
-                AND tg_id NOT LIKE 'reserved_%'
-            ''', (current_time,))
-            
-            rows = await cursor.fetchall()
-            active_users = []
-            
-            for tg_id, time_end in rows:
-                days_left = max(0, (time_end - current_time) // 86400)  # Конвертируем в дни
-                if days_left > 0:
-                    active_users.append((int(tg_id), days_left))
-            
-            return active_users
+    AUTH_CODE = os.getenv("AUTH_CODE")
+    base_url = "http://fastapi:8080"
+    url = f"{base_url}/getids"
+    headers = {"X-API-Key": AUTH_CODE} if AUTH_CODE else {}
+    
+    try:
+        session = await get_session()
+        async with session.get(url, headers=headers) as response:
+            if response.status == 200:
+                data = await response.json()
+                current_time = int(time.time())
+                active_users = []
+                
+                # Группируем конфиги по пользователям и находим максимальное время окончания
+                user_max_time = {}
+                for config in data.get("configs", []):
+                    tg_id = config.get("tg_id")
+                    time_end = config.get("time_end")
+                    
+                    if tg_id and time_end and time_end > current_time:
+                        if tg_id not in user_max_time or time_end > user_max_time[tg_id]:
+                            user_max_time[tg_id] = time_end
+                
+                # Конвертируем в нужный формат
+                for tg_id, time_end in user_max_time.items():
+                    days_left = max(0, (time_end - current_time) // 86400)
+                    if days_left > 0:
+                        active_users.append((int(tg_id), days_left))
+                
+                return active_users
+            else:
+                return []
+    except Exception as e:
+        print(f"Error getting active users: {e}")
+        return []
+
+
+async def get_codes_by_tg_id(tg_id):
+    """Получает все конфиги пользователя по его Telegram ID через API бэкенда."""
+    from utils import get_session
+    import aiohttp
+    
+    AUTH_CODE = os.getenv("AUTH_CODE")
+    base_url = "http://fastapi:8080"
+    url = f"{base_url}/getids"
+    headers = {"X-API-Key": AUTH_CODE} if AUTH_CODE else {}
+    
+    try:
+        session = await get_session()
+        async with session.get(url, headers=headers) as response:
+            if response.status == 200:
+                data = await response.json()
+                # Фильтруем конфиги для конкретного пользователя
+                user_configs = []
+                for config in data.get("configs", []):
+                    if config.get("tg_id") == str(tg_id):
+                        user_configs.append((
+                            config.get("uid"),
+                            config.get("time_end"),
+                            config.get("server_country")
+                        ))
+                return user_configs
+            else:
+                return []
+    except Exception as e:
+        print(f"Error getting user configs: {e}")
+        return []

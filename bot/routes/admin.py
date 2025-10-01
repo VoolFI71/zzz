@@ -72,21 +72,21 @@ async def send_notif(callback: types.CallbackQuery, bot):
 
     await callback.answer()  # убрать "часики" у клиента
 
-    url = f"{API_BASE_URL}/getids"
+    url = f"{API_BASE_URL}/expiring-users"
     headers = {"X-API-Key": AUTH_CODE}
             
-    # Получаем все конфиги
+    # Получаем пользователей с истекающими подписками
     try:
         async with aiohttp.ClientSession() as session:
             async with session.get(url, headers=headers, timeout=15) as resp:
                 if resp.status != 200:
                     text = await resp.text()
-                    logger.error(f"/getids returned {resp.status}: {text}")
+                    logger.error(f"/expiring-users returned {resp.status}: {text}")
                     await callback.message.answer(f"Ошибка запроса: {resp.status}")
                     return
                 data = await resp.json()
     except Exception as e:
-        logger.error(f"Error fetching /getids: {e}")
+        logger.error(f"Error fetching /expiring-users: {e}")
         await callback.message.answer(f"Ошибка при подключении к серверу: {e}")
         return
 
