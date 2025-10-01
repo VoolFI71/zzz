@@ -525,6 +525,16 @@ async def get_active_configs_by_tg_id(tg_id):
                         print(f"DEBUG: Added active config {config.get('uid')}")
                 
                 print(f"DEBUG: Found {len(active_configs)} active configs for user {tg_id}")
+                
+                # Дополнительная диагностика
+                if len(active_configs) == 0:
+                    print(f"DEBUG: No active configs found for user {tg_id}")
+                    # Проверим, есть ли вообще конфиги у пользователя (включая истекшие)
+                    user_configs = [config for config in data.get("configs", []) if config.get("tg_id") == str(tg_id)]
+                    print(f"DEBUG: Total configs for user {tg_id} (including expired): {len(user_configs)}")
+                    for config in user_configs:
+                        print(f"DEBUG: User config {config.get('uid')} - time_end: {config.get('time_end')}, expired: {config.get('time_end', 0) <= current_time}")
+                
                 return active_configs
             else:
                 print(f"DEBUG: API returned status {response.status}")

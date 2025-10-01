@@ -36,6 +36,24 @@ async def pay_with_yookassa(callback_query: CallbackQuery, state: FSMContext, bo
     # Отладочная информация
     print(f"DEBUG: User {callback_query.from_user.id} has {len(existing_configs)} active configs: {existing_configs}")
     
+    # Дополнительная диагностика через /usercodes endpoint
+    try:
+        from utils import get_session
+        AUTH_CODE = os.getenv("AUTH_CODE")
+        base_url = "http://fastapi:8080"
+        url = f"{base_url}/usercodes/{callback_query.from_user.id}"
+        headers = {"X-API-Key": AUTH_CODE} if AUTH_CODE else {}
+        
+        session = await get_session()
+        async with session.get(url, headers=headers) as resp:
+            if resp.status == 200:
+                data = await resp.json()
+                print(f"DEBUG: /usercodes endpoint returned {len(data)} configs for user {callback_query.from_user.id}")
+            else:
+                print(f"DEBUG: /usercodes endpoint returned status {resp.status} for user {callback_query.from_user.id}")
+    except Exception as e:
+        print(f"DEBUG: Error checking /usercodes endpoint: {e}")
+    
     if existing_configs:
         # У пользователя есть конфиги - предлагаем продление
         await callback_query.message.edit_text(
