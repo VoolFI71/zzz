@@ -60,16 +60,6 @@ def _env_any(*keys: str, default: str = "") -> str:
     return default
 
 COUNTRY_SETTINGS: dict[str, dict[str, str]] = {
-    "nl": {
-        "urlcreate": _env_any("URLCREATE_NL", "urlcreate_nl", default=""),
-        "urlupdate": _env_any("URLUPDATE_NL", "urlupdate_nl", default=""),
-        "urldelete": _env_any("URLDELETE_NL", "urldelete_nl", default=""),
-        # Параметры для генерации VLESS
-        "host": _env_any("HOST_NL", "host_nl", default="146.103.102.21"),
-        "pbk": _env_any("PBK_NL", "pbk_nl", default=""),
-        "sni": "google.com",
-        "sid": _env_any("SID_NL", "sid_nl", default=""),
-    },
     "fi": {
         "urlcreate": _env_any("URLCREATE_FI", "urlcreate_fi", default=""),
         "urlupdate": _env_any("URLUPDATE_FI", "urlupdate_fi", default=""),
@@ -89,20 +79,8 @@ COUNTRY_SETTINGS: dict[str, dict[str, str]] = {
         # Параметры для генерации VLESS
         "host": _env_any("HOST_GE", "host_ge", default=""),
         "pbk": _env_any("PBK_GE", "pbk_ge", default=""),
-        "sni": "eh.vk.com",
+        "sni": "ozon.ru",
         "sid": _env_any("SID_GE", "sid_ge", default=""),
-    },
-    # Дополнительный сервер FI2 (вторая панель). Все параметры берутся из env
-    # Например: URLCREATE_FI2, URLUPDATE_FI2, URLDELETE_FI2, HOST_FI2, PBK_FI2, SID_FI2
-    "fi2": {
-        "urlcreate": _env_any("URLCREATE_FI2", "urlcreate_fi2", default=""),
-        "urlupdate": _env_any("URLUPDATE_FI2", "urlupdate_fi2", default=""),
-        "urldelete": _env_any("URLDELETE_FI2", "urldelete_fi2", default=""),
-        # Параметры для генерации VLESS
-        "host": _env_any("HOST_FI2", "host_fi2", default=""),
-        "pbk": _env_any("PBK_FI2", "pbk_fi2", default=""),
-        "sni": "eh.vk.com",
-        "sid": _env_any("SID_FI2", "sid_fi2", default=""),
     },
 }
 
@@ -790,6 +768,81 @@ async def reprovision_all(
         "server_to": server_to,
     }
 
+@router.post("/reprovision-all-configs")
+async def reprovision_all_configs(
+    request: Request,
+    server_from: str = Body(..., description="Код исходного сервера (например, fi)"),
+    server_to: str = Body(..., description="Код целевого сервера (например, fi2)"),
+    _: None = Depends(verify_api_key),
+):
+    """Полностью восстанавливает все конфиги с панели `server_from` на панель `server_to`.
+    
+    Включает:
+    - Активные конфиги (присвоенные пользователям)
+    - Свободные конфиги (не присвоенные)
+    - Обновляет все записи в БД
+    """
+    
+    if server_from not in COUNTRY_SETTINGS:
+        raise HTTPException(status_code=400, detail=f"Неизвестный исходный сервер: {server_from}")
+    if server_to not in COUNTRY_SETTINGS:
+        raise HTTPException(status_code=400, detail=f"Неизвестный целевой сервер: {server_to}")
+
+    # Получаем ВСЕ конфиги с исходного сервера (активные + свободные)
+    rows = await db.get_all_rows_by_server(server_from)
+    if not rows:
+        return {
+            "processed": 0,
+            "updated": 0,
+            "skipped": 0,
+            "failed": 0,
+            "server_from": server_from,
+            "server_to": server_to,
+        }
+
+    updated = 0
+    skipped = 0
+    failed = 0
+
+    create_url = COUNTRY_SETTINGS[server_to]['urlcreate']
+
+    for row in rows:
+        tg_id, user_code, time_end, current_server = row
+        
+        # Пропускаем только пустые записи
+        if not user_code:
+            skipped += 1
+            continue
+
+        # Создаем конфиг на новой панели
+        payload = build_payload(str(user_code), enable=True, expiry_time=int(time_end) if time_end else None)
+
+        try:
+            resp = await panel_request(request, create_url, server_to, payload)
+            if resp.status_code == 200:
+                try:
+                    # Обновляем сервер в БД для ВСЕХ конфигов
+                    await db.update_server_country(str(user_code), server_to)
+                    updated += 1
+                except Exception:
+                    logger.exception("Failed to update server_country in DB for %s -> %s", user_code, server_to)
+                    updated += 1  # Конфиг создан, но БД не обновилась
+            else:
+                failed += 1
+        except HTTPException:
+            failed += 1
+
+    return {
+        "processed": len(rows),
+        "updated": updated,
+        "skipped": skipped,
+        "failed": failed,
+        "server_from": server_from,
+        "server_to": server_to,
+        "message": "Восстановлены ВСЕ конфиги (активные + свободные)"
+    }
+
+
 @router.get(
     "/check-available-configs",
 )
@@ -1041,6 +1094,101 @@ async def get_server_configs(
         logger.error("Error getting server configs: %s", e)
         raise HTTPException(status_code=500, detail="Ошибка при получении конфигов сервера")
 
+
+@router.post("/add-server-to-all-users")
+async def add_server_to_all_users(
+    data: models.AddServerToAllUsers,
+    request: Request,
+    _: None = Depends(verify_api_key),
+) -> dict:
+    """Добавляет новый сервер всем пользователям с активными подписками.
+    
+    Этот эндпоинт используется для добавления нового сервера (например, Германия)
+    всем пользователям, у которых есть активная подписка, на оставшееся время подписки.
+    """
+    try:
+        # Получаем всех активных пользователей
+        active_users = await db.get_all_active_users()
+        
+        if not active_users:
+            return {
+                "success": True,
+                "message": "Нет пользователей с активными подписками",
+                "processed": 0,
+                "errors": 0
+            }
+        
+        success_count = 0
+        error_count = 0
+        errors = []
+        
+        # Обрабатываем каждого пользователя
+        for user in active_users:
+            try:
+                # Создаем новый конфиг для пользователя на указанном сервере
+                uid = str(uuid.uuid4())
+                payload = build_payload(uid, enable=False)
+                
+                # Получаем URL для создания конфига на указанном сервере
+                if data.server not in COUNTRY_SETTINGS:
+                    raise ValueError(f"Неизвестный сервер: {data.server}")
+                
+                url = COUNTRY_SETTINGS[data.server]["urlcreate"]
+                logger.info("Creating config for user %s on server %s", user["tg_id"], data.server)
+                
+                # Создаем конфиг на панели
+                response = await panel_request(request, url, data.server, payload)
+                
+                if response.status_code == 200:
+                    # Активируем конфиг для пользователя
+                    activation_payload = {
+                        "user_code": uid,
+                        "time_end": user["time_end"],
+                        "tg_id": user["tg_id"]
+                    }
+                    
+                    activation_url = COUNTRY_SETTINGS[data.server]["urlupdate"]
+                    activation_response = await panel_request(request, activation_url, data.server, activation_payload)
+                    
+                    if activation_response.status_code == 200:
+                        # Сохраняем в базу данных
+                        await db.insert_into_db(
+                            tg_id=user["tg_id"],
+                            user_code=uid,
+                            time_end=user["time_end"],
+                            server_country=data.server
+                        )
+                        
+                        success_count += 1
+                        logger.info("Successfully added server %s config for user %s", data.server, user["tg_id"])
+                    else:
+                        error_count += 1
+                        error_msg = f"Failed to activate config for user {user['tg_id']}: {activation_response.status_code}"
+                        errors.append(error_msg)
+                        logger.error(error_msg)
+                else:
+                    error_count += 1
+                    error_msg = f"Failed to create config for user {user['tg_id']}: {response.status_code}"
+                    errors.append(error_msg)
+                    logger.error(error_msg)
+                    
+            except Exception as e:
+                error_count += 1
+                error_msg = f"Error processing user {user['tg_id']}: {str(e)}"
+                errors.append(error_msg)
+                logger.error(error_msg)
+        
+        return {
+            "success": True,
+            "message": f"Обработано {len(active_users)} пользователей",
+            "processed": success_count,
+            "errors": error_count,
+            "error_details": errors[:10] if errors else []  # Показываем только первые 10 ошибок
+        }
+        
+    except Exception as e:
+        logger.error("Error in add_server_to_all_users: %s", e)
+        raise HTTPException(status_code=500, detail=f"Ошибка при добавлении сервера: {str(e)}")
 
 
 @router.get("/", response_class=HTMLResponse)

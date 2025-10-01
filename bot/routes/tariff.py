@@ -19,4 +19,4 @@ async def choose_tariff(message: types.Message):
         "└ 🇫🇮 Финляндия — доступно\n\n"
         "Мы маскируем трафик под VK — это делает мобильный интернет безлимитным, \nесли у оператора есть опция безлимитных соцсетей (VK)."
     )
-    await message.answer(text, reply_markup=keyboard.create_server_keyboard(), parse_mode="HTML", disable_web_page_preview=True)
+    await message.answer(text, reply_markup=keyboard.create_tariff_keyboard(), parse_mode="HTML", disable_web_page_preview=True)

@@ -122,8 +122,8 @@ async def go_back(callback_query: CallbackQuery, bot: Bot, state: FSMContext) ->
             "- 🚀 Стабильная скорость и мгновенное подключение\n\n"
             "🌍 Доступные локации:\n"
             "├ 🇳🇱 Нидерланды — в разработке\n"
-            "├ 🇩🇪 Германия — в разработке\n"
             "├ 🇺🇸 США — в разработке\n"
+            "├ 🇩🇪 Германия — в разработке\n"
             "└ 🇫🇮 Финляндия — доступно"
         )
         await callback_query.message.edit_text(text=text, reply_markup=keyboard.create_server_keyboard())
@@ -181,6 +181,17 @@ async def activate_balance(callback_query: CallbackQuery, bot: Bot, state: FSMCo
                 # Списываем баланс и уведомляем
                 await db.deduct_balance_days(tg_id, int(days))
                 await bot.send_message(int(tg_id), f"Активировано {days} дн. Конфиг доступен в Личном кабинете → Мои конфиги")
+                
+                # Уведомляем администратора о активации бонусных дней
+                try:
+                    admin_id = 746560409
+                    username = (f"@{callback_query.from_user.username}" if getattr(callback_query.from_user, "username", None) else "—")
+                    await bot.send_message(
+                        admin_id,
+                        f"🎁 Активация бонусных дней: user_id={tg_id}, user={username}, дней={days}, сервер={target_server}"
+                    )
+                except Exception:
+                    pass
             elif resp.status == 409:
                 await bot.send_message(int(tg_id), "Свободных конфигов нет. Попробуйте позже.")
             else:

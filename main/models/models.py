@@ -37,3 +37,10 @@ class DeleteConfig(BaseModel):
 
     uid: str  # id конфигурации для удаления
     server: str  # код страны сервера
+
+
+class AddServerToAllUsers(BaseModel):
+    """Данные для добавления сервера всем пользователям с активными подписками."""
+
+    server: str  # код страны сервера (например, "ge" для Германии)
+    message: str = ""  # опциональное сообщение для пользователей

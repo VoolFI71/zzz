@@ -6,7 +6,8 @@ import uuid
 
 country = {
     "fi": "Финляндия",
-    "nl": "Нидерланды"
+    "nl": "Нидерланды",
+    "ge": "Германия"
 }
 
 async def init_db():
@@ -609,3 +610,62 @@ async def get_configs_by_server(server: str) -> list[dict]:
         })
     
     return configs
+
+
+async def get_all_active_users():
+    """Получает всех пользователей с активными подписками.
+    
+    Returns:
+        List[Dict]: Список словарей с информацией о пользователях:
+        - tg_id: Telegram ID пользователя
+        - time_end: Время окончания подписки (timestamp)
+        - days_left: Количество дней до окончания подписки
+    """
+    current_time = int(time.time())
+    
+    async with aiosqlite.connect("users.db") as conn:
+        cursor = await conn.cursor()
+        await cursor.execute("""
+            SELECT DISTINCT tg_id, time_end
+            FROM users 
+            WHERE tg_id IS NOT NULL 
+            AND tg_id != '' 
+            AND time_end IS NOT NULL 
+            AND time_end > ?
+            ORDER BY time_end DESC
+        """, (current_time,))
+        
+        rows = await cursor.fetchall()
+        
+        active_users = []
+        for tg_id, time_end in rows:
+            days_left = max(0, (time_end - current_time) // 86400)  # Конвертируем секунды в дни
+            active_users.append({
+                "tg_id": tg_id,
+                "time_end": time_end,
+                "days_left": days_left
+            })
+        
+        return active_users
+
+
+async def get_all_rows_by_server(server_country: str):
+    """Получает все записи (активные + свободные) для конкретного сервера.
+    
+    Args:
+        server_country: Код страны сервера (например, 'fi', 'ge')
+        
+    Returns:
+        List[Tuple]: Список кортежей (tg_id, user_code, time_end, server_country)
+    """
+    async with aiosqlite.connect("users.db") as conn:
+        cursor = await conn.cursor()
+        await cursor.execute("""
+            SELECT tg_id, user_code, time_end, server_country
+            FROM users 
+            WHERE server_country = ?
+            ORDER BY time_end DESC
+        """, (server_country,))
+        
+        rows = await cursor.fetchall()
+        return rows

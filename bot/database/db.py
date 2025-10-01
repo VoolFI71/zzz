@@ -406,3 +406,35 @@ async def get_or_create_sub_key(tg_id: str) -> str:
             if not sub_key:
                 raise RuntimeError("sub_key missing in response")
             return sub_key
+
+
+async def get_all_active_users():
+    """Получает всех пользователей с активными подписками.
+    
+    Returns:
+        List[Tuple[int, int]]: Список кортежей (user_id, days_left)
+    """
+    import time
+    current_time = int(time.time())
+    
+    async with aiosqlite.connect("users.db") as conn:
+        async with conn.cursor() as cursor:
+            # Получаем всех пользователей с активными конфигами
+            await cursor.execute('''
+                SELECT DISTINCT tg_id, time_end 
+                FROM users 
+                WHERE tg_id IS NOT NULL 
+                AND tg_id != '' 
+                AND time_end > ?
+                AND tg_id NOT LIKE 'reserved_%'
+            ''', (current_time,))
+            
+            rows = await cursor.fetchall()
+            active_users = []
+            
+            for tg_id, time_end in rows:
+                days_left = max(0, (time_end - current_time) // 86400)  # Конвертируем в дни
+                if days_left > 0:
+                    active_users.append((int(tg_id), days_left))
+            
+            return active_users

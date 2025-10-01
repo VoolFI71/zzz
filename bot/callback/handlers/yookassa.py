@@ -29,27 +29,41 @@ async def pay_with_yookassa(callback_query: CallbackQuery, state: FSMContext, bo
         return
     await state.update_data(last_buy_click_ts=now_ts)
 
-    server = user_data.get("server")
-    if not await check_available_configs(server):
-        # Fallback: подберём первый доступный сервер по SERVER_ORDER
-        from utils import pick_first_available_server
-        env_order = os.getenv("SERVER_ORDER", "fi")
-        preferred = []
-        if server:
-            preferred.append(str(server).lower())
-        preferred.extend([s.strip().lower() for s in env_order.split(',') if s.strip()])
-        uniq = []
-        seen = set()
-        for s in preferred:
-            if s and s not in seen:
-                uniq.append(s)
-                seen.add(s)
-        fallback = await pick_first_available_server(uniq)
-        if not fallback:
-            await bot.send_message(callback_query.from_user.id, "Свободных конфигов нет. Попробуйте позже или выберите другой сервер.")
-            return
-        server = fallback
-        await state.update_data(server=server)
+    # Проверяем, есть ли у пользователя уже активные конфиги
+    from database import db
+    existing_configs = await db.get_codes_by_tg_id(callback_query.from_user.id)
+    
+    if existing_configs:
+        # У пользователя есть конфиги - предлагаем продление
+        from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+        await callback_query.message.edit_text(
+            "У вас уже есть активная подписка! Вы хотите продлить её?",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="✅ Продлить подписку", callback_data="extend_yookassa")],
+                [InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_payment")]
+            ])
+        )
+        await callback_query.answer()
+        return
+    
+    # У пользователя нет конфигов - создаем новые на всех серверах
+    # Проверяем доступность конфигов на всех серверах
+    from utils import pick_first_available_server
+    env_order = os.getenv("SERVER_ORDER", "fi")
+    available_servers = [s.strip().lower() for s in env_order.split(',') if s.strip()]
+    
+    # Проверяем каждый сервер
+    servers_to_use = []
+    for server in available_servers:
+        if await check_available_configs(server):
+            servers_to_use.append(server)
+    
+    if not servers_to_use:
+        await bot.send_message(callback_query.from_user.id, "Свободных конфигов нет. Попробуйте позже.")
+        return
+    
+    # Сохраняем список серверов для использования
+    await state.update_data(servers_to_use=servers_to_use)
 
     YOOKASSA_SHOP_ID = os.getenv("YOOKASSA_SHOP_ID")
     YOOKASSA_SECRET = os.getenv("YOOKASSA_SECRET_KEY")
@@ -223,74 +237,48 @@ async def check_yookassa(callback_query: CallbackQuery, state: FSMContext, bot: 
         await state.update_data(yookassa_payment_id=None)
         tg_id = callback_query.from_user.id
         user_data = await state.get_data()
-        # Используем выбранный/обновлённый сервер
-        server = user_data.get("server") or "fi"
         payload = payment.metadata.get("payload") if hasattr(payment, "metadata") else "sub_1m"
         days = 31 if payload == "sub_1m" else 93
 
-        AUTH_CODE = os.getenv("AUTH_CODE")
-        urlupdate = "http://fastapi:8080/giveconfig"
-
-        session = await get_session()
-        data = {"time": days, "id": str(tg_id), "server": server}
+        # Проверяем, есть ли у пользователя уже конфиги
+        existing_configs = await db.get_codes_by_tg_id(tg_id)
+        
+        if existing_configs:
+            # Продлеваем существующие конфиги
+            await extend_existing_configs_yookassa(tg_id, days, bot)
+        else:
+            # Выдаем конфиги на всех серверах
+            servers_to_use = user_data.get("servers_to_use", ["fi"])
+            await give_configs_on_all_servers_yookassa(tg_id, days, servers_to_use, bot)
+        
+        # Записываем платеж в статистику
+        amount = payment.amount.value if hasattr(payment.amount, 'value') else 0
+        await db.mark_payment(tg_id, days)
+        await db.add_rub_payment(amount)
+        
+        # Начисляем бонус рефералу
+        inviter_tg_id = await db.get_referrer_id(str(tg_id))
+        if inviter_tg_id:
+            try:
+                # Начисляем бонусные дни (например, 2 дня)
+                BONUS_DAYS = int(days//10)
+                await db.add_balance_days(str(inviter_tg_id), BONUS_DAYS)
+                try:
+                    await bot.send_message(int(inviter_tg_id),
+                                        f"Ваш реферал оплатил подписку — вам начислено {BONUS_DAYS} дня(ей) бонуса. Вы можете активировать их в личном кабинете. При активации дни не суммируются с текущим конфигом в подписке.")
+                except Exception:
+                    pass
+            except Exception as exc:
+                logger.error("Ошибка начисления бонуса пригласителю %s: %s", inviter_tg_id, exc)
+        
+        # Уведомляем админа
         try:
-            async with session.post(urlupdate, json=data, headers={"X-API-Key": AUTH_CODE}) as resp:
-                if resp.status == 200:
-                    try:
-                        sub_key = await db.get_or_create_sub_key(str(tg_id))
-                        base = os.getenv("PUBLIC_BASE_URL", "https://swaga.space").rstrip('/')
-                        await bot.send_message(tg_id, "Подписка активирована! Конфиг доступен в личном кабинете.")
-                    except Exception:
-                        await bot.send_message(tg_id, "Подписка активирована! Конфиг доступен в личном кабинете. В случае проблем обратитесь в поддержку.")
-                    # Отмечаем оплату в локальной БД
-                    try:
-                        await db.mark_payment(str(tg_id), days)
-                        # Агрегируем рублёвые платежи
-                        amt = 0
-                        try:
-                            price_1m = int(os.getenv("PRICE_1M_RUB", "149"))
-                            price_3m = int(os.getenv("PRICE_3M_RUB", "349"))
-                            amt = price_1m if days == 31 else price_3m
-                        except Exception:
-                            amt = 0
-                        if amt > 0:
-                            try:
-                                await db.add_rub_payment(amt)
-                            except Exception:
-                                pass
-                    except Exception:
-                        pass
-                    inviter_ref_code = await db.get_referrer_id(str(tg_id))
-                    if inviter_ref_code:
-                        inviter_tg_id = await db.get_tg_id_by_referral_code(str(inviter_ref_code))
-                        if inviter_tg_id:
-                            try:
-                                BONUS_DAYS = int(days//10)
-                                await db.add_balance_days(str(inviter_tg_id), BONUS_DAYS)
-                                try:
-                                    await bot.send_message(int(inviter_tg_id),
-                                                        f"Ваш реферал оплатил подписку — вам начислено {BONUS_DAYS} дня(ей) бонуса. Вы можете активировать их в личном кабинете. При активации дни не суммируются с текущим конфигом в подписке.")
-                                except Exception:
-                                    pass
-                            except Exception as exc:
-                                logger.error("Ошибка начисления бонуса пригласителю %s: %s", inviter_tg_id, exc)
-                        else:
-                            logger.warning("Не удалось найти tg_id по referral_code %s", inviter_ref_code)
-
-                    try:
-                        admin_id = 746560409
-                        if admin_id:
-                            at_username = (f"@{callback_query.from_user.username}" if getattr(callback_query.from_user, "username", None) else "—")
-                            await bot.send_message(admin_id, f"Оплачена подписка через YooKassa: user_id={tg_id}, user={at_username}, срок={days} дн., сервер={server}")
-                    except Exception:
-                        pass
-                elif resp.status == 409:
-                    await bot.send_message(tg_id, "Свободных конфигов нет. Свяжитесь с поддержкой.")
-                else:
-                    await bot.send_message(tg_id, f"Ошибка сервера ({resp.status}). Попробуйте позже.")
-        except Exception as exc:
-            logger.error("Ошибка обращения к FastAPI: %s", exc)
-            await bot.send_message(tg_id, "Ошибка сети. Попробуйте позже или напишите в поддержку.")
+            admin_id = 746560409
+            if admin_id:
+                at_username = (f"@{callback_query.from_user.username}" if getattr(callback_query.from_user, "username", None) else "—")
+                await bot.send_message(admin_id, f"Оплачена подписка через YooKassa: user_id={tg_id}, user={at_username}, срок={days} дн.")
+        except Exception:
+            pass
 
         # Удаляем сообщение с кнопкой оплаты, если оно есть
         try:
@@ -304,5 +292,127 @@ async def check_yookassa(callback_query: CallbackQuery, state: FSMContext, bot: 
                 await state.update_data(yookassa_msg_id=None)
         except Exception:
             pass
+
+
+async def give_configs_on_all_servers_yookassa(tg_id: int, days: int, servers: list, bot: Bot) -> None:
+    """Выдает конфиги на всех указанных серверах для нового пользователя (YooKassa)."""
+    from utils import get_session
+    import aiohttp
+    
+    AUTH_CODE = os.getenv("AUTH_CODE")
+    urlupdate = "http://fastapi:8080/giveconfig"
+    session = await get_session()
+    
+    success_count = 0
+    failed_servers = []
+    
+    for server in servers:
+        try:
+            data = {"time": days, "id": str(tg_id), "server": server}
+            async with session.post(urlupdate, json=data, headers={"X-API-Key": AUTH_CODE}) as resp:
+                if resp.status == 200:
+                    success_count += 1
+                else:
+                    failed_servers.append(server)
+        except Exception as e:
+            logger.error(f"Failed to create config on server {server}: {e}")
+            failed_servers.append(server)
+    
+    # Уведомляем пользователя о результате
+    if success_count > 0:
+        try:
+            sub_key = await db.get_or_create_sub_key(str(tg_id))
+            base = os.getenv("PUBLIC_BASE_URL", "https://swaga.space").rstrip('/')
+            sub_url = f"{base}/subscription/{sub_key}"
+            await bot.send_message(tg_id, f"✅ Подписка активирована на {success_count} серверах!\n\nВаша ссылка подписки: {sub_url}")
+        except Exception:
+            await bot.send_message(tg_id, f"✅ Подписка активирована на {success_count} серверах!")
+    
+    if failed_servers:
+        await bot.send_message(tg_id, f"⚠️ Не удалось создать конфиги на серверах: {', '.join(failed_servers)}")
+
+
+async def extend_existing_configs_yookassa(tg_id: int, days: int, bot: Bot) -> None:
+    """Продлевает существующие конфиги пользователя (YooKassa)."""
+    from utils import get_session
+    import aiohttp
+    
+    AUTH_CODE = os.getenv("AUTH_CODE")
+    urlextend = "http://fastapi:8080/extendconfig"
+    session = await get_session()
+    
+    # Получаем все конфиги пользователя
+    existing_configs = await db.get_codes_by_tg_id(tg_id)
+    success_count = 0
+    failed_configs = []
+    
+    for user_code, time_end, server in existing_configs:
+        try:
+            data = {"time": days, "uid": user_code, "server": server}
+            async with session.post(urlextend, json=data, headers={"X-API-Key": AUTH_CODE}) as resp:
+                if resp.status == 200:
+                    success_count += 1
+                else:
+                    failed_configs.append(user_code)
+        except Exception as e:
+            logger.error(f"Failed to extend config {user_code}: {e}")
+            failed_configs.append(user_code)
+    
+    # Уведомляем пользователя о результате
+    if success_count > 0:
+        await bot.send_message(tg_id, f"✅ Подписка продлена на {success_count} конфигах!")
+    
+    if failed_configs:
+        await bot.send_message(tg_id, f"⚠️ Не удалось продлить {len(failed_configs)} конфигов")
+
+
+@yookassa_router.callback_query(F.data == "extend_yookassa")
+async def extend_yookassa_handler(callback_query: CallbackQuery, state: FSMContext, bot: Bot) -> None:
+    """Обработчик продления подписки через YooKassa."""
+    tg_id = callback_query.from_user.id
+    user_data = await state.get_data()
+    days = int(user_data.get("selected_days", 31))
+    
+    # Создаем платеж для продления
+    payload = "sub_1m" if days == 31 else "sub_3m"
+    price_1m = int(os.getenv("PRICE_1M_RUB", "149"))
+    price_3m = int(os.getenv("PRICE_3M_RUB", "349"))
+    amount = price_1m if days == 31 else price_3m
+    
+    YOOKASSA_SHOP_ID = os.getenv("YOOKASSA_SHOP_ID")
+    YOOKASSA_SECRET = os.getenv("YOOKASSA_SECRET_KEY")
+    
+    if not (YOOKASSA_SHOP_ID and YOOKASSA_SECRET):
+        await callback_query.answer("Платёж недоступен: YooKassa не настроена", show_alert=True)
+        return
+    
+    Configuration.account_id = YOOKASSA_SHOP_ID
+    Configuration.secret_key = YOOKASSA_SECRET
+    
+    try:
+        payment = Payment.create({
+            "amount": {"value": str(amount), "currency": "RUB"},
+            "confirmation": {"type": "redirect", "return_url": "https://t.me/your_bot"},
+            "capture": True,
+            "description": f"Продление подписки GLS VPN — {days} дн.",
+            "metadata": {"payload": payload}
+        })
+        
+        await state.update_data(yookassa_payment_id=payment.id)
+        await callback_query.message.edit_text(
+            f"💳 <b>Продление подписки GLS VPN — {days} дн.</b>\n\n"
+            f"Сумма: {amount} ₽\n\n"
+            f"Нажмите кнопку ниже для оплаты:",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="💳 Оплатить", url=payment.confirmation.confirmation_url)],
+                [InlineKeyboardButton(text="✅ Проверить оплату", callback_data="check_yookassa")],
+                [InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_payment")]
+            ]),
+            parse_mode="HTML"
+        )
+        await callback_query.answer("Счёт для продления создан!")
+    except Exception as e:
+        logger.error(f"Failed to create YooKassa payment: {e}")
+        await callback_query.answer("Ошибка создания счёта", show_alert=True)
 
 
