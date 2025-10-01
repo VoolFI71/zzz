@@ -164,17 +164,7 @@ async def activate_balance(callback_query: CallbackQuery, bot: Bot, state: FSMCo
         env_order = os.getenv("SERVER_ORDER", "fi,ge")
         servers_to_use = [s.strip().lower() for s in env_order.split(',') if s.strip()]
         
-        # Проверяем доступность каждого сервера
-        available_servers = []
-        for server in servers_to_use:
-            if await check_available_configs(server):
-                available_servers.append(server)
-        
-        if not available_servers:
-            await callback_query.answer("Свободных конфигов нет", show_alert=True)
-            return
-        
-        await give_configs_on_all_servers_balance(tg_id, days, available_servers, bot)
+        await give_configs_on_all_servers_balance(tg_id, days, servers_to_use, bot)
     
     try:
         await callback_query.answer()

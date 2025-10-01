@@ -900,14 +900,15 @@ async def check_available_configs(
         )
     else:
         # Проверяем доступность для конкретного сервера
-        available_config = await db.get_one_expired_client(server)
+        available_count = await db.count_available_configs(server)
         return JSONResponse(
             content={
-                "available": bool(available_config),
+                "available": available_count > 0,
+                "count": available_count,
                 "message": (
-                    "Свободные конфиги доступны"
-                    if available_config
-                    else "Свободных конфигов в данный момент нет"
+                    f"Доступно {available_count} свободных конфигов на сервере {server}"
+                    if available_count > 0
+                    else f"Свободных конфигов на сервере {server} нет"
                 ),
             }
         )

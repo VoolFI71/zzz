@@ -126,6 +126,22 @@ async def get_one_expired_client(server_country: str | None = None):
     
     return expired_client
 
+
+async def count_available_configs(server_country: str) -> int:
+    """Подсчитывает количество свободных конфигов на конкретном сервере."""
+    async with aiosqlite.connect("users.db") as conn:
+        async with conn.cursor() as cursor:
+            current_time = int(time.time())
+            
+            await cursor.execute('''
+                SELECT COUNT(*) FROM users
+                WHERE (time_end = 0 OR time_end < ?)
+                  AND server_country = ?
+            ''', (current_time, server_country))
+            
+            count = await cursor.fetchone()
+            return count[0] if count else 0
+
 async def has_any_expired_configs() -> bool:
     """Проверяет, есть ли хотя бы один истекший конфиг на любом сервере."""
     async with aiosqlite.connect("users.db") as conn:

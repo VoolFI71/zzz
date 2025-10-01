@@ -47,21 +47,11 @@ async def free_trial(message: types.Message):
         return
 
     # Выдаем конфиги на всех серверах из SERVER_ORDER (как при покупке подписки)
-    from utils import get_session, check_available_configs
+    from utils import get_session
     server_order_env = os.getenv("SERVER_ORDER", "fi,ge")
     servers_to_use = [s.strip().lower() for s in server_order_env.split(',') if s.strip()]
-    
-    # Проверяем доступность каждого сервера
-    available_servers = []
-    for server in servers_to_use:
-        if await check_available_configs(server):
-            available_servers.append(server)
-    
-    if not available_servers:
-        await message.answer("Свободных конфигов нет. Попробуйте позже.")
-        return
 
-    # Выдаём бесплатные 3 дня на всех доступных серверах
+    # Выдаём бесплатные 3 дня на всех серверах
     AUTH_CODE = os.getenv("AUTH_CODE")
     urlupdate = "http://fastapi:8080/giveconfig"
     success_count = 0
@@ -70,7 +60,7 @@ async def free_trial(message: types.Message):
     try:
         session = await get_session()
         async with acquire_action_lock(user_id, "free_trial"):
-            for server in available_servers:
+            for server in servers_to_use:
                 data = {"time": 3, "id": str(user_id), "server": server}
                 async with session.post(urlupdate, json=data, headers={"X-API-Key": AUTH_CODE}) as resp:
                     if resp.status == 200:
