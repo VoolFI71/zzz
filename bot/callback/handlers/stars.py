@@ -182,7 +182,7 @@ async def successful_payment_handler(message: Message, bot: Bot, state: FSMConte
             await db.add_balance_days(str(inviter_tg_id), BONUS_DAYS)
             try:
                 await bot.send_message(int(inviter_tg_id),
-                                    f"Ваш реферал оплатил подписку — вам начислено {BONUS_DAYS} дня(ей) бонуса. Вы можете активировать их в личном кабинете. При активации дни не суммируются с текущим конфигом в подписке.")
+                                    f"Ваш реферал оплатил подписку — вам начислено {BONUS_DAYS} дня(ей) бонуса. Вы можете активировать их в личном кабинете")
             except Exception:
                 pass
         except Exception as exc:

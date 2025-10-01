@@ -40,7 +40,7 @@ async def start_command(message: types.Message):
                     await db.add_balance_days(str(owner_tg_id), 2)
                     await message.bot.send_message(
                         int(owner_tg_id),
-                        "Новый пользователь перешёл по вашей реферальной ссылке. На баланс начислено +2 дня. Активируйте дни в Личном кабинете."
+                        "Новый пользователь перешёл по вашей реферальной ссылке. На баланс начислено +2 дня. Активируйте дни в Личном кабинете — они продлят все ваши конфиги."
                     )
                     # Уведомление администратору о реферальной активации
                     try:
@@ -73,7 +73,7 @@ async def start_command(message: types.Message):
                     await db.add_balance_days(str(owner_tg_id), 15)
                     await message.bot.send_message(
                         int(owner_tg_id),
-                        "Поздравляем! Вы пригласили 7 друзей. На ваш баланс начислено дополнительно +15 дней."
+                        "Поздравляем! Вы пригласили 7 друзей. На ваш баланс начислено дополнительно +15 дней. Активируйте дни в Личном кабинете — они продлят все ваши конфиги."
                     )
                 except Exception:
                     logger.exception("Failed to grant +15d milestone bonus to %s", owner_tg_id)
