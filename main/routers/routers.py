@@ -483,42 +483,65 @@ async def delete_config(
 # Сервисные эндпоинты
 # ---------------------------------------------------------------------------
 
-@router.delete(
+@router.post(
     "/delete-all-configs",
-    response_model=str,
+    response_model=dict,
 )
-async def delete_all_configs(request: Request, _: None = Depends(verify_api_key)) -> str:  # noqa: D401
-    """Удаляет все конфиги: сначала на панели, затем в БД."""
-    rows = await db.get_all_user_codes()
+async def delete_all_configs(
+    request: Request, 
+    server: str = Body(..., description="Код сервера для удаления конфигов (например, ge)"),
+    _: None = Depends(verify_api_key)
+) -> dict:
+    """Удаляет все конфиги с указанного сервера: сначала на панели, затем в БД."""
+    if server not in COUNTRY_SETTINGS:
+        raise HTTPException(status_code=400, detail=f"Неизвестный сервер: {server}")
+    
+    # Получаем все конфиги с указанного сервера
+    rows = await db.get_all_rows_by_server(server)
     if not rows:
-        return "Нет конфигов для удаления"
+        return {
+            "message": f"Нет конфигов на сервере {server}",
+            "deleted": 0,
+            "failed": 0
+        }
 
     deleted, failed = 0, 0
-    for uid, server in rows:
+    errors = []
+    
+    for row in rows:
+        tg_id, user_code, time_end, server_country = row
+        
+        if not user_code:
+            continue
         # 1. Пытаемся удалить конфиг на панели управления
         try:
-            url = f"{COUNTRY_SETTINGS[server]['urldelete']}{uid}"
-        except KeyError:
-            logger.error("Unknown server country %s for uid %s", server, uid)
+            url = f"{COUNTRY_SETTINGS[server]['urldelete']}{user_code}"
+            response = await panel_request(request, url, server)
+            
+            if response.status_code == 200:
+                # 2. Удаляем запись из БД
+                await db.delete_user_code(user_code)
+                deleted += 1
+                logger.info("Successfully deleted config %s from server %s", user_code, server)
+            else:
+                failed += 1
+                error_msg = f"Failed to delete {user_code} on panel: {response.status_code}"
+                errors.append(error_msg)
+                logger.error(error_msg)
+                
+        except Exception as e:
             failed += 1
-            continue
+            error_msg = f"Error deleting {user_code}: {str(e)}"
+            errors.append(error_msg)
+            logger.error(error_msg)
 
-        response = await panel_request(request, url, server)
-        if response.status_code == 200:
-            # 2. Удаляем запись из БД
-            await db.delete_user_code(uid)
-            deleted += 1
-        else:
-            logger.error(
-                "Failed to delete config %s on panel: %s / %s",
-                uid,
-                response.status_code,
-                response.text,
-            )
-            failed += 1
-
-    logger.info("Bulk delete done: success=%s, failed=%s", deleted, failed)
-    return f"Удалено {deleted} конфигураций, ошибок {failed}"
+    logger.info("Bulk delete done for server %s: success=%s, failed=%s", server, deleted, failed)
+    return {
+        "message": f"Удаление конфигов с сервера {server} завершено",
+        "deleted": deleted,
+        "failed": failed,
+        "error_details": errors[:10] if errors else []
+    }
 
 
 @router.delete(

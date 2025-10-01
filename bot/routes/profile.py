@@ -37,10 +37,9 @@ async def free_trial(message: types.Message):
     if throttled:
         await message.answer(f"Слишком часто. Попробуйте через {int(retry_after)+1} сек.")
         return
-    from database import db as user_db
     try:
-        await user_db.ensure_user_row(str(user_id))
-        if await user_db.has_used_trial_3d(str(user_id)):
+        await db.ensure_user_row(str(user_id))
+        if await db.has_used_trial_3d(str(user_id)):
             await message.answer("Вы уже активировали пробную подписку ранее.")
             return
     except Exception:

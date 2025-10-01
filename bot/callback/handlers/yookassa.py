@@ -21,7 +21,6 @@ from yookassa import Configuration, Payment
 
 @yookassa_router.callback_query(F.data == "pay_cash")
 async def pay_with_yookassa(callback_query: CallbackQuery, state: FSMContext, bot: Bot) -> None:
-    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
     
     user_data = await state.get_data()
     now_ts = int(time.time())

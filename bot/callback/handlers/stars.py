@@ -41,7 +41,6 @@ async def pay_with_stars(callback_query: CallbackQuery, state: FSMContext, bot: 
         return
 
     # Проверяем, есть ли у пользователя уже активные конфиги
-    from database import db
     existing_configs = await db.get_codes_by_tg_id(tg_id)
     
     if existing_configs:

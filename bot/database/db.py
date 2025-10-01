@@ -59,8 +59,6 @@ async def init_db():
 
 user_locks = {}
 
-import aiosqlite
-
 DB_PATH = "users.db"
 
 async def get_referrer_id(user_tg_id: str):
