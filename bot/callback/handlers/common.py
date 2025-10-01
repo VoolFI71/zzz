@@ -230,30 +230,42 @@ async def extend_existing_configs_balance(tg_id: int, days: int, bot: Bot) -> No
     import aiohttp
     
     AUTH_CODE = os.getenv("AUTH_CODE")
-    urlupdate = "http://fastapi:8080/extendconfig"
+    urlextend = "http://fastapi:8080/extendconfig"
     session = await get_session()
     
-    try:
-        data = {"time": days, "id": str(tg_id)}
-        async with session.post(urlupdate, json=data, headers={"X-API-Key": AUTH_CODE}) as resp:
-            if resp.status == 200:
-                # Списываем баланс и уведомляем
-                await db.deduct_balance_days(tg_id, int(days))
-                await bot.send_message(int(tg_id), f"✅ Продлено на {days} дн. Конфиг доступен в Личном кабинете → Мои конфиги")
-                
-                # Уведомляем администратора о активации бонусных дней
-                try:
-                    admin_id = 746560409
-                    await bot.send_message(
-                        admin_id,
-                        f"🎁 Продление бонусных дней: user_id={tg_id}, дней={days}"
-                    )
-                except Exception:
-                    pass
-            elif resp.status == 409:
-                await bot.send_message(int(tg_id), "Свободных конфигов нет. Попробуйте позже.")
-            else:
-                await bot.send_message(int(tg_id), f"Ошибка сервера ({resp.status}). Попробуйте позже.")
-    except (aiohttp.ClientError, Exception):
-        await bot.send_message(int(tg_id), "Ошибка сети. Попробуйте позже.")
+    # Получаем все конфиги пользователя
+    existing_configs = await db.get_codes_by_tg_id(tg_id)
+    success_count = 0
+    failed_configs = []
+    
+    for user_code, time_end, server in existing_configs:
+        try:
+            data = {"time": days, "uid": user_code, "server": server}
+            async with session.post(urlextend, json=data, headers={"X-API-Key": AUTH_CODE}) as resp:
+                if resp.status == 200:
+                    success_count += 1
+                else:
+                    failed_configs.append(user_code)
+        except Exception as e:
+            print(f"Failed to extend config {user_code}: {e}")
+            failed_configs.append(user_code)
+    
+    # Уведомляем пользователя о результате
+    if success_count > 0:
+        # Списываем баланс и уведомляем
+        await db.deduct_balance_days(tg_id, int(days))
+        await bot.send_message(int(tg_id), f"✅ Продлено на {success_count} конфигах! Конфиги доступны в Личном кабинете → Мои конфиги")
+        
+        # Уведомляем администратора о активации бонусных дней
+        try:
+            admin_id = 746560409
+            await bot.send_message(
+                admin_id,
+                f"🎁 Продление бонусных дней: user_id={tg_id}, дней={days}, конфигов={success_count}"
+            )
+        except Exception:
+            pass
+    
+    if failed_configs:
+        await bot.send_message(int(tg_id), f"⚠️ Не удалось продлить {len(failed_configs)} конфигов")
 
