@@ -489,10 +489,14 @@ async def delete_config(
 )
 async def delete_all_configs(
     request: Request, 
-    server: str = Body(..., description="Код сервера для удаления конфигов (например, ge)"),
+    data: dict = Body(..., description="JSON объект с полем server"),
     _: None = Depends(verify_api_key)
 ) -> dict:
     """Удаляет все конфиги с указанного сервера: сначала на панели, затем в БД."""
+    server = data.get("server")
+    if not server:
+        raise HTTPException(status_code=400, detail="Поле 'server' обязательно")
+    
     if server not in COUNTRY_SETTINGS:
         raise HTTPException(status_code=400, detail=f"Неизвестный сервер: {server}")
     

@@ -182,10 +182,12 @@ async def my_configs(message: types.Message):
                         server_titles = {
                             'fi': 'Финляндия',
                             'nl': 'Нидерланды',
+                            'ge': 'Германия',
                         }
                         server_flags = {
                             'fi': '🇫🇮',
                             'nl': '🇳🇱',
+                            'ge': '🇩🇪',
                         }
 
                         def _fmt_duration(seconds: int) -> str:

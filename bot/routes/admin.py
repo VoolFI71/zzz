@@ -911,8 +911,9 @@ async def show_config_management(callback: types.CallbackQuery):
             f"• Активных: {config_stats['active']}\n"
             f"• Истекших: {config_stats['expired']}\n"
             f"• Свободных: {config_stats['free']}\n"
-            f"• FI сервер: {config_stats['fi_count']}\n"
-            f"• NL сервер: {config_stats['nl_count']}"
+            f"• 🇫🇮 Финляндия: {config_stats['fi_count']}\n"
+            f"• 🇳🇱 Нидерланды: {config_stats['nl_count']}\n"
+            f"• 🇩🇪 Германия: {config_stats['ge_count']}"
         )
         
         await callback.message.edit_text(stats_text, reply_markup=keyboard)
@@ -994,8 +995,9 @@ async def show_detailed_stats(callback: types.CallbackQuery):
             f"• Всего: {detailed_stats['configs']['total']}\n"
             f"• Активных: {detailed_stats['configs']['active']}\n"
             f"• Истекших: {detailed_stats['configs']['expired']}\n"
-            f"• FI сервер: {detailed_stats['configs']['fi']}\n"
-            f"• NL сервер: {detailed_stats['configs']['nl']}\n\n"
+            f"• 🇫🇮 Финляндия: {detailed_stats['configs']['fi']}\n"
+            f"• 🇳🇱 Нидерланды: {detailed_stats['configs']['nl']}\n"
+            f"• 🇩🇪 Германия: {detailed_stats['configs']['ge']}\n\n"
             f"🤝 Рефералы:\n"
             f"• Общее количество: {detailed_stats['referrals']['total']}\n"
             f"• Топ реферер: {detailed_stats['referrals']['top_referrer']}"
@@ -1123,7 +1125,7 @@ async def get_config_statistics() -> dict:
                     logger.error(f"API error getting all configs: {resp.status}")
                     return {
                         'total': 0, 'active': 0, 'expired': 0, 'free': 0,
-                        'fi_count': 0, 'nl_count': 0
+                        'fi_count': 0, 'nl_count': 0, 'ge_count': 0
                     }
                 
                 try:
@@ -1132,7 +1134,7 @@ async def get_config_statistics() -> dict:
                     logger.error(f"Invalid JSON response: {e}")
                     return {
                         'total': 0, 'active': 0, 'expired': 0, 'free': 0,
-                        'fi_count': 0, 'nl_count': 0
+                        'fi_count': 0, 'nl_count': 0, 'ge_count': 0
                     }
                 
                 configs = data.get('configs', [])
@@ -1144,6 +1146,7 @@ async def get_config_statistics() -> dict:
                 free = len([c for c in configs if c.get('time_end', 0) == 0])
                 fi_count = len([c for c in configs if c.get('server_country') == 'fi'])
                 nl_count = len([c for c in configs if c.get('server_country') == 'nl'])
+                ge_count = len([c for c in configs if c.get('server_country') == 'ge'])
                 
                 return {
                     'total': total,
@@ -1151,19 +1154,20 @@ async def get_config_statistics() -> dict:
                     'expired': expired,
                     'free': free,
                     'fi_count': fi_count,
-                    'nl_count': nl_count
+                    'nl_count': nl_count,
+                    'ge_count': ge_count
                 }
     except aiohttp.ClientError as e:
         logger.error(f"Network error getting config statistics: {e}")
         return {
             'total': 0, 'active': 0, 'expired': 0, 'free': 0,
-            'fi_count': 0, 'nl_count': 0
+            'fi_count': 0, 'nl_count': 0, 'ge_count': 0
         }
     except Exception as e:
         logger.error(f"Error getting config statistics: {e}")
         return {
             'total': 0, 'active': 0, 'expired': 0, 'free': 0,
-            'fi_count': 0, 'nl_count': 0
+            'fi_count': 0, 'nl_count': 0, 'ge_count': 0
         }
 
 async def get_config_info(uid: str) -> dict | None:
@@ -1267,7 +1271,8 @@ async def get_detailed_statistics() -> dict:
                 'active': config_stats['active'],
                 'expired': config_stats['expired'],
                 'fi': config_stats['fi_count'],
-                'nl': config_stats['nl_count']
+                'nl': config_stats['nl_count'],
+                'ge': config_stats['ge_count']
             },
             'referrals': {
                 'total': total_referrals,
@@ -1278,7 +1283,7 @@ async def get_detailed_statistics() -> dict:
         logger.error(f"Error getting detailed statistics: {e}")
         return {
             'users': {'total': 0, 'active': 0, 'trial_used': 0, 'with_balance': 0},
-            'configs': {'total': 0, 'active': 0, 'expired': 0, 'fi': 0, 'nl': 0},
+            'configs': {'total': 0, 'active': 0, 'expired': 0, 'fi': 0, 'nl': 0, 'ge': 0},
             'referrals': {'total': 0, 'top_referrer': 'Нет данных'}
         }
 
@@ -1473,7 +1478,8 @@ async def show_config_statistics(callback: types.CallbackQuery):
             f"• Свободных: {config_stats['free']}\n\n"
             f"🌍 По серверам:\n"
             f"• 🇫🇮 Финляндия: {config_stats['fi_count']}\n"
-            f"• 🇳🇱 Нидерланды: {config_stats['nl_count']}\n\n"
+            f"• 🇳🇱 Нидерланды: {config_stats['nl_count']}\n"
+            f"• 🇩🇪 Германия: {config_stats['ge_count']}\n\n"
             f"⏰ Истекающие:\n"
             f"• В ближайшие 24 часа: {expiring_soon}\n"
             f"• В ближайшие 7 дней: {expiring_week}\n\n"
