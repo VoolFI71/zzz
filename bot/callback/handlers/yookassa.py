@@ -33,6 +33,9 @@ async def pay_with_yookassa(callback_query: CallbackQuery, state: FSMContext, bo
     # Проверяем, есть ли у пользователя уже АКТИВНЫЕ конфиги
     existing_configs = await db.get_active_configs_by_tg_id(callback_query.from_user.id)
     
+    # Отладочная информация
+    print(f"DEBUG: User {callback_query.from_user.id} has {len(existing_configs)} active configs: {existing_configs}")
+    
     if existing_configs:
         # У пользователя есть конфиги - предлагаем продление
         await callback_query.message.edit_text(

@@ -458,7 +458,8 @@ async def get_all_configs_with_status() -> list[dict]:
             "uid": user_code,
             "time_end": time_end,
             "is_owned": is_owned,
-            "server_country": server_country
+            "server_country": server_country,
+            "tg_id": tg_id if tg_id else None
         })
     
     return configs
