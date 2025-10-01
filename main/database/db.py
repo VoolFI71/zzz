@@ -614,11 +614,12 @@ async def get_configs_by_server(server: str) -> list[dict]:
 
 async def get_all_active_users():
     """Получает всех пользователей с активными подписками.
+    Для каждого пользователя возвращает только максимальное время подписки.
     
     Returns:
         List[Dict]: Список словарей с информацией о пользователях:
         - tg_id: Telegram ID пользователя
-        - time_end: Время окончания подписки (timestamp)
+        - time_end: Максимальное время окончания подписки (timestamp)
         - days_left: Количество дней до окончания подписки
     """
     current_time = int(time.time())
@@ -626,13 +627,14 @@ async def get_all_active_users():
     async with aiosqlite.connect("users.db") as conn:
         cursor = await conn.cursor()
         await cursor.execute("""
-            SELECT DISTINCT tg_id, time_end
+            SELECT tg_id, MAX(time_end) as max_time_end
             FROM users 
             WHERE tg_id IS NOT NULL 
             AND tg_id != '' 
             AND time_end IS NOT NULL 
             AND time_end > ?
-            ORDER BY time_end DESC
+            GROUP BY tg_id
+            ORDER BY max_time_end DESC
         """, (current_time,))
         
         rows = await cursor.fetchall()
@@ -669,3 +671,4 @@ async def get_all_rows_by_server(server_country: str):
         
         rows = await cursor.fetchall()
         return rows
+

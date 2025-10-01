@@ -1156,47 +1156,33 @@ async def add_server_to_all_users(
         # Обрабатываем каждого пользователя
         for user in active_users:
             try:
-                # Создаем новый конфиг для пользователя на указанном сервере
+                # Создаем конфиг для пользователя на указанном сервере
                 uid = str(uuid.uuid4())
-                payload = build_payload(uid, enable=False)
                 
                 # Получаем URL для создания конфига на указанном сервере
                 if data.server not in COUNTRY_SETTINGS:
                     raise ValueError(f"Неизвестный сервер: {data.server}")
                 
+                # Создаем конфиг на панели с активацией сразу
+                payload = build_payload(uid, enable=True, expiry_time=user["time_end"])
                 url = COUNTRY_SETTINGS[data.server]["urlcreate"]
-                logger.info("Creating config for user %s on server %s", user["tg_id"], data.server)
                 
-                # Создаем конфиг на панели
+                logger.info("Creating and activating config for user %s on server %s", user["tg_id"], data.server)
+                
+                # Создаем конфиг на панели с активацией
                 response = await panel_request(request, url, data.server, payload)
                 
                 if response.status_code == 200:
-                    # Активируем конфиг для пользователя
-                    activation_payload = {
-                        "user_code": uid,
-                        "time_end": user["time_end"],
-                        "tg_id": user["tg_id"]
-                    }
+                    # Сохраняем в базу данных как активный конфиг
+                    await db.insert_into_db(
+                        tg_id=user["tg_id"],
+                        user_code=uid,
+                        time_end=user["time_end"],
+                        server_country=data.server
+                    )
                     
-                    activation_url = COUNTRY_SETTINGS[data.server]["urlupdate"]
-                    activation_response = await panel_request(request, activation_url, data.server, activation_payload)
-                    
-                    if activation_response.status_code == 200:
-                        # Сохраняем в базу данных
-                        await db.insert_into_db(
-                            tg_id=user["tg_id"],
-                            user_code=uid,
-                            time_end=user["time_end"],
-                            server_country=data.server
-                        )
-                        
-                        success_count += 1
-                        logger.info("Successfully added server %s config for user %s", data.server, user["tg_id"])
-                    else:
-                        error_count += 1
-                        error_msg = f"Failed to activate config for user {user['tg_id']}: {activation_response.status_code}"
-                        errors.append(error_msg)
-                        logger.error(error_msg)
+                    success_count += 1
+                    logger.info("Successfully created and activated config %s for user %s", uid, user["tg_id"])
                 else:
                     error_count += 1
                     error_msg = f"Failed to create config for user {user['tg_id']}: {response.status_code}"
