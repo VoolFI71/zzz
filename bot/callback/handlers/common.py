@@ -153,8 +153,8 @@ async def activate_balance(callback_query: CallbackQuery, bot: Bot, state: FSMCo
     if days <= 0:
         await callback_query.answer("Баланс пуст", show_alert=True)
         return
-    # Проверяем, есть ли у пользователя уже конфиги
-    existing_configs = await db.get_codes_by_tg_id(tg_id)
+    # Проверяем, есть ли у пользователя уже АКТИВНЫЕ конфиги
+    existing_configs = await db.get_active_configs_by_tg_id(tg_id)
     
     if existing_configs:
         # Продлеваем существующие конфиги
@@ -233,8 +233,8 @@ async def extend_existing_configs_balance(tg_id: int, days: int, bot: Bot) -> No
     urlextend = "http://fastapi:8080/extendconfig"
     session = await get_session()
     
-    # Получаем все конфиги пользователя
-    existing_configs = await db.get_codes_by_tg_id(tg_id)
+    # Получаем все АКТИВНЫЕ конфиги пользователя
+    existing_configs = await db.get_active_configs_by_tg_id(tg_id)
     success_count = 0
     failed_configs = []
     

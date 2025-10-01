@@ -238,8 +238,12 @@ async def my_configs(message: types.Message):
 
                         sub_key = data.get("sub_key")
                         if not sub_key:
-                            await message.answer("Не удалось получить sub_key.", reply_markup=keyboard.create_profile_keyboard())
-                            return
+                            # Пытаемся создать sub_key принудительно
+                            try:
+                                sub_key = await db.get_or_create_sub_key(str(user_id))
+                            except Exception:
+                                await message.answer("Не удалось получить sub_key.", reply_markup=keyboard.create_profile_keyboard())
+                                return
 
                         web_url = f"https://swaga.space/subscription/{sub_key}"
                         inline_kb = InlineKeyboardMarkup(inline_keyboard=[
@@ -277,8 +281,12 @@ async def copy_subscription_callback(callback: types.CallbackQuery):
                 data = await resp.json()
                 sub_key = data.get("sub_key")
                 if not sub_key:
-                    await callback.answer("Нет ссылки", show_alert=True)
-                    return
+                    # Пытаемся создать sub_key принудительно
+                    try:
+                        sub_key = await db.get_or_create_sub_key(str(user_id))
+                    except Exception:
+                        await callback.answer("Нет ссылки", show_alert=True)
+                        return
         base = os.getenv("PUBLIC_BASE_URL", "https://swaga.space").rstrip('/')
         web_url = f"{base}/subscription/{sub_key}"
         # Редактируем текущее сообщение: показываем только ссылку без кнопок

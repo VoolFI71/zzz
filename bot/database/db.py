@@ -372,7 +372,11 @@ async def build_subscription_kb(user_id: int):
 
     sub_key = data.get("sub_key")
     if not sub_key:
-        return None
+        # Пытаемся создать sub_key принудительно
+        try:
+            sub_key = await get_or_create_sub_key(str(user_id))
+        except Exception:
+            return None
 
     base = os.getenv("PUBLIC_BASE_URL", "https://swaga.space").rstrip('/')
     web_url = f"{base}/subscription/{sub_key}"
@@ -481,4 +485,40 @@ async def get_codes_by_tg_id(tg_id):
                 return []
     except Exception as e:
         print(f"Error getting user configs: {e}")
+        return []
+
+
+async def get_active_configs_by_tg_id(tg_id):
+    """Получает только АКТИВНЫЕ конфиги пользователя по его Telegram ID через API бэкенда."""
+    from utils import get_session
+    import aiohttp
+    import time
+    
+    AUTH_CODE = os.getenv("AUTH_CODE")
+    base_url = "http://fastapi:8080"
+    url = f"{base_url}/getids"
+    headers = {"X-API-Key": AUTH_CODE} if AUTH_CODE else {}
+    
+    try:
+        session = await get_session()
+        async with session.get(url, headers=headers) as response:
+            if response.status == 200:
+                data = await response.json()
+                current_time = int(time.time())
+                # Фильтруем только АКТИВНЫЕ конфиги для конкретного пользователя
+                active_configs = []
+                for config in data.get("configs", []):
+                    if (config.get("tg_id") == str(tg_id) and 
+                        config.get("time_end") and 
+                        config.get("time_end") > current_time):
+                        active_configs.append((
+                            config.get("uid"),
+                            config.get("time_end"),
+                            config.get("server_country")
+                        ))
+                return active_configs
+            else:
+                return []
+    except Exception as e:
+        print(f"Error getting active user configs: {e}")
         return []

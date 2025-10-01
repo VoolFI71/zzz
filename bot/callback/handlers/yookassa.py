@@ -30,8 +30,8 @@ async def pay_with_yookassa(callback_query: CallbackQuery, state: FSMContext, bo
         return
     await state.update_data(last_buy_click_ts=now_ts)
 
-    # Проверяем, есть ли у пользователя уже активные конфиги
-    existing_configs = await db.get_codes_by_tg_id(callback_query.from_user.id)
+    # Проверяем, есть ли у пользователя уже АКТИВНЫЕ конфиги
+    existing_configs = await db.get_active_configs_by_tg_id(callback_query.from_user.id)
     
     if existing_configs:
         # У пользователя есть конфиги - предлагаем продление
@@ -228,15 +228,17 @@ async def check_yookassa(callback_query: CallbackQuery, state: FSMContext, bot: 
         payload = payment.metadata.get("payload") if hasattr(payment, "metadata") else "sub_1m"
         days = 31 if payload == "sub_1m" else 93
 
-        # Проверяем, есть ли у пользователя уже конфиги
-        existing_configs = await db.get_codes_by_tg_id(tg_id)
+        # Проверяем, есть ли у пользователя уже АКТИВНЫЕ конфиги
+        existing_configs = await db.get_active_configs_by_tg_id(tg_id)
         
         if existing_configs:
             # Продлеваем существующие конфиги
             await extend_existing_configs_yookassa(tg_id, days, bot)
         else:
-            # Выдаем конфиги на всех серверах
-            servers_to_use = user_data.get("servers_to_use", ["fi"])
+            # Выдаем конфиги на всех серверах из SERVER_ORDER
+            import os
+            server_order_env = os.getenv("SERVER_ORDER", "fi,ge")
+            servers_to_use = [s.strip().lower() for s in server_order_env.split(',') if s.strip()]
             await give_configs_on_all_servers_yookassa(tg_id, days, servers_to_use, bot)
         
         # Записываем платеж в статистику
@@ -308,13 +310,7 @@ async def give_configs_on_all_servers_yookassa(tg_id: int, days: int, servers: l
     
     # Уведомляем пользователя о результате
     if success_count > 0:
-        try:
-            sub_key = await db.get_or_create_sub_key(str(tg_id))
-            base = os.getenv("PUBLIC_BASE_URL", "https://swaga.space").rstrip('/')
-            sub_url = f"{base}/subscription/{sub_key}"
-            await bot.send_message(tg_id, f"✅ Подписка активирована на {success_count} серверах!\n\nВаша ссылка подписки: {sub_url}")
-        except Exception:
-            await bot.send_message(tg_id, f"✅ Подписка активирована на {success_count} серверах!")
+        await bot.send_message(tg_id, f"✅ Оплата прошла успешно! \n\nПолучить подписку можно в Личном кабинете → Мои конфиги")
     
     if failed_servers:
         await bot.send_message(tg_id, f"⚠️ Не удалось создать конфиги на серверах: {', '.join(failed_servers)}")
@@ -329,8 +325,8 @@ async def extend_existing_configs_yookassa(tg_id: int, days: int, bot: Bot) -> N
     urlextend = "http://fastapi:8080/extendconfig"
     session = await get_session()
     
-    # Получаем все конфиги пользователя
-    existing_configs = await db.get_codes_by_tg_id(tg_id)
+    # Получаем все АКТИВНЫЕ конфиги пользователя
+    existing_configs = await db.get_active_configs_by_tg_id(tg_id)
     success_count = 0
     failed_configs = []
     
@@ -348,7 +344,7 @@ async def extend_existing_configs_yookassa(tg_id: int, days: int, bot: Bot) -> N
     
     # Уведомляем пользователя о результате
     if success_count > 0:
-        await bot.send_message(tg_id, f"✅ Подписка продлена на {success_count} конфигах!")
+        await bot.send_message(tg_id, f"✅ Оплата прошла успешно! Подписка продлена на {success_count} конфигах.\n\nПолучить подписку можно в Личном кабинете → Мои конфиги")
     
     if failed_configs:
         await bot.send_message(tg_id, f"⚠️ Не удалось продлить {len(failed_configs)} конфигов")
