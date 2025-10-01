@@ -1208,6 +1208,86 @@ async def add_server_to_all_users(
         raise HTTPException(status_code=500, detail=f"Ошибка при добавлении сервера: {str(e)}")
 
 
+@router.post("/add-server-to-user")
+async def add_server_to_user(
+    data: models.AddServerToUser,
+    request: Request,
+    _: None = Depends(verify_api_key),
+) -> dict:
+    """Добавляет новый сервер конкретному пользователю с активной подпиской."""
+    
+    # Проверяем, что сервер существует
+    if data.server not in COUNTRY_SETTINGS:
+        raise HTTPException(status_code=400, detail=f"Неизвестный сервер: {data.server}")
+    
+    # Получаем информацию о пользователе
+    user_info = await db.get_user_max_subscription(data.tg_id)
+    
+    if not user_info:
+        return {
+            "success": False,
+            "message": f"У пользователя {data.tg_id} нет активных подписок",
+            "processed": 0,
+            "errors": 1,
+            "error_details": ["Пользователь не имеет активных подписок"]
+        }
+    
+    try:
+        # Создаем конфиг для пользователя на указанном сервере
+        uid = str(uuid.uuid4())
+        
+        # Создаем конфиг на панели с активацией сразу
+        payload = build_payload(uid, enable=True, expiry_time=user_info["time_end"])
+        url = COUNTRY_SETTINGS[data.server]["urlcreate"]
+        
+        logger.info("Creating and activating config for user %s on server %s", data.tg_id, data.server)
+        
+        # Создаем конфиг на панели с активацией
+        response = await panel_request(request, url, data.server, payload)
+        
+        if response.status_code == 200:
+            # Сохраняем в базу данных как активный конфиг
+            await db.insert_into_db(
+                tg_id=data.tg_id,
+                user_code=uid,
+                time_end=user_info["time_end"],
+                server_country=data.server
+            )
+            
+            logger.info("Successfully created and activated config %s for user %s", uid, data.tg_id)
+            
+            return {
+                "success": True,
+                "message": f"Сервер {data.server} успешно добавлен пользователю {data.tg_id}",
+                "processed": 1,
+                "errors": 0,
+                "user_info": {
+                    "tg_id": data.tg_id,
+                    "server": data.server,
+                    "days_left": user_info["days_left"],
+                    "config_id": uid
+                }
+            }
+        else:
+            return {
+                "success": False,
+                "message": f"Не удалось создать конфиг для пользователя {data.tg_id}",
+                "processed": 0,
+                "errors": 1,
+                "error_details": [f"Panel request failed: {response.status_code}"]
+            }
+            
+    except Exception as e:
+        logger.error("Error adding server to user %s: %s", data.tg_id, str(e))
+        return {
+            "success": False,
+            "message": f"Ошибка при добавлении сервера пользователю {data.tg_id}",
+            "processed": 0,
+            "errors": 1,
+            "error_details": [f"Exception: {str(e)}"]
+        }
+
+
 @router.get("/", response_class=HTMLResponse)
 async def landing(request: Request):  # noqa: D401
     """Красочная посадочная страница VPN."""

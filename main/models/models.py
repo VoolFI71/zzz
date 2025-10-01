@@ -44,3 +44,11 @@ class AddServerToAllUsers(BaseModel):
 
     server: str  # код страны сервера (например, "ge" для Германии)
     message: str = ""  # опциональное сообщение для пользователей
+
+
+class AddServerToUser(BaseModel):
+    """Данные для добавления сервера конкретному пользователю."""
+
+    server: str  # код страны сервера (например, "ge" для Германии)
+    tg_id: int  # Telegram ID пользователя
+    message: str = ""  # опциональное сообщение для пользователя

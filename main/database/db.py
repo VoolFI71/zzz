@@ -651,6 +651,45 @@ async def get_all_active_users():
         return active_users
 
 
+async def get_user_max_subscription(tg_id: int):
+    """Получает максимальную активную подписку пользователя.
+    
+    Args:
+        tg_id: Telegram ID пользователя
+        
+    Returns:
+        Dict или None: Информация о максимальной подписке пользователя:
+        - tg_id: Telegram ID пользователя
+        - time_end: Максимальное время окончания подписки (timestamp)
+        - days_left: Количество дней до окончания подписки
+        Возвращает None если у пользователя нет активных подписок
+    """
+    current_time = int(time.time())
+    
+    async with aiosqlite.connect("users.db") as conn:
+        cursor = await conn.cursor()
+        await cursor.execute("""
+            SELECT MAX(time_end) as max_time_end
+            FROM users 
+            WHERE tg_id = ? 
+            AND time_end IS NOT NULL 
+            AND time_end > ?
+        """, (tg_id, current_time))
+        
+        result = await cursor.fetchone()
+        
+        if result and result[0]:
+            time_end = result[0]
+            days_left = max(0, (time_end - current_time) // 86400)
+            return {
+                "tg_id": tg_id,
+                "time_end": time_end,
+                "days_left": days_left
+            }
+        
+        return None
+
+
 async def get_all_rows_by_server(server_country: str):
     """Получает все записи (активные + свободные) для конкретного сервера.
     
