@@ -57,7 +57,7 @@ async def pay_with_stars(callback_query: CallbackQuery, state: FSMContext, bot: 
     
     # У пользователя нет конфигов - создаем новые на всех серверах
     # Используем все серверы из SERVER_ORDER (как при покупке подписки)
-    env_order = os.getenv("SERVER_ORDER", "fi")
+    env_order = os.getenv("SERVER_ORDER", "fi,ge")
     servers_to_use = [s.strip().lower() for s in env_order.split(',') if s.strip()]
     
     # Сохраняем список серверов для использования

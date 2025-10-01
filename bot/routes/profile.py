@@ -48,7 +48,7 @@ async def free_trial(message: types.Message):
 
     # Выдаем конфиги на всех серверах из SERVER_ORDER (как при покупке подписки)
     from utils import get_session, check_available_configs
-    server_order_env = os.getenv("SERVER_ORDER", "fi")
+    server_order_env = os.getenv("SERVER_ORDER", "fi,ge")
     servers_to_use = [s.strip().lower() for s in server_order_env.split(',') if s.strip()]
     
     # Проверяем доступность каждого сервера

@@ -25,10 +25,10 @@ def create_admin_keyboard():
 
 def create_server_keyboard():
     # Read ordered list of servers from env, e.g., "fi,nl,de,us"
-    order_env = os.getenv("SERVER_ORDER", "fi").strip()
+    order_env = os.getenv("SERVER_ORDER", "fi,ge").strip()
     server_codes = [s.strip().lower() for s in order_env.split(',') if s.strip()]
     if not server_codes:
-        server_codes = ["fi"]
+        server_codes = ["fi", "ge"]
 
     # Simple mapping of known titles/flags; unknown codes will be shown uppercased without flag
     titles = {
