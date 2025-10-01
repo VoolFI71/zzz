@@ -138,7 +138,6 @@ async def pay_with_stars(callback_query: CallbackQuery, state: FSMContext, bot: 
 
     # Отдельное сервисное сообщение управления счётом
     try:
-        from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
         control_kb = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="❌ Отменить счёт", callback_data="cancel_star_invoice")],
             [InlineKeyboardButton(text="🔙 Назад", callback_data="back")]

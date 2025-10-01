@@ -21,6 +21,8 @@ from yookassa import Configuration, Payment
 
 @yookassa_router.callback_query(F.data == "pay_cash")
 async def pay_with_yookassa(callback_query: CallbackQuery, state: FSMContext, bot: Bot) -> None:
+    from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+    
     user_data = await state.get_data()
     now_ts = int(time.time())
     last_click_ts = user_data.get("last_buy_click_ts")
@@ -30,12 +32,10 @@ async def pay_with_yookassa(callback_query: CallbackQuery, state: FSMContext, bo
     await state.update_data(last_buy_click_ts=now_ts)
 
     # Проверяем, есть ли у пользователя уже активные конфиги
-    from database import db
     existing_configs = await db.get_codes_by_tg_id(callback_query.from_user.id)
     
     if existing_configs:
         # У пользователя есть конфиги - предлагаем продление
-        from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
         await callback_query.message.edit_text(
             "У вас уже есть активная подписка! Вы хотите продлить её?",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[
