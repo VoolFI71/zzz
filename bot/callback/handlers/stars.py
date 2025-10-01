@@ -56,20 +56,9 @@ async def pay_with_stars(callback_query: CallbackQuery, state: FSMContext, bot: 
         return
     
     # У пользователя нет конфигов - создаем новые на всех серверах
-    # Проверяем доступность конфигов на всех серверах
-    from utils import pick_first_available_server
+    # Используем все серверы из SERVER_ORDER (как при покупке подписки)
     env_order = os.getenv("SERVER_ORDER", "fi")
-    available_servers = [s.strip().lower() for s in env_order.split(',') if s.strip()]
-    
-    # Проверяем каждый сервер
-    servers_to_use = []
-    for server in available_servers:
-        if await check_available_configs(server):
-            servers_to_use.append(server)
-    
-    if not servers_to_use:
-        await bot.send_message(tg_id, "Свободных конфигов нет. Попробуйте позже.")
-        return
+    servers_to_use = [s.strip().lower() for s in env_order.split(',') if s.strip()]
     
     # Сохраняем список серверов для использования
     await state.update_data(servers_to_use=servers_to_use)

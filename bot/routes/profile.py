@@ -46,60 +46,75 @@ async def free_trial(message: types.Message):
         await message.answer("Ошибка. Попробуйте позже.")
         return
 
-    # Проверяем наличие свободных конфигов (не блокирующе)
-    from utils import get_session
-    # Пытаемся выдать на первом доступном сервере из списка (по умолчанию fi, nl)
-    from utils import pick_first_available_server
+    # Выдаем конфиги на всех серверах из SERVER_ORDER (как при покупке подписки)
+    from utils import get_session, check_available_configs
     server_order_env = os.getenv("SERVER_ORDER", "fi")
-    preferred = [s.strip().lower() for s in server_order_env.split(',') if s.strip()]
-    target_server = await pick_first_available_server(preferred)
-    if not target_server:
+    servers_to_use = [s.strip().lower() for s in server_order_env.split(',') if s.strip()]
+    
+    # Проверяем доступность каждого сервера
+    available_servers = []
+    for server in servers_to_use:
+        if await check_available_configs(server):
+            available_servers.append(server)
+    
+    if not available_servers:
         await message.answer("Свободных конфигов нет. Попробуйте позже.")
         return
 
-    # Выдаём бесплатные 3 дня на сервере FI
-    data = {"time": 3, "id": str(user_id), "server": target_server}
+    # Выдаём бесплатные 3 дня на всех доступных серверах
     AUTH_CODE = os.getenv("AUTH_CODE")
     urlupdate = "http://fastapi:8080/giveconfig"
+    success_count = 0
+    failed_servers = []
+    
     try:
         session = await get_session()
         async with acquire_action_lock(user_id, "free_trial"):
-            async with session.post(urlupdate, json=data, headers={"X-API-Key": AUTH_CODE}) as resp:
-                if resp.status == 200:
-                    await user_db.set_trial_3d_used(str(user_id))
-                    base = os.getenv("PUBLIC_BASE_URL", "https://swaga.space").rstrip('/')
-                    try:
-                        sub_url = f"http://fastapi:8080/sub/{user_id}"
-                        async with session.get(sub_url, headers={"X-API-Key": AUTH_CODE}) as sub_resp:
-                            if sub_resp.status == 200:
-                                sub_data = await sub_resp.json()
-                                sub_key = sub_data.get("sub_key")
-                                if sub_key:
-                                    web_url = f"{base}/subscription/{sub_key}"
-                                else:
-                                    web_url = f"{base}/subscription"
+            for server in available_servers:
+                data = {"time": 3, "id": str(user_id), "server": server}
+                async with session.post(urlupdate, json=data, headers={"X-API-Key": AUTH_CODE}) as resp:
+                    if resp.status == 200:
+                        success_count += 1
+                    else:
+                        failed_servers.append(server)
+            
+            if success_count > 0:
+                await db.set_trial_3d_used(str(user_id))
+                base = os.getenv("PUBLIC_BASE_URL", "https://swaga.space").rstrip('/')
+                try:
+                    sub_url = f"http://fastapi:8080/sub/{user_id}"
+                    async with session.get(sub_url, headers={"X-API-Key": AUTH_CODE}) as sub_resp:
+                        if sub_resp.status == 200:
+                            sub_data = await sub_resp.json()
+                            sub_key = sub_data.get("sub_key")
+                            if sub_key:
+                                web_url = f"{base}/subscription/{sub_key}"
                             else:
                                 web_url = f"{base}/subscription"
-                    except Exception:
-                        # Fallback на старую ссылку, если что-то пошло не так
-                        web_url = f"{base}/subscription"
-                    kb = InlineKeyboardMarkup(inline_keyboard=[
-                        [InlineKeyboardButton(text="📲 Добавить подписку в V2rayTun", url=web_url)],
-                        [InlineKeyboardButton(text="📋 Скопировать ссылку", callback_data="copy_sub")],
-                    ])
-                    await message.answer("Пробная подписка на 3 дня активирована!", reply_markup=kb)
-                    await message.answer("Подписка может быть не добавлена при нажатии на кнопку на сайте, в этом случае необходимо скопировать ссылку на подписку и вставить в V2rayTun вручную.")
+                        else:
+                            web_url = f"{base}/subscription"
+                except Exception:
+                    # Fallback на старую ссылку, если что-то пошло не так
+                    web_url = f"{base}/subscription"
+                kb = InlineKeyboardMarkup(inline_keyboard=[
+                    [InlineKeyboardButton(text="📲 Добавить подписку в V2rayTun", url=web_url)],
+                    [InlineKeyboardButton(text="📋 Скопировать ссылку", callback_data="copy_sub")],
+                ])
+                await message.answer(f"Пробная подписка на 3 дня активирована на {success_count} серверах!", reply_markup=kb)
+                await message.answer("Подписка может быть не добавлена при нажатии на кнопку на сайте, в этом случае необходимо скопировать ссылку на подписку и вставить в V2rayTun вручную.")
 
-                    try:
-                        admin_id = 746560409
-                        at_username = (f"@{message.from_user.username}" if getattr(message.from_user, "username", None) else "—")
-                        await message.bot.send_message(admin_id, f"Активирована пробная подписка: user_id={user_id}, user={at_username}, сервер=fi, срок=3 дн.")
-                    except Exception:
-                        pass
-                elif resp.status == 409:
-                    await message.answer("Свободных конфигов нет. Попробуйте позже.")
-                else:
-                    await message.answer(f"Ошибка сервера ({resp.status}). Попробуйте позже.")
+                try:
+                    admin_id = 746560409
+                    at_username = (f"@{message.from_user.username}" if getattr(message.from_user, "username", None) else "—")
+                    await message.bot.send_message(admin_id, f"Активирована пробная подписка: user_id={user_id}, user={at_username}, серверов={success_count}, срок=3 дн.")
+                except Exception:
+                    pass
+            else:
+                await message.answer("Не удалось создать конфиги. Попробуйте позже.")
+                
+            if failed_servers:
+                await message.answer(f"⚠️ Не удалось создать конфиги на серверах: {', '.join(failed_servers)}")
+                
     except aiohttp.ClientError:
         await message.answer("Ошибка сети. Попробуйте позже.")
 

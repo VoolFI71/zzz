@@ -13,7 +13,7 @@ from keyboards.keyboard import (
     create_payment_method_keyboard,
 )
 from database import db
-from utils import get_session
+from utils import get_session, check_available_configs
 from utils import pick_first_available_server
 import aiohttp
 
@@ -153,42 +153,110 @@ async def activate_balance(callback_query: CallbackQuery, bot: Bot, state: FSMCo
     if days <= 0:
         await callback_query.answer("Баланс пуст", show_alert=True)
         return
-    # Выбираем первый доступный сервер: сначала предпочитаем сервер из state, затем список из SERVER_ORDER
-    user_data = await state.get_data()
-    preferred = []
-    if user_data.get("server"):
-        preferred.append(str(user_data.get("server")).lower())
-    env_order = os.getenv("SERVER_ORDER", "fi")
-    preferred.extend([s.strip().lower() for s in env_order.split(',') if s.strip()])
-    # Уникализируем, сохраняя порядок
-    dedup = []
-    seen = set()
-    for s in preferred:
-        if s and s not in seen:
-            dedup.append(s)
-            seen.add(s)
-    target_server = await pick_first_available_server(dedup)
-    if not target_server:
-        await callback_query.answer("Свободных конфигов нет", show_alert=True)
-        return
-    data = {"time": int(days), "id": tg_id, "server": target_server}
+    # Проверяем, есть ли у пользователя уже конфиги
+    existing_configs = await db.get_codes_by_tg_id(tg_id)
+    
+    if existing_configs:
+        # Продлеваем существующие конфиги
+        await extend_existing_configs_balance(tg_id, days, bot)
+    else:
+        # Выдаем конфиги на всех серверах из SERVER_ORDER
+        env_order = os.getenv("SERVER_ORDER", "fi")
+        servers_to_use = [s.strip().lower() for s in env_order.split(',') if s.strip()]
+        
+        # Проверяем доступность каждого сервера
+        available_servers = []
+        for server in servers_to_use:
+            if await check_available_configs(server):
+                available_servers.append(server)
+        
+        if not available_servers:
+            await callback_query.answer("Свободных конфигов нет", show_alert=True)
+            return
+        
+        await give_configs_on_all_servers_balance(tg_id, days, available_servers, bot)
+    
+    try:
+        await callback_query.answer()
+    except Exception:
+        pass
+
+
+async def give_configs_on_all_servers_balance(tg_id: int, days: int, servers: list, bot: Bot) -> None:
+    """Выдает конфиги на всех указанных серверах для нового пользователя (активация баланса)."""
+    from utils import get_session
+    import aiohttp
+    
     AUTH_CODE = os.getenv("AUTH_CODE")
     urlupdate = "http://fastapi:8080/giveconfig"
+    session = await get_session()
+    
+    success_count = 0
+    failed_servers = []
+    
+    for server in servers:
+        try:
+            data = {"time": days, "id": str(tg_id), "server": server}
+            async with session.post(urlupdate, json=data, headers={"X-API-Key": AUTH_CODE}) as resp:
+                if resp.status == 200:
+                    success_count += 1
+                else:
+                    failed_servers.append(server)
+        except Exception as e:
+            print(f"Failed to create config on server {server}: {e}")
+            failed_servers.append(server)
+    
+    # Списываем баланс только если хотя бы один конфиг создан
+    if success_count > 0:
+        await db.deduct_balance_days(tg_id, int(days))
+        
+        # Уведомляем пользователя о результате
+        try:
+            sub_key = await db.get_or_create_sub_key(str(tg_id))
+            base = os.getenv("PUBLIC_BASE_URL", "https://swaga.space").rstrip('/')
+            sub_url = f"{base}/subscription/{sub_key}"
+            await bot.send_message(tg_id, f"✅ Активировано {days} дн. на {success_count} серверах!\n\nВаша ссылка подписки: {sub_url}")
+        except Exception:
+            await bot.send_message(tg_id, f"✅ Активировано {days} дн. на {success_count} серверах!")
+        
+        # Уведомляем администратора о активации бонусных дней
+        try:
+            admin_id = 746560409
+            username = "—"  # Можно добавить получение username если нужно
+            await bot.send_message(
+                admin_id,
+                f"🎁 Активация бонусных дней: user_id={tg_id}, дней={days}, серверов={success_count}"
+            )
+        except Exception:
+            pass
+    
+    if failed_servers:
+        await bot.send_message(tg_id, f"⚠️ Не удалось создать конфиги на серверах: {', '.join(failed_servers)}")
+
+
+async def extend_existing_configs_balance(tg_id: int, days: int, bot: Bot) -> None:
+    """Продлевает существующие конфиги пользователя (активация баланса)."""
+    from utils import get_session
+    import aiohttp
+    
+    AUTH_CODE = os.getenv("AUTH_CODE")
+    urlupdate = "http://fastapi:8080/extendconfig"
+    session = await get_session()
+    
     try:
-        session = await get_session()
+        data = {"time": days, "id": str(tg_id)}
         async with session.post(urlupdate, json=data, headers={"X-API-Key": AUTH_CODE}) as resp:
             if resp.status == 200:
                 # Списываем баланс и уведомляем
                 await db.deduct_balance_days(tg_id, int(days))
-                await bot.send_message(int(tg_id), f"Активировано {days} дн. Конфиг доступен в Личном кабинете → Мои конфиги")
+                await bot.send_message(int(tg_id), f"✅ Продлено на {days} дн. Конфиг доступен в Личном кабинете → Мои конфиги")
                 
                 # Уведомляем администратора о активации бонусных дней
                 try:
                     admin_id = 746560409
-                    username = (f"@{callback_query.from_user.username}" if getattr(callback_query.from_user, "username", None) else "—")
                     await bot.send_message(
                         admin_id,
-                        f"🎁 Активация бонусных дней: user_id={tg_id}, user={username}, дней={days}, сервер={target_server}"
+                        f"🎁 Продление бонусных дней: user_id={tg_id}, дней={days}"
                     )
                 except Exception:
                     pass
@@ -198,9 +266,4 @@ async def activate_balance(callback_query: CallbackQuery, bot: Bot, state: FSMCo
                 await bot.send_message(int(tg_id), f"Ошибка сервера ({resp.status}). Попробуйте позже.")
     except (aiohttp.ClientError, Exception):
         await bot.send_message(int(tg_id), "Ошибка сети. Попробуйте позже.")
-    finally:
-        try:
-            await callback_query.answer()
-        except Exception:
-            pass
 
