@@ -86,9 +86,8 @@ COUNTRY_SETTINGS: dict[str, dict[str, str]] = {
 
 COUNTRY_LABELS: dict[str, str] = {
     "nl": "Netherlands 🇳🇱",
-    "fi": "Finland 🇫🇮",
-    "ge": "Germany 🇩🇪",
-    "fi2": "Finland-2 🇫🇮",
+    "fi": "Finland 🇫🇮 (MTS, TELE2, YOTA)",
+    "ge": "Germany 🇩🇪 (MEGAFON)",
 }
 
 def _is_browser_request(headers: dict[str, str]) -> bool:
