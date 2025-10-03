@@ -15,9 +15,8 @@ router = Router()
 API_BASE_URL = "http://fastapi:8080"
 AUTH_CODE = os.getenv("AUTH_CODE")
 
-def is_admin(user_id: int) -> bool:
-    """Проверяет, является ли пользователь администратором."""
-    return user_id == 746560409
+# Импортируем is_admin из main модуля
+from .main import is_admin
 
 @router.callback_query(F.data == "admin_stats")
 async def show_admin_stats(callback: types.CallbackQuery):
@@ -78,6 +77,73 @@ async def show_admin_stats(callback: types.CallbackQuery):
     except Exception as e:
         logger.error(f"Error getting stats: {e}")
         await callback.message.edit_text(f"❌ Ошибка при получении статистики: {str(e)}")
+    
+    await callback.answer()
+
+@router.callback_query(F.data == "admin_detailed_stats")
+async def show_detailed_stats(callback: types.CallbackQuery):
+    """Показывает детальную статистику пользователей."""
+    if not is_admin(callback.from_user.id):
+        await callback.answer("Нет доступа", show_alert=True)
+        return
+    
+    try:
+        # Получаем все виды статистики
+        user_stats = await get_user_stats()
+        payment_stats = await get_payment_stats()
+        subscription_stats = await get_subscription_stats()
+        activity_stats = await get_activity_stats()
+        
+        # Формируем детальную статистику
+        stats_text = (
+            f"📊 **Детальная статистика**\n\n"
+            f"👥 **Пользователи:**\n"
+            f"• Всего: {user_stats['total_users']}\n"
+            f"• С платежами: {user_stats['paid_users']}\n"
+            f"• Только пробная: {user_stats['trial_only_users']}\n"
+            f"• С балансом: {user_stats['with_balance']}\n\n"
+            f"📈 **Активность:**\n"
+            f"• Пробные подписки: {user_stats['new_users_week']}\n"
+            f"• Платежи за 24ч: {activity_stats['active_24h']}\n"
+            f"• Платежи за 7д: {activity_stats['active_7d']}\n"
+            f"• Платежи за 30д: {activity_stats['active_30d']}\n"
+            f"• Конверсия пробная→платная: {activity_stats['conversion_rate']:.1f}%\n\n"
+            f"🔔 **Подписки:**\n"
+            f"• Активные: {subscription_stats['active_subscriptions']}\n"
+            f"• Без подписки: {subscription_stats['no_subscriptions']}\n"
+            f"• Истекшие: {subscription_stats['expired_subscriptions']}\n"
+            f"• Только пробные: {subscription_stats['trial_only_users']}\n\n"
+            f"🤝 **Реферальная программа:**\n"
+            f"• Всего рефералов: {user_stats['total_referrals']}\n"
+            f"• Пользователей с рефералами: {user_stats['users_with_referrals']}\n"
+        )
+        
+        # Добавляем топ реферера, если есть
+        if user_stats['top_referrer']:
+            tg_id, count = user_stats['top_referrer']
+            stats_text += f"• Топ реферер: {tg_id} ({count} приглашений)\n\n"
+        else:
+            stats_text += "\n"
+            
+        # Добавляем статистику платежей
+        stats_text += (
+            f"💳 **Платежи:**\n"
+            f"• Рубли: {payment_stats['total_rub']:,} ₽ ({payment_stats['count_rub']} транзакций)\n"
+            f"• Звезды: {payment_stats['total_stars']:,} ⭐ ({payment_stats['count_stars']} транзакций)\n"
+            f"• Средний чек (рубли): {payment_stats['avg_rub']:.0f} ₽\n"
+            f"• Средний чек (звезды): {payment_stats['avg_stars']:.0f} ⭐"
+        )
+        
+        # Добавляем кнопку возврата
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="🔙 Назад", callback_data="back_to_admin_panel")]
+        ])
+        
+        await callback.message.edit_text(stats_text, parse_mode="Markdown", reply_markup=keyboard)
+        
+    except Exception as e:
+        logger.error(f"Error getting detailed stats: {e}")
+        await callback.message.edit_text(f"❌ Ошибка при получении детальной статистики: {str(e)}")
     
     await callback.answer()
 

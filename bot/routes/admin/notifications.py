@@ -15,9 +15,8 @@ router = Router()
 API_BASE_URL = "http://fastapi:8080"
 AUTH_CODE = os.getenv("AUTH_CODE")
 
-def is_admin(user_id: int) -> bool:
-    """Проверяет, является ли пользователь администратором."""
-    return user_id == 746560409
+# Импортируем is_admin из main модуля
+from .main import is_admin
 
 @router.callback_query(F.data == "notif")
 async def send_notif(callback: types.CallbackQuery, bot):

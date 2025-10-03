@@ -115,3 +115,55 @@ async def back_to_main_admin(callback: types.CallbackQuery):
     except Exception as e:
         logger.error(f"Error in back_to_main_admin: {e}")
         await callback.answer("Произошла ошибка при возврате к админ панели.")
+
+@router.callback_query(F.data == "admin_back_to_main")
+async def admin_back_to_main(callback: types.CallbackQuery):
+    """Возврат к главному меню админки."""
+    try:
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="📢 Отправить сообщение всем", callback_data="admin_broadcast")],
+            [InlineKeyboardButton(text="📊 Статистика", callback_data="admin_stats")],
+            [InlineKeyboardButton(text="💵 Доход (руб / звезды)", callback_data="admin_revenue")],
+            [InlineKeyboardButton(text="🔍 Поиск пользователя", callback_data="admin_search_user")],
+            [InlineKeyboardButton(text="⚙️ Управление конфигами", callback_data="admin_configs")],
+            [InlineKeyboardButton(text="📈 Детальная статистика", callback_data="admin_detailed_stats")],
+            [InlineKeyboardButton(text="🔧 Системные операции", callback_data="admin_system")],
+            [InlineKeyboardButton(text="🔔 Уведомления о подписке", callback_data="admin_notifications")],
+        ])
+        
+        await callback.message.edit_text(
+            "🔧 <b>Админ панель</b>\n\n"
+            "Выберите действие:",
+            reply_markup=keyboard,
+            parse_mode="HTML"
+        )
+        await callback.answer()
+    except Exception as e:
+        logger.error(f"Error in admin_back_to_main: {e}")
+        await callback.answer("Произошла ошибка при возврате к админ панели.")
+
+@router.callback_query(F.data == "admin_panel")
+async def admin_panel_callback(callback: types.CallbackQuery):
+    """Возврат к главному меню админки через callback."""
+    try:
+        keyboard = InlineKeyboardMarkup(inline_keyboard=[
+            [InlineKeyboardButton(text="📢 Отправить сообщение всем", callback_data="admin_broadcast")],
+            [InlineKeyboardButton(text="📊 Статистика", callback_data="admin_stats")],
+            [InlineKeyboardButton(text="💵 Доход (руб / звезды)", callback_data="admin_revenue")],
+            [InlineKeyboardButton(text="🔍 Поиск пользователя", callback_data="admin_search_user")],
+            [InlineKeyboardButton(text="⚙️ Управление конфигами", callback_data="admin_configs")],
+            [InlineKeyboardButton(text="📈 Детальная статистика", callback_data="admin_detailed_stats")],
+            [InlineKeyboardButton(text="🔧 Системные операции", callback_data="admin_system")],
+            [InlineKeyboardButton(text="🔔 Уведомления о подписке", callback_data="admin_notifications")],
+        ])
+        
+        await callback.message.edit_text(
+            "🔧 <b>Админ панель</b>\n\n"
+            "Выберите действие:",
+            reply_markup=keyboard,
+            parse_mode="HTML"
+        )
+        await callback.answer()
+    except Exception as e:
+        logger.error(f"Error in admin_panel_callback: {e}")
+        await callback.answer("Произошла ошибка при возврате к админ панели.")

@@ -6,9 +6,8 @@ logger = logging.getLogger(__name__)
 
 router = Router()
 
-def is_admin(user_id: int) -> bool:
-    """Проверяет, является ли пользователь администратором."""
-    return user_id == 746560409
+# Импортируем is_admin из main модуля
+from .main import is_admin
 
 @router.callback_query(F.data == "admin_revenue")
 async def show_revenue(callback: types.CallbackQuery):

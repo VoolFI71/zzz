@@ -18,9 +18,8 @@ AUTH_CODE = os.getenv("AUTH_CODE")
 class AdminStates(StatesGroup):
     waiting_for_config_uid = State()
 
-def is_admin(user_id: int) -> bool:
-    """Проверяет, является ли пользователь администратором."""
-    return user_id == 746560409
+# Импортируем is_admin из main модуля
+from .main import is_admin
 
 @router.callback_query(F.data == "admin_configs")
 async def show_config_management(callback: types.CallbackQuery):

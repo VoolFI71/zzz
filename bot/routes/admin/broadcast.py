@@ -12,9 +12,8 @@ class AdminStates(StatesGroup):
     waiting_for_message = State()
     waiting_for_promo_message = State()
 
-def is_admin(user_id: int) -> bool:
-    """Проверяет, является ли пользователь администратором."""
-    return user_id == 746560409
+# Импортируем is_admin из main модуля
+from .main import is_admin
 
 @router.callback_query(F.data == "admin_broadcast")
 async def start_broadcast(callback: types.CallbackQuery, state: FSMContext):
