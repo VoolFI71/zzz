@@ -9,7 +9,7 @@ from routes.admin.user_management import router as user_management_router
 from routes.admin.config_management import router as config_management_router
 from routes.admin.broadcast import router as broadcast_router
 from routes.admin.revenue import router as revenue_router
-from routes.admin.system import router as system_router  # pyright: ignore[reportMissingImports]
+from routes.admin.system import router as system_router
 
 # Создаем главный роутер
 from aiogram import Router
