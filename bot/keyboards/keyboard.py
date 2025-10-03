@@ -73,9 +73,9 @@ def create_server_keyboard():
 
 def create_tariff_keyboard():
     star_1m = int(os.getenv("PRICE_1M_STAR", "149"))
-    star_3m = int(os.getenv("PRICE_3M_STAR", "349"))
+    star_3m = int(os.getenv("PRICE_3M_STAR", "299"))
     rub_1m = int(os.getenv("PRICE_1M_RUB", "149"))
-    rub_3m = int(os.getenv("PRICE_3M_RUB", "349"))
+    rub_3m = int(os.getenv("PRICE_3M_RUB", "299"))
 
     kb_list = [
         [InlineKeyboardButton(text=f"1 месяц · {star_1m} ⭐ / {rub_1m} ₽", callback_data="plan_1m")],

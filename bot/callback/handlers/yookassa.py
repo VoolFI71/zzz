@@ -81,7 +81,7 @@ async def pay_with_yookassa(callback_query: CallbackQuery, state: FSMContext, bo
     payload = "sub_1m" if days == 31 else "sub_3m"
     # Суммы и описания из окружения с адекватными дефолтами
     price_1m = int(os.getenv("PRICE_1M_RUB", "149"))
-    price_3m = int(os.getenv("PRICE_3M_RUB", "349"))
+    price_3m = int(os.getenv("PRICE_3M_RUB", "299"))
 
     desc_1m = os.getenv("YK_DESC_1M", "Подписка GLS VPN — 1 месяц")
     desc_3m = os.getenv("YK_DESC_3M", "Подписка GLS VPN — 3 месяца")
@@ -195,9 +195,9 @@ async def cancel_yk_invoice(callback_query: CallbackQuery, state: FSMContext, bo
     try:
         days = int((await state.get_data()).get("selected_days", 31))
         star_1m = int(os.getenv("PRICE_1M_STAR", "149"))
-        star_3m = int(os.getenv("PRICE_3M_STAR", "349"))
+        star_3m = int(os.getenv("PRICE_3M_STAR", "299"))
         rub_1m = int(os.getenv("PRICE_1M_RUB", "149"))
-        rub_3m = int(os.getenv("PRICE_3M_RUB", "349"))
+        rub_3m = int(os.getenv("PRICE_3M_RUB", "299"))
 
         if days == 31:
             star_amount, rub_amount = star_1m, rub_1m
@@ -394,7 +394,7 @@ async def extend_yookassa_handler(callback_query: CallbackQuery, state: FSMConte
     # Создаем платеж для продления
     payload = "sub_1m" if days == 31 else "sub_3m"
     price_1m = int(os.getenv("PRICE_1M_RUB", "149"))
-    price_3m = int(os.getenv("PRICE_3M_RUB", "349"))
+    price_3m = int(os.getenv("PRICE_3M_RUB", "299"))
     amount = price_1m if days == 31 else price_3m
     
     YOOKASSA_SHOP_ID = os.getenv("YOOKASSA_SHOP_ID")

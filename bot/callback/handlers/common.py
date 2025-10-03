@@ -30,9 +30,9 @@ async def select_plan(callback_query: CallbackQuery, state: FSMContext) -> None:
 
     # Цены для отображения методов оплаты
     star_1m = int(os.getenv("PRICE_1M_STAR", "149"))
-    star_3m = int(os.getenv("PRICE_3M_STAR", "349"))
+    star_3m = int(os.getenv("PRICE_3M_STAR", "299"))
     rub_1m = int(os.getenv("PRICE_1M_RUB", "149"))
-    rub_3m = int(os.getenv("PRICE_3M_RUB", "349"))
+    rub_3m = int(os.getenv("PRICE_3M_RUB", "299"))
 
 
     if days == 31:
@@ -90,9 +90,9 @@ async def go_back(callback_query: CallbackQuery, bot: Bot, state: FSMContext) ->
             user_state = {}
         days = int(user_state.get("selected_days", 31))
         star_1m = int(os.getenv("PRICE_1M_STAR", "149"))
-        star_3m = int(os.getenv("PRICE_3M_STAR", "349"))
+        star_3m = int(os.getenv("PRICE_3M_STAR", "299"))
         rub_1m = int(os.getenv("PRICE_1M_RUB", "149"))
-        rub_3m = int(os.getenv("PRICE_3M_RUB", "349"))
+        rub_3m = int(os.getenv("PRICE_3M_RUB", "299"))
 
 
         if days == 31:

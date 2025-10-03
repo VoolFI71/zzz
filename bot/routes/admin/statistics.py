@@ -31,6 +31,9 @@ async def show_admin_stats(callback: types.CallbackQuery):
         payment_stats = await get_payment_stats()
         subscription_stats = await get_subscription_stats()
         activity_stats = await get_activity_stats()
+        daily_stats = await get_daily_stats()
+        retention_stats = await get_retention_stats()
+        geographic_stats = await get_geographic_stats()
         
         # Формируем детальную статистику
         stats_text = (
@@ -69,7 +72,14 @@ async def show_admin_stats(callback: types.CallbackQuery):
             f"• Рубли: {payment_stats['total_rub']:,} ₽ ({payment_stats['count_rub']} транзакций)\n"
             f"• Звезды: {payment_stats['total_stars']:,} ⭐ ({payment_stats['count_stars']} транзакций)\n"
             f"• Средний чек (рубли): {payment_stats['avg_rub']:.0f} ₽\n"
-            f"• Средний чек (звезды): {payment_stats['avg_stars']:.0f} ⭐"
+            f"• Средний чек (звезды): {payment_stats['avg_stars']:.0f} ⭐\n\n"
+            f"🔄 **Удержание:**\n"
+            f"• Повторные платежи: {retention_stats['repeat_payers']}\n"
+            f"• Лояльные (3+): {retention_stats['loyal_payers']}\n"
+            f"• VIP (5+): {retention_stats['vip_payers']}\n\n"
+            f"📅 **Активность:**\n"
+            f"• Самый активный день: {daily_stats['most_active_day']}\n"
+            f"• Платежей в этот день: {daily_stats['most_active_count']}"
         )
         
         await callback.message.edit_text(stats_text, parse_mode="Markdown")
@@ -93,6 +103,9 @@ async def show_detailed_stats(callback: types.CallbackQuery):
         payment_stats = await get_payment_stats()
         subscription_stats = await get_subscription_stats()
         activity_stats = await get_activity_stats()
+        daily_stats = await get_daily_stats()
+        retention_stats = await get_retention_stats()
+        geographic_stats = await get_geographic_stats()
         
         # Формируем детальную статистику
         stats_text = (
@@ -131,7 +144,17 @@ async def show_detailed_stats(callback: types.CallbackQuery):
             f"• Рубли: {payment_stats['total_rub']:,} ₽ ({payment_stats['count_rub']} транзакций)\n"
             f"• Звезды: {payment_stats['total_stars']:,} ⭐ ({payment_stats['count_stars']} транзакций)\n"
             f"• Средний чек (рубли): {payment_stats['avg_rub']:.0f} ₽\n"
-            f"• Средний чек (звезды): {payment_stats['avg_stars']:.0f} ⭐"
+            f"• Средний чек (звезды): {payment_stats['avg_stars']:.0f} ⭐\n\n"
+            f"🔄 **Удержание пользователей:**\n"
+            f"• Повторные платежи: {retention_stats['repeat_payers']}\n"
+            f"• Лояльные (3+ платежа): {retention_stats['loyal_payers']}\n"
+            f"• VIP (5+ платежей): {retention_stats['vip_payers']}\n"
+            f"• Среднее платежей на пользователя: {retention_stats['avg_payments_per_user']:.1f}\n\n"
+            f"📅 **Активность по дням:**\n"
+            f"• Самый активный день: {daily_stats['most_active_day']}\n"
+            f"• Платежей в этот день: {daily_stats['most_active_count']}\n\n"
+            f"🌍 **География:**\n"
+            f"• Топ страны: {', '.join(geographic_stats['top_countries'][:3])}"
         )
         
         # Добавляем кнопку возврата
@@ -464,4 +487,91 @@ async def get_activity_stats() -> dict:
             'active_30d': 0,
             'converted_users': 0,
             'conversion_rate': 0
+        }
+
+async def get_daily_stats() -> dict:
+    """Получает статистику по дням недели."""
+    try:
+        async with aiosqlite.connect("users.db") as conn:
+            async with conn.cursor() as cursor:
+                # Статистика по дням недели (0=понедельник, 6=воскресенье)
+                daily_stats = {}
+                for day in range(7):
+                    # Получаем количество платежей по дням недели
+                    await cursor.execute("""
+                        SELECT COUNT(*) FROM users 
+                        WHERE last_payment_at > 0 
+                        AND (last_payment_at / 86400 - 4) % 7 = ?
+                    """, (day,))
+                    count = (await cursor.fetchone())[0]
+                    daily_stats[f'day_{day}'] = count
+                
+                # Находим самый активный день
+                max_day = max(daily_stats.items(), key=lambda x: x[1])
+                day_names = ['Понедельник', 'Вторник', 'Среда', 'Четверг', 'Пятница', 'Суббота', 'Воскресенье']
+                most_active_day = day_names[max_day[0].split('_')[1]]
+                
+                return {
+                    'daily_stats': daily_stats,
+                    'most_active_day': most_active_day,
+                    'most_active_count': max_day[1]
+                }
+    except Exception as e:
+        logger.error(f"Error getting daily stats: {e}")
+        return {
+            'daily_stats': {},
+            'most_active_day': 'Неизвестно',
+            'most_active_count': 0
+        }
+
+async def get_retention_stats() -> dict:
+    """Получает статистику удержания пользователей."""
+    try:
+        async with aiosqlite.connect("users.db") as conn:
+            async with conn.cursor() as cursor:
+                # Пользователи с повторными платежами
+                await cursor.execute("SELECT COUNT(*) FROM users WHERE paid_count > 1")
+                repeat_payers = (await cursor.fetchone())[0]
+                
+                # Пользователи с множественными платежами (3+)
+                await cursor.execute("SELECT COUNT(*) FROM users WHERE paid_count >= 3")
+                loyal_payers = (await cursor.fetchone())[0]
+                
+                # Пользователи с 5+ платежами (VIP)
+                await cursor.execute("SELECT COUNT(*) FROM users WHERE paid_count >= 5")
+                vip_payers = (await cursor.fetchone())[0]
+                
+                # Среднее количество платежей на пользователя
+                await cursor.execute("SELECT AVG(paid_count) FROM users WHERE paid_count > 0")
+                avg_payments = (await cursor.fetchone())[0] or 0
+                
+                return {
+                    'repeat_payers': repeat_payers,
+                    'loyal_payers': loyal_payers,
+                    'vip_payers': vip_payers,
+                    'avg_payments_per_user': avg_payments
+                }
+    except Exception as e:
+        logger.error(f"Error getting retention stats: {e}")
+        return {
+            'repeat_payers': 0,
+            'loyal_payers': 0,
+            'vip_payers': 0,
+            'avg_payments_per_user': 0
+        }
+
+async def get_geographic_stats() -> dict:
+    """Получает географическую статистику (если доступна)."""
+    try:
+        # Здесь можно добавить логику для получения статистики по странам
+        # Пока возвращаем заглушку
+        return {
+            'top_countries': ['Россия', 'Украина', 'Беларусь'],
+            'country_stats': {'Россия': 0, 'Украина': 0, 'Беларусь': 0}
+        }
+    except Exception as e:
+        logger.error(f"Error getting geographic stats: {e}")
+        return {
+            'top_countries': [],
+            'country_stats': {}
         }
