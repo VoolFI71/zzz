@@ -5,7 +5,7 @@ from __future__ import annotations
 import os
 from aiogram import Bot, F, Router
 from aiogram.fsm.context import FSMContext
-from aiogram.types import CallbackQuery
+from aiogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
 
 from keyboards import keyboard
 from keyboards.keyboard import (
@@ -13,7 +13,7 @@ from keyboards.keyboard import (
     create_payment_method_keyboard,
 )
 from database import db
-from utils import get_session, check_available_configs
+from utils import get_session, check_available_configs, check_all_servers_available
 from utils import pick_first_available_server
 import aiohttp
 
@@ -152,6 +152,19 @@ async def activate_balance(callback_query: CallbackQuery, bot: Bot, state: FSMCo
         days = 0
     if days <= 0:
         await callback_query.answer("Баланс пуст", show_alert=True)
+        return
+
+    # Проверяем доступность серверов перед активацией бонусных дней
+    if not await check_all_servers_available():
+        await callback_query.message.edit_text(
+            "❌ К сожалению, сейчас не все серверы доступны для активации бонусных дней.\n"
+            "Для активации дней должны быть доступны все серверы.\n"
+            "Попробуйте позже или обратитесь в поддержку.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="🔙 Назад", callback_data="back")]
+            ])
+        )
+        await callback_query.answer()
         return
     # Проверяем, есть ли у пользователя уже АКТИВНЫЕ конфиги
     existing_configs = await db.get_active_configs_by_tg_id(tg_id)

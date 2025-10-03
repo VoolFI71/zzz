@@ -82,6 +82,33 @@ async def pick_first_available_server(preferred_order: list[str] | None = None) 
             continue
     return None
 
+
+async def check_all_servers_available() -> bool:
+    """Проверяет, что ВСЕ основные серверы (Германия и Финляндия) доступны.
+    
+    Возвращает True только если ВСЕ серверы fi и ge доступны.
+    Если хотя бы один сервер недоступен, возвращает False.
+    """
+    # Получаем список серверов из конфигурации
+    env_order = os.getenv("SERVER_ORDER", "fi,ge")
+    servers_to_check = [s.strip().lower() for s in env_order.split(",") if s.strip()]
+    if not servers_to_check:
+        servers_to_check = ["fi", "ge"]
+    
+    logger.info(f"Checking availability of all servers: {servers_to_check}")
+    
+    for server in servers_to_check:
+        try:
+            if not await check_available_configs(server):
+                logger.warning(f"Server {server} is NOT available")
+                return False
+        except Exception as e:
+            logger.warning(f"Error checking server {server}: {e}")
+            return False
+    
+    logger.info(f"All servers {servers_to_check} are available")
+    return True
+
 # --- Simple per-user rate limiting and action locks ---
 
 _last_action_at: dict[tuple[int | str, str], float] = {}

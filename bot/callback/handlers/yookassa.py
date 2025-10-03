@@ -10,7 +10,7 @@ import logging
 from aiogram import Bot, F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, InlineKeyboardMarkup, InlineKeyboardButton
-from utils import check_available_configs
+from utils import check_available_configs, check_all_servers_available
 
 logger = logging.getLogger(__name__)
 
@@ -30,11 +30,22 @@ async def pay_with_yookassa(callback_query: CallbackQuery, state: FSMContext, bo
         return
     await state.update_data(last_buy_click_ts=now_ts)
 
+    # Проверяем доступность серверов перед созданием платежа
+    if not await check_all_servers_available():
+        await callback_query.message.edit_text(
+            "❌ К сожалению, сейчас не все серверы доступны для новых подписок.\n"
+            "Для покупки подписки должны быть доступны все серверы.\n"
+            "Попробуйте позже или обратитесь в поддержку.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="🔙 Назад", callback_data="back")]
+            ])
+        )
+        await callback_query.answer()
+        return
+
     # Проверяем, есть ли у пользователя уже АКТИВНЫЕ конфиги
     existing_configs = await db.get_active_configs_by_tg_id(callback_query.from_user.id)
     
-    # Отладочная информация
-    print(f"DEBUG: User {callback_query.from_user.id} has {len(existing_configs)} active configs: {existing_configs}")
     
     if existing_configs:
         # У пользователя есть конфиги - предлагаем продление
@@ -208,9 +219,7 @@ async def cancel_yk_invoice(callback_query: CallbackQuery, state: FSMContext, bo
 @yookassa_router.callback_query(F.data == "check_yookassa")
 async def check_yookassa(callback_query: CallbackQuery, state: FSMContext, bot: Bot) -> None:
     from utils import get_session
-    print(f"DEBUG: check_yookassa called for user {callback_query.from_user.id}")
     yk_id = (await state.get_data()).get("yookassa_payment_id")
-    print(f"DEBUG: yookassa_payment_id: {yk_id}")
     if not yk_id:
         await callback_query.answer("Счёт не найден", show_alert=True)
         return
@@ -234,19 +243,14 @@ async def check_yookassa(callback_query: CallbackQuery, state: FSMContext, bot: 
         payload = payment.metadata.get("payload") if hasattr(payment, "metadata") else "sub_1m"
         days = 31 if payload == "sub_1m" else 93
 
-        print(f"DEBUG: Payment succeeded for user {tg_id}, days: {days}, payload: {payload}")
-
         # Проверяем, есть ли у пользователя уже АКТИВНЫЕ конфиги
         existing_configs = await db.get_active_configs_by_tg_id(tg_id)
-        print(f"DEBUG: Found {len(existing_configs)} existing configs for user {tg_id}")
         
         if existing_configs:
             # Продлеваем существующие конфиги
-            print(f"DEBUG: Extending existing configs for user {tg_id}")
             await extend_existing_configs_yookassa(tg_id, days, bot)
         else:
             # Выдаем конфиги на всех серверах из SERVER_ORDER
-            print(f"DEBUG: Creating new configs for user {tg_id}")
             import os
             server_order_env = os.getenv("SERVER_ORDER", "fi,ge")
             servers_to_use = [s.strip().lower() for s in server_order_env.split(',') if s.strip()]
@@ -370,6 +374,20 @@ async def extend_existing_configs_yookassa(tg_id: int, days: int, bot: Bot) -> N
 async def extend_yookassa_handler(callback_query: CallbackQuery, state: FSMContext, bot: Bot) -> None:
     """Обработчик продления подписки через YooKassa."""
     tg_id = callback_query.from_user.id
+    
+    # Проверяем доступность серверов перед созданием платежа для продления
+    if not await check_all_servers_available():
+        await callback_query.message.edit_text(
+            "❌ К сожалению, сейчас не все серверы доступны для продления подписок.\n"
+            "Для продления подписки должны быть доступны все серверы.\n"
+            "Попробуйте позже или обратитесь в поддержку.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="🔙 Назад", callback_data="back")]
+            ])
+        )
+        await callback_query.answer()
+        return
+    
     user_data = await state.get_data()
     days = int(user_data.get("selected_days", 31))
     

@@ -10,7 +10,7 @@ from aiogram import Bot, F, Router
 from aiogram.fsm.context import FSMContext
 from aiogram.types import CallbackQuery, LabeledPrice, Message, PreCheckoutQuery, InlineKeyboardMarkup, InlineKeyboardButton
 from database import db
-from utils import check_available_configs
+from utils import check_available_configs, check_all_servers_available
 
 logger = logging.getLogger(__name__)
 
@@ -38,6 +38,19 @@ async def pay_with_stars(callback_query: CallbackQuery, state: FSMContext, bot: 
     existing_invoice_id = user_data.get("invoice_msg_id")
     if existing_invoice_id:
         await callback_query.answer("У вас уже есть неоплаченный счёт выше ⬆️", show_alert=True)
+        return
+
+    # Проверяем доступность серверов перед созданием платежа
+    if not await check_all_servers_available():
+        await callback_query.message.edit_text(
+            "❌ К сожалению, сейчас не все серверы доступны для новых подписок.\n"
+            "Для покупки подписки должны быть доступны все серверы.\n"
+            "Попробуйте позже или обратитесь в поддержку.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="🔙 Назад", callback_data="back")]
+            ])
+        )
+        await callback_query.answer()
         return
 
     # Проверяем, есть ли у пользователя уже АКТИВНЫЕ конфиги
@@ -226,6 +239,20 @@ async def successful_payment_handler(message: Message, bot: Bot, state: FSMConte
 async def extend_subscription_handler(callback_query: CallbackQuery, state: FSMContext, bot: Bot) -> None:
     """Обработчик продления подписки."""
     tg_id = callback_query.from_user.id
+    
+    # Проверяем доступность серверов перед созданием платежа для продления
+    if not await check_all_servers_available():
+        await callback_query.message.edit_text(
+            "❌ К сожалению, сейчас не все серверы доступны для продления подписок.\n"
+            "Для продления подписки должны быть доступны все серверы.\n"
+            "Попробуйте позже или обратитесь в поддержку.",
+            reply_markup=InlineKeyboardMarkup(inline_keyboard=[
+                [InlineKeyboardButton(text="🔙 Назад", callback_data="back")]
+            ])
+        )
+        await callback_query.answer()
+        return
+    
     user_data = await state.get_data()
     days = int(user_data.get("selected_days", 31))
     

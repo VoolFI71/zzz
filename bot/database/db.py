@@ -505,14 +505,12 @@ async def get_active_configs_by_tg_id(tg_id):
             if response.status == 200:
                 data = await response.json()
                 current_time = int(time.time())
-                print(f"DEBUG: API returned {len(data.get('configs', []))} configs for user {tg_id}")
                 
                 # Фильтруем только АКТИВНЫЕ конфиги для конкретного пользователя
                 active_configs = []
                 for config in data.get("configs", []):
                     config_tg_id = config.get("tg_id")
                     time_end = config.get("time_end")
-                    print(f"DEBUG: Config {config.get('uid')} - tg_id: {config_tg_id}, time_end: {time_end}, current_time: {current_time}")
                     
                     if (config_tg_id == str(tg_id) and 
                         time_end and 
@@ -522,12 +520,9 @@ async def get_active_configs_by_tg_id(tg_id):
                             time_end,
                             config.get("server_country")
                         ))
-                        print(f"DEBUG: Added active config {config.get('uid')}")
                 
-                print(f"DEBUG: Found {len(active_configs)} active configs for user {tg_id}")
                 return active_configs
             else:
-                print(f"DEBUG: API returned status {response.status}")
                 return []
     except Exception as e:
         print(f"Error getting active user configs: {e}")
