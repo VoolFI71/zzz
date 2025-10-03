@@ -20,10 +20,9 @@ ADMIN_ID = 746560409
 API_BASE_URL = "http://fastapi:8080"
 AUTH_CODE = os.getenv("AUTH_CODE")
 
-# Проверяем наличие AUTH_CODE
+# Проверяем наличие AUTH_CODE (только предупреждение, не ошибка)
 if not AUTH_CODE:
-    logger.error("AUTH_CODE environment variable is not set!")
-    raise ValueError("AUTH_CODE environment variable is required")
+    logger.warning("AUTH_CODE environment variable is not set!")
 
 class AdminStates(StatesGroup):
     waiting_for_message = State()
