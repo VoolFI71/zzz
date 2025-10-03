@@ -87,7 +87,7 @@ COUNTRY_SETTINGS: dict[str, dict[str, str]] = {
 COUNTRY_LABELS: dict[str, str] = {
     "nl": "Netherlands 🇳🇱",
     "fi": "Finland 🇫🇮 (MTS, TELE2, YOTA)",
-    "ge": "Germany 🇩🇪 (MEGAFON)",
+    "ge": "Germany 🇩🇪 (ОБХОД НЕ РАБОТАЕТ MEGAFON)",
 }
 
 def _is_browser_request(headers: dict[str, str]) -> bool:
@@ -961,7 +961,7 @@ async def get_subscription(tg_id: int):
                 # Если сервер неизвестен – пропускаем
                 logger.warning("Unknown server %s for user_code %s", server, user_code)
                 continue
-            label = COUNTRY_LABELS.get(server, "SHARD VPN")
+            label = COUNTRY_LABELS.get(server, "GLS VPN")
             vless_config = (
                 f"vless://{user_code}@{settings['host']}:443?"
                 f"security=reality&encryption=none&pbk={settings['pbk']}&"
