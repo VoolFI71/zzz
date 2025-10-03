@@ -2,14 +2,14 @@
 Админ панель - главный файл, который импортирует все модули админки.
 """
 # Импортируем все роутеры из модулей
-from routes.admin import main
-from routes.admin import statistics
-from routes.admin import notifications
-from routes.admin import user_management
-from routes.admin import config_management
-from routes.admin import broadcast
-from routes.admin import revenue
-from routes.admin import system
+from .admin import main
+from .admin import statistics
+from .admin import notifications
+from .admin import user_management
+from .admin import config_management
+from .admin import broadcast
+from .admin import revenue
+from .admin import system
 
 # Создаем главный роутер
 from aiogram import Router
