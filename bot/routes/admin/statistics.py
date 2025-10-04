@@ -230,9 +230,9 @@ async def get_users_with_active_subscription() -> list[str]:
                             # Разбираем конфиги и ищем действительно АКТИВНЫЕ (time_end > now)
                             try:
                                 data = await resp.json()
-                            except Exception:
-                                # Ошибка парсинга — пропускаем пользователя (не рассылаем)
-                                active_users.append(user_id)
+                            except Exception as e:
+                                # Ошибка парсинга — НЕ добавляем в активные
+                                logger.warning(f"JSON parse error for user {user_id}: {e}")
                                 continue
                             now_ts = int(time.time())
                             def _parse_time_end(raw: object) -> int:
@@ -252,11 +252,12 @@ async def get_users_with_active_subscription() -> list[str]:
                             if resp.status == 404:
                                 pass
                             else:
-                                # Любая иная ошибка API — подстраховка: пропускаем такого пользователя
-                                active_users.append(user_id)
-                except Exception:
-                    # Сетевая ошибка — пропускаем такого пользователя (не рассылаем)
-                    active_users.append(user_id)
+                                # Любая иная ошибка API — НЕ добавляем в активные
+                                logger.warning(f"API error for user {user_id}: {resp.status}")
+                                pass
+                except Exception as e:
+                    # Сетевая ошибка — НЕ добавляем в активные
+                    logger.warning(f"Network error for user {user_id}: {e}")
                     continue
         return active_users
     except Exception as e:

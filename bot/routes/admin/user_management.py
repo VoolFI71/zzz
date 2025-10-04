@@ -64,14 +64,14 @@ async def process_user_search(message: types.Message, state: FSMContext):
             )
             await message.answer(info_text)
         else:
-            await message.answer("❌ Пользователь не найден в базе данных.")
+            await message.answer("🔍 Пользователь не найден в базе данных. Проверьте правильность ID.")
             
     except ValueError:
-        await message.answer("❌ Неверный формат ID. Введите числовой ID.")
+        await message.answer("❌ Неверный формат ID. Введите числовой ID пользователя.")
         return
     except Exception as e:
         logger.error(f"Error searching user: {e}")
-        await message.answer(f"❌ Ошибка при поиске: {str(e)}")
+        await message.answer("❌ Ошибка при поиске пользователя. Попробуйте позже.")
     
     await state.clear()
 

@@ -8,6 +8,7 @@ from datetime import datetime
 import aiohttp
 import os
 import asyncio
+from keyboards import keyboard
 
 logger = logging.getLogger(__name__)
 
@@ -40,7 +41,7 @@ async def admin_panel(message: types.Message):
     """Показывает админ панель только для администратора."""
     try:
         if not is_admin(message.from_user.id):
-            await message.answer("У вас нет доступа к админ панели.")
+            await message.answer("У вас нет доступа к админ панели.", reply_markup=keyboard.create_keyboard())
             return
         
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
@@ -62,7 +63,7 @@ async def admin_panel(message: types.Message):
         )
     except Exception as e:
         logger.error(f"Error in admin_panel: {e}")
-        await message.answer("Произошла ошибка при открытии админ панели.")
+        await message.answer("Произошла ошибка при открытии админ панели.", reply_markup=keyboard.create_keyboard())
 
 @router.callback_query(F.data == "back_to_admin_panel")
 async def back_to_admin_panel(callback: types.CallbackQuery):

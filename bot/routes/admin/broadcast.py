@@ -3,6 +3,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.fsm.state import State, StatesGroup
 import logging
 import aiosqlite
+from keyboards import keyboard
 
 logger = logging.getLogger(__name__)
 
@@ -37,34 +38,39 @@ async def start_broadcast(callback: types.CallbackQuery, state: FSMContext):
 async def process_broadcast_message(message: types.Message, state: FSMContext, bot):
     """Обрабатывает сообщение для рассылки и отправляет его всем пользователям."""
     if not is_admin(message.from_user.id):
-        await message.answer("У вас нет доступа.")
+        await message.answer("У вас нет доступа.", reply_markup=keyboard.create_keyboard())
         await state.clear()
         return
     
     broadcast_text = message.text
     if not broadcast_text or len(broadcast_text.strip()) == 0:
-        await message.answer("Сообщение не может быть пустым. Попробуйте снова:")
+        await message.answer("Сообщение не может быть пустым. Попробуйте снова:", reply_markup=keyboard.create_keyboard())
         return
     
     # Получаем список всех пользователей из БД
     try:
         user_ids = await get_all_user_ids()
         if not user_ids:
-            await message.answer("В базе данных нет пользователей.")
+            await message.answer("В базе данных нет пользователей.", reply_markup=keyboard.create_keyboard())
             await state.clear()
             return
         
         # Отправляем сообщение администратору о начале рассылки
-        await message.answer(f"📤 Начинаю рассылку сообщения {len(user_ids)} пользователям...")
+        progress_msg = await message.answer(f"📤 Начинаю рассылку сообщения {len(user_ids)} пользователям...")
         
         # Отправляем сообщение всем пользователям
         sent_count = 0
         failed_count = 0
         
-        for user_id in user_ids:
+        for i, user_id in enumerate(user_ids):
             try:
                 await bot.send_message(user_id, broadcast_text)
                 sent_count += 1
+                
+                # Обновляем прогресс каждые 10 сообщений или в конце
+                if (i + 1) % 10 == 0 or (i + 1) == len(user_ids):
+                    await progress_msg.edit_text(f"📤 Рассылка в процессе... Отправлено: {sent_count}/{len(user_ids)}")
+                    
             except Exception as e:
                 logger.warning(f"Failed to send message to user {user_id}: {e}")
                 failed_count += 1
@@ -80,7 +86,7 @@ async def process_broadcast_message(message: types.Message, state: FSMContext, b
         
     except Exception as e:
         logger.error(f"Error during broadcast: {e}")
-        await message.answer(f"❌ Ошибка при рассылке: {str(e)}")
+        await message.answer(f"❌ Ошибка при рассылке: {str(e)}", reply_markup=keyboard.create_keyboard())
     
     await state.clear()
 
@@ -88,19 +94,19 @@ async def process_broadcast_message(message: types.Message, state: FSMContext, b
 async def process_promo_message(message: types.Message, state: FSMContext, bot):
     """Обрабатывает промо-сообщение и отправляет его всем пользователям."""
     if not is_admin(message.from_user.id):
-        await message.answer("У вас нет доступа.")
+        await message.answer("У вас нет доступа.", reply_markup=keyboard.create_keyboard())
         await state.clear()
         return
     
     promo_text = message.text
     if not promo_text or len(promo_text.strip()) == 0:
-        await message.answer("Сообщение не может быть пустым. Попробуйте снова:")
+        await message.answer("Сообщение не может быть пустым. Попробуйте снова:", reply_markup=keyboard.create_keyboard())
         return
     
     try:
         user_ids = await get_all_user_ids()
         if not user_ids:
-            await message.answer("В базе данных нет пользователей.")
+            await message.answer("В базе данных нет пользователей.", reply_markup=keyboard.create_keyboard())
             await state.clear()
             return
         
@@ -127,7 +133,7 @@ async def process_promo_message(message: types.Message, state: FSMContext, bot):
         
     except Exception as e:
         logger.error(f"Error during promo broadcast: {e}")
-        await message.answer(f"❌ Ошибка при промо-рассылке: {str(e)}")
+        await message.answer(f"❌ Ошибка при промо-рассылке: {str(e)}", reply_markup=keyboard.create_keyboard())
     
     await state.clear()
 
