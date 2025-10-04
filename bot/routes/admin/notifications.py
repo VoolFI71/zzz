@@ -259,6 +259,18 @@ async def send_trial_only_notification(callback: types.CallbackQuery, bot):
             await callback.message.answer("Нет пользователей, которые только активировали пробную, но не покупали.")
             return
 
+        # Дополнительная проверка: исключаем пользователей с активными подписками
+        from .statistics import get_users_with_active_subscription
+        active_users = await get_users_with_active_subscription()
+        active_user_ids = set(active_users)
+        
+        # Фильтруем список, исключая пользователей с активными подписками
+        filtered_user_ids = [uid for uid in user_ids if str(uid) not in active_user_ids]
+        
+        if not filtered_user_ids:
+            await callback.message.answer("Нет пользователей для рассылки (все имеют активные подписки).")
+            return
+
         message_text = (
             "👋 Привет! Напоминаем, что после пробной подписки вы ещё не оформили полный доступ.\n\n"
             "⚡ Важное сейчас: наш VPN помогает обходить отключения мобильного интернета у операторов Теле2, МТС и ЙОТА.\n"
@@ -273,7 +285,7 @@ async def send_trial_only_notification(callback: types.CallbackQuery, bot):
 
         sent = 0
         failed = 0
-        for uid in user_ids:
+        for uid in filtered_user_ids:
             try:
                 await bot.send_message(uid, message_text, disable_web_page_preview=True)
                 sent += 1
@@ -286,7 +298,7 @@ async def send_trial_only_notification(callback: types.CallbackQuery, bot):
             f"✅ Рассылка завершена!\n\n"
             f"Отправлено: {sent}\n"
             f"Не доставлено: {failed}\n"
-            f"Всего пользователей: {len(user_ids)}"
+            f"Всего пользователей: {len(filtered_user_ids)}"
         )
 
     except Exception as e:

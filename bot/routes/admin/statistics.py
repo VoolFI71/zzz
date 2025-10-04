@@ -280,10 +280,16 @@ async def get_users_without_any_subscription() -> list[str]:
 
 async def get_users_trial_only_no_payments() -> list[int]:
     """Пользователи, кто активировал пробную (trial_3d_used=1), но ещё ни разу не покупал (paid_count=0).
+    
+    ИСКЛЮЧАЕМ пользователей с активными подписками, чтобы не спамить тех, кто уже купил.
 
     Возвращаем список tg_id как int.
     """
     try:
+        # Сначала получаем пользователей с активными подписками
+        active_users = await get_users_with_active_subscription()
+        active_user_ids = set(active_users)
+        
         async with aiosqlite.connect("users.db") as conn:
             async with conn.cursor() as cursor:
                 await cursor.execute(
@@ -293,7 +299,10 @@ async def get_users_trial_only_no_payments() -> list[int]:
                 res: list[int] = []
                 for row in rows:
                     try:
-                        res.append(int(row[0]))
+                        tg_id = int(row[0])
+                        # Исключаем пользователей с активными подписками
+                        if str(tg_id) not in active_user_ids:
+                            res.append(tg_id)
                     except Exception:
                         continue
                 return res
