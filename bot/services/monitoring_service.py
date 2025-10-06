@@ -4,12 +4,19 @@
 import asyncio
 import logging
 import time
-import psutil
 import aiosqlite
 from typing import Dict, List, Optional
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 import json
+
+# Попытка импорта psutil, если не удается - используем заглушки
+try:
+    import psutil
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    PSUTIL_AVAILABLE = False
+    logging.warning("psutil not available, system metrics will be limited")
 
 logger = logging.getLogger(__name__)
 
@@ -90,17 +97,27 @@ class MonitoringService:
     async def _collect_system_metrics(self) -> SystemMetrics:
         """Сбор системных метрик"""
         try:
-            cpu_percent = psutil.cpu_percent(interval=1)
-            memory = psutil.virtual_memory()
-            disk = psutil.disk_usage('/')
-            
-            return SystemMetrics(
-                cpu_percent=cpu_percent,
-                memory_percent=memory.percent,
-                memory_used_mb=memory.used / 1024 / 1024,
-                disk_usage_percent=disk.percent,
-                timestamp=time.time()
-            )
+            if PSUTIL_AVAILABLE:
+                cpu_percent = psutil.cpu_percent(interval=1)
+                memory = psutil.virtual_memory()
+                disk = psutil.disk_usage('/')
+                
+                return SystemMetrics(
+                    cpu_percent=cpu_percent,
+                    memory_percent=memory.percent,
+                    memory_used_mb=memory.used / 1024 / 1024,
+                    disk_usage_percent=disk.percent,
+                    timestamp=time.time()
+                )
+            else:
+                # Заглушки когда psutil недоступен
+                return SystemMetrics(
+                    cpu_percent=0.0,
+                    memory_percent=0.0,
+                    memory_used_mb=0.0,
+                    disk_usage_percent=0.0,
+                    timestamp=time.time()
+                )
         except Exception as e:
             logger.error(f"Error collecting system metrics: {e}")
             return SystemMetrics(0, 0, 0, 0, time.time())
@@ -215,39 +232,48 @@ class MonitoringService:
     async def _check_memory(self) -> tuple[str, str]:
         """Проверка использования памяти"""
         try:
-            memory = psutil.virtual_memory()
-            if memory.percent > 90:
-                return "critical", f"Memory usage critical: {memory.percent}%"
-            elif memory.percent > 80:
-                return "warning", f"Memory usage high: {memory.percent}%"
+            if PSUTIL_AVAILABLE:
+                memory = psutil.virtual_memory()
+                if memory.percent > 90:
+                    return "critical", f"Memory usage critical: {memory.percent}%"
+                elif memory.percent > 80:
+                    return "warning", f"Memory usage high: {memory.percent}%"
+                else:
+                    return "healthy", f"Memory usage normal: {memory.percent}%"
             else:
-                return "healthy", f"Memory usage normal: {memory.percent}%"
+                return "warning", "Memory monitoring unavailable (psutil not installed)"
         except Exception as e:
             return "critical", f"Memory check failed: {str(e)}"
     
     async def _check_disk(self) -> tuple[str, str]:
         """Проверка использования диска"""
         try:
-            disk = psutil.disk_usage('/')
-            if disk.percent > 95:
-                return "critical", f"Disk usage critical: {disk.percent}%"
-            elif disk.percent > 85:
-                return "warning", f"Disk usage high: {disk.percent}%"
+            if PSUTIL_AVAILABLE:
+                disk = psutil.disk_usage('/')
+                if disk.percent > 95:
+                    return "critical", f"Disk usage critical: {disk.percent}%"
+                elif disk.percent > 85:
+                    return "warning", f"Disk usage high: {disk.percent}%"
+                else:
+                    return "healthy", f"Disk usage normal: {disk.percent}%"
             else:
-                return "healthy", f"Disk usage normal: {disk.percent}%"
+                return "warning", "Disk monitoring unavailable (psutil not installed)"
         except Exception as e:
             return "critical", f"Disk check failed: {str(e)}"
     
     async def _check_cpu(self) -> tuple[str, str]:
         """Проверка загрузки CPU"""
         try:
-            cpu_percent = psutil.cpu_percent(interval=1)
-            if cpu_percent > 90:
-                return "critical", f"CPU usage critical: {cpu_percent}%"
-            elif cpu_percent > 80:
-                return "warning", f"CPU usage high: {cpu_percent}%"
+            if PSUTIL_AVAILABLE:
+                cpu_percent = psutil.cpu_percent(interval=1)
+                if cpu_percent > 90:
+                    return "critical", f"CPU usage critical: {cpu_percent}%"
+                elif cpu_percent > 80:
+                    return "warning", f"CPU usage high: {cpu_percent}%"
+                else:
+                    return "healthy", f"CPU usage normal: {cpu_percent}%"
             else:
-                return "healthy", f"CPU usage normal: {cpu_percent}%"
+                return "warning", "CPU monitoring unavailable (psutil not installed)"
         except Exception as e:
             return "critical", f"CPU check failed: {str(e)}"
     
