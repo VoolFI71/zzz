@@ -5,9 +5,7 @@ from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 import logging
 import time
 from datetime import datetime
-import aiohttp
 import os
-import asyncio
 from keyboards import keyboard
 
 logger = logging.getLogger(__name__)
@@ -46,11 +44,13 @@ async def admin_panel(message: types.Message):
         
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="📢 Отправить сообщение всем", callback_data="admin_broadcast")],
+            [InlineKeyboardButton(text="🚀 Продвинутые рассылки", callback_data="admin_advanced_broadcast")],
             [InlineKeyboardButton(text="📊 Статистика", callback_data="admin_stats")],
             [InlineKeyboardButton(text="💵 Доход (руб / звезды)", callback_data="admin_revenue")],
             [InlineKeyboardButton(text="🔍 Поиск пользователя", callback_data="admin_search_user")],
             [InlineKeyboardButton(text="⚙️ Управление конфигами", callback_data="admin_configs")],
             [InlineKeyboardButton(text="📈 Детальная статистика", callback_data="admin_detailed_stats")],
+            [InlineKeyboardButton(text="📊 Мониторинг", callback_data="admin_monitoring")],
             [InlineKeyboardButton(text="🔧 Системные операции", callback_data="admin_system")],
             [InlineKeyboardButton(text="🔔 Уведомления о подписке", callback_data="admin_notifications")],
         ])
@@ -71,11 +71,13 @@ async def back_to_admin_panel(callback: types.CallbackQuery):
     try:
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="📢 Отправить сообщение всем", callback_data="admin_broadcast")],
+            [InlineKeyboardButton(text="🚀 Продвинутые рассылки", callback_data="admin_advanced_broadcast")],
             [InlineKeyboardButton(text="📊 Статистика", callback_data="admin_stats")],
             [InlineKeyboardButton(text="💵 Доход (руб / звезды)", callback_data="admin_revenue")],
             [InlineKeyboardButton(text="🔍 Поиск пользователя", callback_data="admin_search_user")],
             [InlineKeyboardButton(text="⚙️ Управление конфигами", callback_data="admin_configs")],
             [InlineKeyboardButton(text="📈 Детальная статистика", callback_data="admin_detailed_stats")],
+            [InlineKeyboardButton(text="📊 Мониторинг", callback_data="admin_monitoring")],
             [InlineKeyboardButton(text="🔧 Системные операции", callback_data="admin_system")],
             [InlineKeyboardButton(text="🔔 Уведомления о подписке", callback_data="admin_notifications")],
         ])
@@ -97,11 +99,13 @@ async def back_to_main_admin(callback: types.CallbackQuery):
     try:
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="📢 Отправить сообщение всем", callback_data="admin_broadcast")],
+            [InlineKeyboardButton(text="🚀 Продвинутые рассылки", callback_data="admin_advanced_broadcast")],
             [InlineKeyboardButton(text="📊 Статистика", callback_data="admin_stats")],
             [InlineKeyboardButton(text="💵 Доход (руб / звезды)", callback_data="admin_revenue")],
             [InlineKeyboardButton(text="🔍 Поиск пользователя", callback_data="admin_search_user")],
             [InlineKeyboardButton(text="⚙️ Управление конфигами", callback_data="admin_configs")],
             [InlineKeyboardButton(text="📈 Детальная статистика", callback_data="admin_detailed_stats")],
+            [InlineKeyboardButton(text="📊 Мониторинг", callback_data="admin_monitoring")],
             [InlineKeyboardButton(text="🔧 Системные операции", callback_data="admin_system")],
             [InlineKeyboardButton(text="🔔 Уведомления о подписке", callback_data="admin_notifications")],
         ])
@@ -123,11 +127,13 @@ async def admin_back_to_main(callback: types.CallbackQuery):
     try:
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="📢 Отправить сообщение всем", callback_data="admin_broadcast")],
+            [InlineKeyboardButton(text="🚀 Продвинутые рассылки", callback_data="admin_advanced_broadcast")],
             [InlineKeyboardButton(text="📊 Статистика", callback_data="admin_stats")],
             [InlineKeyboardButton(text="💵 Доход (руб / звезды)", callback_data="admin_revenue")],
             [InlineKeyboardButton(text="🔍 Поиск пользователя", callback_data="admin_search_user")],
             [InlineKeyboardButton(text="⚙️ Управление конфигами", callback_data="admin_configs")],
             [InlineKeyboardButton(text="📈 Детальная статистика", callback_data="admin_detailed_stats")],
+            [InlineKeyboardButton(text="📊 Мониторинг", callback_data="admin_monitoring")],
             [InlineKeyboardButton(text="🔧 Системные операции", callback_data="admin_system")],
             [InlineKeyboardButton(text="🔔 Уведомления о подписке", callback_data="admin_notifications")],
         ])
@@ -149,11 +155,13 @@ async def admin_panel_callback(callback: types.CallbackQuery):
     try:
         keyboard = InlineKeyboardMarkup(inline_keyboard=[
             [InlineKeyboardButton(text="📢 Отправить сообщение всем", callback_data="admin_broadcast")],
+            [InlineKeyboardButton(text="🚀 Продвинутые рассылки", callback_data="admin_advanced_broadcast")],
             [InlineKeyboardButton(text="📊 Статистика", callback_data="admin_stats")],
             [InlineKeyboardButton(text="💵 Доход (руб / звезды)", callback_data="admin_revenue")],
             [InlineKeyboardButton(text="🔍 Поиск пользователя", callback_data="admin_search_user")],
             [InlineKeyboardButton(text="⚙️ Управление конфигами", callback_data="admin_configs")],
             [InlineKeyboardButton(text="📈 Детальная статистика", callback_data="admin_detailed_stats")],
+            [InlineKeyboardButton(text="📊 Мониторинг", callback_data="admin_monitoring")],
             [InlineKeyboardButton(text="🔧 Системные операции", callback_data="admin_system")],
             [InlineKeyboardButton(text="🔔 Уведомления о подписке", callback_data="admin_notifications")],
         ])
