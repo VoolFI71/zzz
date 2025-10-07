@@ -5,7 +5,7 @@ Callback обработчики для профиля.
 import os
 import aiohttp
 from aiogram import Router, F, types
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 from utils import acquire_action_lock, get_session
 from database import db
 
@@ -39,11 +39,11 @@ async def copy_config_callback(callback: types.CallbackQuery):
                 if not sub_key:
                     await callback.answer("Не удалось получить ссылку", show_alert=True)
                     return
-            # Формируем публичную ссылку подписки
+            # Формируем публичную ссылку подписки для Mini App
             base = os.getenv("PUBLIC_BASE_URL", "https://swaga.space").rstrip('/')
             web_url = f"{base}/subscription/{sub_key}"
             kb = InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="📲 Добавить подписку в V2rayTun", url=web_url)],
+                [InlineKeyboardButton(text="📲 Добавить подписку в V2rayTun", web_app=WebAppInfo(url=web_url))],
                 [InlineKeyboardButton(text="📋 Скопировать ссылку", callback_data="copy_sub")],
             ])
             await callback.message.answer("Ваша подписка:", reply_markup=kb, disable_web_page_preview=True)

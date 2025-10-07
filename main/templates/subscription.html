@@ -4,188 +4,723 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>GLS VPN — Добавить конфиг</title>
+  <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
-    :root{
-      --bg:#0b1020;--bg2:#101634;--glass:rgba(255,255,255,.06);--stroke:rgba(255,255,255,.14);
-      --text:#e8ecf8;--muted:#a9b3c9;--primary:#6d8bff;--primary2:#9a6dff;--ok:#22c55e;--warn:#f59e0b
+    :root {
+      --bg: #0a0e1a;
+      --bg2: #0f1419;
+      --bg3: #1a1f2e;
+      --glass: rgba(255, 255, 255, 0.08);
+      --glass-hover: rgba(255, 255, 255, 0.12);
+      --stroke: rgba(255, 255, 255, 0.18);
+      --stroke-hover: rgba(255, 255, 255, 0.25);
+      --text: #ffffff;
+      --text-secondary: #b8c5d1;
+      --text-muted: #8a9ba8;
+      --primary: #6366f1;
+      --primary-hover: #5b5cf6;
+      --primary-light: #818cf8;
+      --accent: #06b6d4;
+      --success: #10b981;
+      --warning: #f59e0b;
+      --error: #ef4444;
+      --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
+      --shadow-lg: 0 16px 64px rgba(0, 0, 0, 0.4);
+      --radius: 16px;
+      --radius-sm: 12px;
+      --radius-lg: 24px;
     }
-    *{box-sizing:border-box}
-    html,body{height:100%}
-    body{
-      margin:0;font-family:Inter, -apple-system, Segoe UI, Roboto, Arial; color:var(--text);
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      height: 100%;
+      overflow-x: hidden;
+    }
+
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
+      color: var(--text);
       background:
-        radial-gradient(900px 500px at 15% -10%, #6d8bff22, transparent 60%),
-        radial-gradient(1000px 600px at 85% 0%, #9a6dff1f, transparent 60%),
-        linear-gradient(180deg, var(--bg), var(--bg2));
-      display:flex;align-items:center;justify-content:center;padding:24px
-    }
-    .blur{position:absolute;filter:blur(80px);opacity:.6;z-index:-1}
-    .b1{top:-40px;left:6%;width:280px;height:280px;background:#6d8bff44;border-radius:50%}
-    .b2{bottom:-40px;right:10%;width:320px;height:320px;background:#9a6dff33;border-radius:50%}
-
-    .card{width:100%;max-width:900px;border:1px solid var(--stroke);background:var(--glass);
-      border-radius:18px;backdrop-filter:blur(10px) saturate(135%);padding:22px 22px 18px}
-    .brand{display:flex;align-items:center;gap:12px;margin-bottom:8px}
-    .logo{width:36px;height:36px;border-radius:10px;display:grid;place-items:center;
-      background:linear-gradient(135deg,var(--primary),var(--primary2));box-shadow:0 10px 40px #6d8bff55;font-weight:800}
-    .brand h1{margin:0;font-size:18px;letter-spacing:.6px}
-    .subtitle{margin:4px 0 12px;color:var(--muted);font-size:14px}
-
-    .info{display:flex;gap:12px;flex-wrap:wrap;margin:10px 0 16px}
-    .chip{border:1px solid var(--stroke);border-radius:10px;padding:8px 10px;background:rgba(255,255,255,.04);font-size:12px}
-    .ok{color:var(--ok)}
-
-    .config{
-      background:rgba(255,255,255,.05);border:1px dashed var(--stroke);border-radius:12px;padding:12px;
-      font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;font-size:12.5px;line-height:1.6;max-height:220px;min-height:120px;overflow:auto
+        radial-gradient(1200px 800px at 20% -10%, rgba(99, 102, 241, 0.15), transparent 50%),
+        radial-gradient(1000px 600px at 80% 20%, rgba(6, 182, 212, 0.1), transparent 50%),
+        radial-gradient(800px 400px at 50% 100%, rgba(139, 92, 246, 0.08), transparent 60%),
+        linear-gradient(135deg, var(--bg), var(--bg2));
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      min-height: 100vh;
+      position: relative;
     }
 
-    .actions{display:grid;grid-template-columns:1fr;gap:10px;margin:16px 0}
-    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--stroke);
-      background:linear-gradient(135deg,var(--primary),var(--primary2));color:#fff;padding:14px;border-radius:12px;
-      font-weight:700;cursor:pointer;text-decoration:none;transition:.2s}
-    .btn:hover{transform:translateY(-1px);box-shadow:0 12px 32px #6d8bff55}
-    .ghost{background:transparent;color:var(--text)}
-    .ghost:hover{border-color:#ffffff55}
-
-    .help{color:var(--muted);font-size:13px;margin-top:6px}
-
-    .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%);
-      background:#0d1226;color:#e6eaff;border:1px solid var(--stroke);padding:10px 14px;border-radius:10px;opacity:0;
-      transition:.3s;pointer-events:none}
-    .toast.show{opacity:1;transform:translateX(-50%) translateY(-6px)}
-
-    @media (min-width:860px){
-      .brand h1{font-size:20px}
-      .subtitle{font-size:15px}
-      .actions{grid-template-columns:1fr 1fr}
-      .config{max-height:320px;font-size:13.5px}
+    /* Animated background elements */
+    .bg-blur {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      pointer-events: none;
+      z-index: -1;
     }
-    @media (max-width:560px){.card{padding:18px}.brand h1{font-size:16px}}
+
+    .bg-blur::before,
+    .bg-blur::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.6;
+      animation: float 20s ease-in-out infinite;
+    }
+
+    .bg-blur::before {
+      width: 400px;
+      height: 400px;
+      background: linear-gradient(45deg, var(--primary), var(--accent));
+      top: -200px;
+      left: -200px;
+      animation-delay: 0s;
+    }
+
+    .bg-blur::after {
+      width: 300px;
+      height: 300px;
+      background: linear-gradient(45deg, var(--accent), #8b5cf6);
+      bottom: -150px;
+      right: -150px;
+      animation-delay: -10s;
+    }
+
+    @keyframes float {
+      0%, 100% { transform: translate(0, 0) rotate(0deg); }
+      33% { transform: translate(30px, -30px) rotate(120deg); }
+      66% { transform: translate(-20px, 20px) rotate(240deg); }
+    }
+
+    /* Main container */
+    .container {
+      width: 100%;
+      max-width: 420px;
+      position: relative;
+      z-index: 1;
+    }
+
+    .card {
+      background: var(--glass);
+      border: 1px solid var(--stroke);
+      border-radius: var(--radius-lg);
+      backdrop-filter: blur(20px) saturate(180%);
+      padding: 32px 24px;
+      box-shadow: var(--shadow-lg);
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+      opacity: 0;
+      transform: translateY(20px);
+    }
+
+    .card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+    }
+
+    .card:hover {
+      border-color: var(--stroke-hover);
+      transform: translateY(-2px);
+      box-shadow: 0 20px 80px rgba(0, 0, 0, 0.4);
+    }
+
+    /* Header */
+    .header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+
+    .logo {
+      width: 64px;
+      height: 64px;
+      margin: 0 auto 16px;
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      border-radius: var(--radius);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 28px;
+      box-shadow: 0 8px 32px rgba(99, 102, 241, 0.3);
+      animation: pulse 2s ease-in-out infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { transform: scale(1); }
+      50% { transform: scale(1.05); }
+    }
+
+    .title {
+      font-size: 24px;
+      font-weight: 700;
+      margin-bottom: 8px;
+      background: linear-gradient(135deg, var(--text), var(--text-secondary));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 16px;
+      line-height: 1.5;
+    }
+
+    /* Status chips */
+    .status {
+      display: flex;
+      gap: 12px;
+      margin-bottom: 24px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .chip {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      background: rgba(255, 255, 255, 0.06);
+      border: 1px solid var(--stroke);
+      border-radius: 20px;
+      font-size: 14px;
+      font-weight: 500;
+      transition: all 0.2s ease;
+    }
+
+    .chip:hover {
+      background: rgba(255, 255, 255, 0.1);
+      border-color: var(--stroke-hover);
+    }
+
+    .chip.success {
+      color: var(--success);
+      border-color: rgba(16, 185, 129, 0.3);
+      background: rgba(16, 185, 129, 0.1);
+    }
+
+
+    /* Actions */
+    .actions {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .btn {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 12px;
+      padding: 16px 24px;
+      border: none;
+      border-radius: var(--radius);
+      font-size: 16px;
+      font-weight: 600;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.3s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.5s ease;
+    }
+
+    .btn:hover::before {
+      left: 100%;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+      color: white;
+      box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+    }
+
+    .btn-primary:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 8px 32px rgba(99, 102, 241, 0.4);
+    }
+
+    .btn-secondary {
+      background: transparent;
+      color: var(--text);
+      border: 1px solid var(--stroke);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.05);
+      border-color: var(--stroke-hover);
+    }
+
+    .btn:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    .btn.loading {
+      position: relative;
+      color: transparent;
+    }
+
+    .btn.loading::after {
+      content: '';
+      position: absolute;
+      width: 20px;
+      height: 20px;
+      border: 2px solid transparent;
+      border-top: 2px solid currentColor;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    .btn-primary.loading::after {
+      border-top-color: white;
+    }
+
+    .btn-secondary.loading::after {
+      border-top-color: var(--text);
+    }
+
+    /* Help text */
+    .help {
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 14px;
+      line-height: 1.5;
+      margin-top: 16px;
+    }
+
+    /* Toast notification */
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(100px);
+      background: var(--bg3);
+      color: var(--text);
+      border: 1px solid var(--stroke);
+      padding: 12px 20px;
+      border-radius: var(--radius);
+      font-size: 14px;
+      font-weight: 500;
+      opacity: 0;
+      transition: all 0.3s ease;
+      pointer-events: none;
+      z-index: 1000;
+      box-shadow: var(--shadow-lg);
+    }
+
+    .toast.show {
+      opacity: 1;
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .toast.success {
+      background: rgba(16, 185, 129, 0.1);
+      border-color: rgba(16, 185, 129, 0.3);
+      color: var(--success);
+    }
+
+    .toast.warning {
+      background: rgba(245, 158, 11, 0.1);
+      border-color: rgba(245, 158, 11, 0.3);
+      color: var(--warning);
+    }
+
+    .toast.error {
+      background: rgba(239, 68, 68, 0.1);
+      border-color: rgba(239, 68, 68, 0.3);
+      color: var(--error);
+    }
+
+    /* Telegram Mini App specific styles */
+    .telegram-theme {
+      --bg: var(--tg-theme-bg-color, #0a0e1a);
+      --text: var(--tg-theme-text-color, #ffffff);
+      --text-secondary: var(--tg-theme-hint-color, #b8c5d1);
+      --primary: var(--tg-theme-button-color, #6366f1);
+    }
+
+    /* Responsive design */
+    @media (max-width: 480px) {
+      .container {
+        max-width: 100%;
+        padding: 0 16px;
+      }
+      
+      .card {
+        padding: 24px 20px;
+      }
+      
+      .title {
+        font-size: 20px;
+      }
+      
+      .subtitle {
+        font-size: 14px;
+      }
+      
+      .btn {
+        padding: 14px 20px;
+        font-size: 15px;
+      }
+    }
+
+    @media (max-width: 360px) {
+      .card {
+        padding: 20px 16px;
+      }
+      
+      .logo {
+        width: 56px;
+        height: 56px;
+        font-size: 24px;
+      }
+      
+      .title {
+        font-size: 18px;
+      }
+    }
+
+    /* Loading animation */
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 2px solid rgba(255, 255, 255, 0.3);
+      border-radius: 50%;
+      border-top-color: var(--primary);
+      animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
     </style>
 </head>
 <body>
-  <div class="b1 blur"></div><div class="b2 blur"></div>
-  <main class="card">
-    <div class="brand">
+  <div class="bg-blur"></div>
+  
+  <div class="container">
+    <div class="card">
+      <div class="header">
       <div class="logo">⚡</div>
-      <h1>GLS VPN — Импорт конфига</h1>
-        </div>
-    <div class="subtitle">Добавьте конфигурацию в V2rayTun в один клик</div>
-
-    <div class="info">
-      <div class="chip ok" id="platform-chip">📱 Готово для мобильного</div>
+        <h1 class="title">GLS VPN</h1>
+        <p class="subtitle">Импорт конфигурации в V2rayTun</p>
         </div>
 
-    <div class="config" id="config-text">Загрузка конфига…</div>
+      <div class="status">
+        <div class="chip success" id="platform-chip">
+          <span>📱</span>
+          <span>Готово для мобильного</span>
+        </div>
+      </div>
 
     <div class="actions">
-      <a class="btn" id="openBtn">📲 Открыть в V2rayTun</a>
-      <button class="btn ghost" id="copyBtn">📋 Копировать конфиг</button>
+        <button class="btn btn-primary" id="openBtn">
+          <span>📲</span>
+          <span>Открыть в V2rayTun</span>
+        </button>
+        <button class="btn btn-secondary" id="copyBtn">
+          <span>📋</span>
+          <span>Копировать конфиг</span>
+        </button>
         </div>
+
     <div class="help">
       Если приложение не открылось автоматически — скопируйте конфиг и добавьте его в V2rayTun вручную.
+      </div>
     </div>
-  </main>
+  </div>
 
   <div class="toast" id="toast">Скопировано</div>
 
   <script>
+    // Telegram Mini App integration
+    let tg = null;
+    if (window.Telegram && window.Telegram.WebApp) {
+      tg = window.Telegram.WebApp;
+      tg.ready();
+      tg.expand();
+      
+      // Apply Telegram theme
+      document.body.classList.add('telegram-theme');
+      
+      // Set header color
+      if (tg.headerColor) {
+        document.documentElement.style.setProperty('--primary', tg.headerColor);
+      }
+    }
+
     const qs = new URLSearchParams(location.search);
     const configB64 = qs.get('config');
     const subscriptionParam = qs.get('subscription');
     const subKeyParam = qs.get('sub_key');
-    // Не используем tg_id: подписка работает только по sub_key
     
-    const configBox = document.getElementById('config-text');
     const openBtn = document.getElementById('openBtn');
     const copyBtn = document.getElementById('copyBtn');
     const toast = document.getElementById('toast');
+    const platformChip = document.getElementById('platform-chip');
     
-    function showToast(text){
+    function showToast(text, type = 'success') {
       toast.textContent = text;
-      toast.classList.add('show');
-      setTimeout(()=>toast.classList.remove('show'), 1700);
+      toast.className = `toast show ${type}`;
+      setTimeout(() => toast.classList.remove('show'), 2000);
     }
     
-    // Нормализуем URL-safe base64 (замена -_ и добивка "=")
-    function normalizeB64(input){
-      if(!input) return '';
+    
+    // Нормализуем URL-safe base64
+    function normalizeB64(input) {
+      if (!input) return '';
       let s = input.replace(/-/g, '+').replace(/_/g, '/');
       const pad = s.length % 4;
-      if(pad === 2) s += '==';
-      else if(pad === 3) s += '=';
-      else if(pad !== 0) s += '==='; // на всякий случай
+      if (pad === 2) s += '==';
+      else if (pad === 3) s += '=';
+      else if (pad !== 0) s += '===';
       return s;
     }
-    let decoded = '';
+    
+    // Валидация и определение конфигурации
+    function validateConfig() {
+      const hasConfig = configB64 || subscriptionParam || subKeyParam;
+      if (!hasConfig) {
+        showToast('Отсутствуют параметры конфигурации', 'warning');
+        return false;
+      }
+      return true;
+    }
+    
+    // Определяем конфигурацию для использования
+    let displayConfig = '';
+    let displayUrl = '';
+    let configType = '';
+    
     try {
-      decoded = configB64 ? atob(normalizeB64(configB64)) : '';
-    } catch {
-      decoded = '';
+      if (configB64) {
+        // Декодируем base64 конфигурацию
+        displayConfig = atob(normalizeB64(configB64));
+        displayUrl = displayConfig;
+        configType = 'base64';
+      } else if (subscriptionParam && !subscriptionParam.startsWith('http')) {
+        // Если это не URL, а сырая конфигурация
+        displayConfig = subscriptionParam;
+        displayUrl = subscriptionParam;
+        configType = 'raw';
+      } else if (subKeyParam) {
+        // Для подписки создаем URL
+        displayUrl = `https://swaga.space/subscription/${encodeURIComponent(subKeyParam)}`;
+        displayConfig = displayUrl;
+        configType = 'subscription';
+      } else {
+        // Если нет конфигурации
+        displayConfig = '';
+        displayUrl = '';
+        configType = 'none';
+      }
+    } catch (error) {
+      console.error('Error decoding config:', error);
+      displayConfig = '';
+      displayUrl = '';
+      configType = 'error';
+      showToast('Ошибка декодирования конфигурации', 'error');
     }
     
-    // Текущий адрес страницы (без хэша)
-    const currentUrl = location.href;
-    
-    // Логика, какая ссылка отображается в поле
-    let displayUrl = null;
-    if (subKeyParam) {
-      // Всегда предпочитаем ссылку-подписку по sub_key для автообновления
-      displayUrl = `https://swaga.space/subscription/${encodeURIComponent(subKeyParam)}`;
-    } else if (subscriptionParam) {
-      // Если передан subscription и это уже URL, используем как есть; если это сырой список конфигов — это будет одноразовый импорт
-      displayUrl = subscriptionParam;
-    } else if (decoded) {
-      displayUrl = decoded;
-    } else {
-      displayUrl = currentUrl; // fallback — текущая страница
-    }
-    
-    configBox.textContent = displayUrl;
-    
-    // убрано отображение срока действия подписки
-    
-    // platform hint
+    // Определяем платформу и обновляем чип
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    if(!isMobile){ document.getElementById('platform-chip').textContent = '🖥️ Откройте со смартфона'; }
+    const isTelegram = tg && tg.platform;
     
-    // Открыть в V2rayTun — используем текущую видимую ссылку (displayUrl), кодируя в base64
-    openBtn.addEventListener('click', () => {
-      if(!isMobile){ showToast('Откройте со смартфона'); return; }
-      const target = displayUrl || currentUrl;
-      if(!target){ showToast('Данные не найдены'); return; }
-      // Корректное base64 для UTF-8 строк
-      const base64 = btoa(unescape(encodeURIComponent(target)));
-      const href = `v2raytun://import/${base64}`;
-      // создаём ссылку и кликаем — системный обработчик откроет приложение
-      const a = document.createElement('a');
-      a.href = href;
-      document.body.appendChild(a);
-      a.click();
-      a.remove();
-      setTimeout(()=>{ if(document.hasFocus()) showToast('Если приложение не открылось — скопируйте ссылку'); }, 1200);
-    });
+    if (isTelegram) {
+      platformChip.innerHTML = '<span>📱</span><span>Telegram Mini App</span>';
+    } else if (isMobile) {
+      platformChip.innerHTML = '<span>📱</span><span>Мобильное устройство</span>';
+    } else {
+      platformChip.innerHTML = '<span>🖥️</span><span>Откройте со смартфона</span>';
+    }
     
-    // Копировать — копируем текущий адрес страницы (location.href)
-    copyBtn.addEventListener('click', async () => {
-      const textToCopy = currentUrl;
-      if(!textToCopy){ showToast('Данные не найдены'); return; }
-      try{
-        if(navigator.clipboard && window.isSecureContext){
-          await navigator.clipboard.writeText(textToCopy);
-        } else {
-          const ta = document.createElement('textarea');
-          ta.value = textToCopy; ta.style.position='fixed'; ta.style.opacity='0';
-          document.body.appendChild(ta); ta.focus(); ta.select();
-          document.execCommand('copy');
-          ta.remove();
-        }
-        showToast('✅ Скопировано');
-      }catch{
-        showToast('❌ Не удалось скопировать');
+    // Обработчик кнопки "Открыть в V2rayTun"
+    openBtn.addEventListener('click', async () => {
+      if (!isMobile && !isTelegram) {
+        showToast('Откройте со смартфона для импорта', 'warning');
+        return;
+      }
+      
+      if (!displayUrl) {
+        showToast('Конфигурация не найдена', 'error');
+        return;
+      }
+      
+      // Показываем состояние загрузки
+      openBtn.disabled = true;
+      openBtn.classList.add('loading');
+      
+      try {
+        // Кодируем URL в base64 для V2rayTun
+        const base64 = btoa(unescape(encodeURIComponent(displayUrl)));
+        const v2rayUrl = `v2raytun://import/${base64}`;
+        
+        // Создаем ссылку и кликаем
+        const link = document.createElement('a');
+        link.href = v2rayUrl;
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        
+        showToast('Открываем V2rayTun...', 'success');
+        
+        // Проверяем, открылось ли приложение
+        setTimeout(() => {
+          if (document.hasFocus()) {
+            showToast('Если приложение не открылось — скопируйте конфиг', 'warning');
+          }
+          // Снимаем состояние загрузки
+          openBtn.disabled = false;
+          openBtn.classList.remove('loading');
+        }, 1500);
+        
+      } catch (error) {
+        console.error('Error opening V2rayTun:', error);
+        showToast('Ошибка открытия приложения', 'error');
+        // Снимаем состояние загрузки при ошибке
+        openBtn.disabled = false;
+        openBtn.classList.remove('loading');
       }
     });
+    
+    // Обработчик кнопки "Копировать конфиг"
+    copyBtn.addEventListener('click', async () => {
+      if (!displayConfig && !displayUrl) {
+        showToast('Конфигурация не найдена', 'error');
+        return;
+      }
+      
+      // Показываем состояние загрузки
+      copyBtn.disabled = true;
+      copyBtn.classList.add('loading');
+      
+      const textToCopy = displayConfig || displayUrl;
+      
+      try {
+        if (navigator.clipboard && window.isSecureContext) {
+          await navigator.clipboard.writeText(textToCopy);
+        } else {
+          // Fallback для старых браузеров
+          const textArea = document.createElement('textarea');
+          textArea.value = textToCopy;
+          textArea.style.position = 'fixed';
+          textArea.style.opacity = '0';
+          document.body.appendChild(textArea);
+          textArea.focus();
+          textArea.select();
+          document.execCommand('copy');
+          document.body.removeChild(textArea);
+        }
+        
+        showToast('✅ Скопировано', 'success');
+        
+        // Вибрация для мобильных устройств
+        if (navigator.vibrate) {
+          navigator.vibrate(100);
+        }
+        
+        // Haptic feedback для Telegram
+        if (tg && tg.HapticFeedback) {
+          tg.HapticFeedback.impactOccurred('light');
+        }
+        
+      } catch (error) {
+        console.error('Error copying config:', error);
+        showToast('❌ Не удалось скопировать', 'error');
+      } finally {
+        // Снимаем состояние загрузки
+        setTimeout(() => {
+          copyBtn.disabled = false;
+          copyBtn.classList.remove('loading');
+        }, 1000);
+      }
+    });
+    
+    // Улучшенная анимация появления
+    function animateCard() {
+      const card = document.querySelector('.card');
+      const elements = card.querySelectorAll('.header, .status, .actions, .help');
+      
+      // Анимация карточки
+      setTimeout(() => {
+        card.style.opacity = '1';
+        card.style.transform = 'translateY(0)';
+      }, 100);
+      
+      // Последовательная анимация элементов
+      elements.forEach((element, index) => {
+        element.style.opacity = '0';
+        element.style.transform = 'translateY(20px)';
+        element.style.transition = 'all 0.4s ease';
+        
+        setTimeout(() => {
+          element.style.opacity = '1';
+          element.style.transform = 'translateY(0)';
+        }, 200 + (index * 100));
+      });
+    }
+    
+    // Запускаем анимацию после загрузки
+    animateCard();
+    
+    // Улучшенная обработка ошибок
+    window.addEventListener('error', (event) => {
+      console.error('Global error:', event.error);
+      showToast('Произошла ошибка', 'error');
+    });
+    
+    window.addEventListener('unhandledrejection', (event) => {
+      console.error('Unhandled promise rejection:', event.reason);
+      showToast('Произошла ошибка при выполнении операции', 'error');
+    });
+    
+    // Обработка потери фокуса (пользователь переключился на другое приложение)
+    let isAppFocused = true;
+    window.addEventListener('blur', () => {
+      isAppFocused = false;
+    });
+    
+    window.addEventListener('focus', () => {
+      isAppFocused = true;
+    });
+    
+    // Обработка изменения темы Telegram
+    if (tg && tg.onEvent) {
+      tg.onEvent('themeChanged', () => {
+        // Перезагружаем страницу при изменении темы
+        location.reload();
+      });
+    }
     </script>
 </body>
 </html>

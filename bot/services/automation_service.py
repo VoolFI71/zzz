@@ -502,3 +502,6 @@ class AutomationService:
             "failed_tasks": len([t for t in self.scheduled_tasks.values() if t.status == TaskStatus.FAILED])
         }
 
+
+
+

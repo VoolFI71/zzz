@@ -1,4 +1,4 @@
-from aiogram.types import InlineKeyboardMarkup, ReplyKeyboardMarkup, InlineKeyboardButton, KeyboardButton
+from aiogram.types import InlineKeyboardMarkup, ReplyKeyboardMarkup, InlineKeyboardButton, KeyboardButton, WebAppInfo
 import os
 
 
@@ -134,3 +134,4 @@ def create_settings_inline(prefs: dict, fav_server: str | None):
 def create_pref_server_inline(current: str | None):
     kb_list = [[InlineKeyboardButton(text="🔙 Назад", callback_data="back")]]
     return InlineKeyboardMarkup(inline_keyboard=kb_list)
+
