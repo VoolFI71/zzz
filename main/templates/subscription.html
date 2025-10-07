@@ -7,28 +7,39 @@
   <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <style>
     :root {
-      --bg: #0a0e1a;
-      --bg2: #0f1419;
-      --bg3: #1a1f2e;
-      --glass: rgba(255, 255, 255, 0.08);
-      --glass-hover: rgba(255, 255, 255, 0.12);
-      --stroke: rgba(255, 255, 255, 0.18);
-      --stroke-hover: rgba(255, 255, 255, 0.25);
+      /* Telegram Mini App адаптивные цвета */
+      --bg: #ffffff;
+      --bg-secondary: #f8f9fa;
+      --bg-tertiary: #f1f3f4;
+      --text: #000000;
+      --text-secondary: #6c757d;
+      --text-muted: #adb5bd;
+      --primary: #0088cc;
+      --primary-hover: #006bb3;
+      --success: #28a745;
+      --warning: #ffc107;
+      --error: #dc3545;
+      --border: #e9ecef;
+      --border-hover: #dee2e6;
+      --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+      --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.15);
+      --radius: 12px;
+      --radius-sm: 8px;
+      --radius-lg: 16px;
+    }
+
+    /* Telegram темная тема */
+    .telegram-theme {
+      --bg: #17212b;
+      --bg-secondary: #242f3d;
+      --bg-tertiary: #2b5278;
       --text: #ffffff;
-      --text-secondary: #b8c5d1;
-      --text-muted: #8a9ba8;
-      --primary: #6366f1;
-      --primary-hover: #5b5cf6;
-      --primary-light: #818cf8;
-      --accent: #06b6d4;
-      --success: #10b981;
-      --warning: #f59e0b;
-      --error: #ef4444;
-      --shadow: 0 8px 32px rgba(0, 0, 0, 0.3);
-      --shadow-lg: 0 16px 64px rgba(0, 0, 0, 0.4);
-      --radius: 16px;
-      --radius-sm: 12px;
-      --radius-lg: 24px;
+      --text-secondary: #a8b2bb;
+      --text-muted: #7a8a99;
+      --primary: #64a9dc;
+      --primary-hover: #5a9bd4;
+      --border: #3e546a;
+      --border-hover: #4a5f7a;
     }
 
     * {
@@ -45,141 +56,108 @@
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
       color: var(--text);
-      background:
-        radial-gradient(1200px 800px at 20% -10%, rgba(99, 102, 241, 0.15), transparent 50%),
-        radial-gradient(1000px 600px at 80% 20%, rgba(6, 182, 212, 0.1), transparent 50%),
-        radial-gradient(800px 400px at 50% 100%, rgba(139, 92, 246, 0.08), transparent 60%),
-        linear-gradient(135deg, var(--bg), var(--bg2));
+      background: var(--bg);
       display: flex;
       align-items: center;
       justify-content: center;
       padding: 20px;
       min-height: 100vh;
       position: relative;
+      transition: background-color 0.3s ease;
     }
 
     /* Animated background elements */
+    /* Убираем анимированный фон для Mini App */
     .bg-blur {
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      pointer-events: none;
-      z-index: -1;
-    }
-
-    .bg-blur::before,
-    .bg-blur::after {
-      content: '';
-      position: absolute;
-      border-radius: 50%;
-      filter: blur(120px);
-      opacity: 0.6;
-      animation: float 20s ease-in-out infinite;
-    }
-
-    .bg-blur::before {
-      width: 400px;
-      height: 400px;
-      background: linear-gradient(45deg, var(--primary), var(--accent));
-      top: -200px;
-      left: -200px;
-      animation-delay: 0s;
-    }
-
-    .bg-blur::after {
-      width: 300px;
-      height: 300px;
-      background: linear-gradient(45deg, var(--accent), #8b5cf6);
-      bottom: -150px;
-      right: -150px;
-      animation-delay: -10s;
-    }
-
-    @keyframes float {
-      0%, 100% { transform: translate(0, 0) rotate(0deg); }
-      33% { transform: translate(30px, -30px) rotate(120deg); }
-      66% { transform: translate(-20px, 20px) rotate(240deg); }
+      display: none;
     }
 
     /* Main container */
     .container {
       width: 100%;
-      max-width: 420px;
-      position: relative;
-      z-index: 1;
+      max-width: 100%;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
     }
 
-    .card {
-      background: var(--glass);
-      border: 1px solid var(--stroke);
-      border-radius: var(--radius-lg);
-      backdrop-filter: blur(20px) saturate(180%);
-      padding: 32px 24px;
-      box-shadow: var(--shadow-lg);
-      position: relative;
-      overflow: hidden;
-      transition: all 0.3s ease;
-      opacity: 0;
-      transform: translateY(20px);
-    }
-
-    .card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: 0;
-      right: 0;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
-    }
-
-    .card:hover {
-      border-color: var(--stroke-hover);
-      transform: translateY(-2px);
-      box-shadow: 0 20px 80px rgba(0, 0, 0, 0.4);
-    }
-
-    /* Header */
-    .header {
+    /* Header Section */
+    .header-section {
       text-align: center;
-      margin-bottom: 32px;
+      padding: 20px 0;
     }
 
-    .logo {
-      width: 64px;
-      height: 64px;
-      margin: 0 auto 16px;
-      background: linear-gradient(135deg, var(--primary), var(--accent));
-      border-radius: var(--radius);
+    .logo-container {
       display: flex;
       align-items: center;
       justify-content: center;
-      font-size: 28px;
-      box-shadow: 0 8px 32px rgba(99, 102, 241, 0.3);
-      animation: pulse 2s ease-in-out infinite;
+      gap: 16px;
+      margin-bottom: 8px;
     }
 
-    @keyframes pulse {
-      0%, 100% { transform: scale(1); }
-      50% { transform: scale(1.05); }
+    .logo {
+      width: 48px;
+      height: 48px;
+      background: var(--primary);
+      border-radius: 12px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      color: white;
+      box-shadow: var(--shadow);
+    }
+
+    .brand-info {
+      text-align: left;
     }
 
     .title {
       font-size: 24px;
       font-weight: 700;
-      margin-bottom: 8px;
-      background: linear-gradient(135deg, var(--text), var(--text-secondary));
-      -webkit-background-clip: text;
-      -webkit-text-fill-color: transparent;
-      background-clip: text;
+      color: var(--text);
+      margin: 0 0 4px 0;
     }
 
     .subtitle {
-      color: var(--text-muted);
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin: 0;
+    }
+
+    /* Status Section */
+    .status-section {
+      margin: 16px 0;
+    }
+
+    .status-card {
+      background: var(--bg-secondary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .status-icon {
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+
+    .status-content h3 {
       font-size: 16px;
-      line-height: 1.5;
+      font-weight: 600;
+      color: var(--text);
+      margin: 0 0 4px 0;
+    }
+
+    .status-content p {
+      font-size: 14px;
+      color: var(--text-secondary);
+      margin: 0;
+      line-height: 1.4;
     }
 
     /* Status chips */
@@ -196,8 +174,8 @@
       align-items: center;
       gap: 8px;
       padding: 8px 16px;
-      background: rgba(255, 255, 255, 0.06);
-      border: 1px solid var(--stroke);
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
       border-radius: 20px;
       font-size: 14px;
       font-weight: 500;
@@ -205,14 +183,124 @@
     }
 
     .chip:hover {
-      background: rgba(255, 255, 255, 0.1);
-      border-color: var(--stroke-hover);
+      background: var(--bg-secondary);
+      border-color: var(--border-hover);
     }
 
     .chip.success {
       color: var(--success);
-      border-color: rgba(16, 185, 129, 0.3);
-      background: rgba(16, 185, 129, 0.1);
+      border-color: var(--success);
+      background: rgba(40, 167, 69, 0.1);
+    }
+
+    /* Actions Section */
+    .actions-section {
+      margin: 16px 0;
+    }
+
+    .action-buttons {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .action-btn {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 16px;
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      background: var(--bg-secondary);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      text-align: left;
+      width: 100%;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .action-btn:hover {
+      background: var(--bg-tertiary);
+      border-color: var(--border-hover);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow);
+    }
+
+    .action-btn.primary {
+      background: var(--primary);
+      color: white;
+      border-color: var(--primary);
+    }
+
+    .action-btn.primary:hover {
+      background: var(--primary-hover);
+      border-color: var(--primary-hover);
+    }
+
+    .action-btn.secondary {
+      background: var(--bg-secondary);
+      color: var(--text);
+    }
+
+    .btn-icon {
+      font-size: 24px;
+      flex-shrink: 0;
+    }
+
+    .btn-content {
+      flex: 1;
+    }
+
+    .btn-title {
+      font-size: 16px;
+      font-weight: 600;
+      margin-bottom: 2px;
+    }
+
+    .btn-subtitle {
+      font-size: 14px;
+      opacity: 0.8;
+    }
+
+    .btn-arrow {
+      font-size: 18px;
+      opacity: 0.6;
+    }
+
+    /* Help Section */
+    .help-section {
+      margin: 16px 0;
+    }
+
+    .help-card {
+      background: var(--bg-tertiary);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      padding: 16px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .help-icon {
+      font-size: 20px;
+      flex-shrink: 0;
+      margin-top: 2px;
+    }
+
+    .help-content h4 {
+      font-size: 14px;
+      font-weight: 600;
+      color: var(--text);
+      margin: 0 0 4px 0;
+    }
+
+    .help-content p {
+      font-size: 13px;
+      color: var(--text-secondary);
+      margin: 0;
+      line-height: 1.4;
     }
 
 
@@ -256,25 +344,26 @@
     }
 
     .btn-primary {
-      background: linear-gradient(135deg, var(--primary), var(--primary-hover));
+      background: var(--primary);
       color: white;
-      box-shadow: 0 4px 20px rgba(99, 102, 241, 0.3);
+      box-shadow: var(--shadow);
     }
 
     .btn-primary:hover {
-      transform: translateY(-2px);
-      box-shadow: 0 8px 32px rgba(99, 102, 241, 0.4);
+      background: var(--primary-hover);
+      transform: translateY(-1px);
+      box-shadow: var(--shadow-lg);
     }
 
     .btn-secondary {
       background: transparent;
       color: var(--text);
-      border: 1px solid var(--stroke);
+      border: 1px solid var(--border);
     }
 
     .btn-secondary:hover {
-      background: rgba(255, 255, 255, 0.05);
-      border-color: var(--stroke-hover);
+      background: var(--bg-tertiary);
+      border-color: var(--border-hover);
     }
 
     .btn:disabled {
@@ -342,29 +431,31 @@
     }
 
     .toast.success {
-      background: rgba(16, 185, 129, 0.1);
-      border-color: rgba(16, 185, 129, 0.3);
+      background: rgba(40, 167, 69, 0.1);
+      border-color: var(--success);
       color: var(--success);
     }
 
     .toast.warning {
-      background: rgba(245, 158, 11, 0.1);
-      border-color: rgba(245, 158, 11, 0.3);
+      background: rgba(255, 193, 7, 0.1);
+      border-color: var(--warning);
       color: var(--warning);
     }
 
     .toast.error {
-      background: rgba(239, 68, 68, 0.1);
-      border-color: rgba(239, 68, 68, 0.3);
+      background: rgba(220, 53, 69, 0.1);
+      border-color: var(--error);
       color: var(--error);
     }
 
     /* Telegram Mini App specific styles */
     .telegram-theme {
-      --bg: var(--tg-theme-bg-color, #0a0e1a);
-      --text: var(--tg-theme-text-color, #ffffff);
-      --text-secondary: var(--tg-theme-hint-color, #b8c5d1);
-      --primary: var(--tg-theme-button-color, #6366f1);
+      --bg: var(--tg-theme-bg-color, #ffffff);
+      --bg-secondary: var(--tg-theme-secondary-bg-color, #f8f9fa);
+      --text: var(--tg-theme-text-color, #000000);
+      --text-secondary: var(--tg-theme-hint-color, #6c757d);
+      --primary: var(--tg-theme-button-color, #0088cc);
+      --border: var(--tg-theme-section-separator-color, #e9ecef);
     }
 
     /* Responsive design */
@@ -422,39 +513,119 @@
     @keyframes spin {
       to { transform: rotate(360deg); }
     }
+
+    /* Responsive design for Mini App */
+    @media (max-width: 480px) {
+      .container {
+        padding: 12px;
+        gap: 12px;
+      }
+      
+      .header-section {
+        padding: 16px 0;
+      }
+      
+      .logo-container {
+        flex-direction: column;
+        text-align: center;
+        gap: 12px;
+      }
+      
+      .brand-info {
+        text-align: center;
+      }
+      
+      .title {
+        font-size: 20px;
+      }
+      
+      .action-btn {
+        padding: 14px;
+        gap: 12px;
+      }
+      
+      .btn-title {
+        font-size: 15px;
+      }
+      
+      .btn-subtitle {
+        font-size: 13px;
+      }
+      
+      .help-card {
+        padding: 14px;
+      }
+    }
+
+    /* Telegram Mini App specific adjustments */
+    .telegram-theme .container {
+      padding: 8px;
+    }
+    
+    .telegram-theme .header-section {
+      padding: 12px 0;
+    }
+    
+    .telegram-theme .action-btn {
+      border-radius: 8px;
+    }
     </style>
 </head>
 <body>
-  <div class="bg-blur"></div>
-  
   <div class="container">
-    <div class="card">
-      <div class="header">
+    <!-- Header Section -->
+    <div class="header-section">
+      <div class="logo-container">
       <div class="logo">⚡</div>
-        <h1 class="title">GLS VPN</h1>
-        <p class="subtitle">Импорт конфигурации в V2rayTun</p>
-        </div>
-
-      <div class="status">
-        <div class="chip success" id="platform-chip">
-          <span>📱</span>
-          <span>Готово для мобильного</span>
+        <div class="brand-info">
+          <h1 class="title">GLS VPN</h1>
+          <p class="subtitle">Быстрый и безопасный VPN</p>
         </div>
       </div>
+    </div>
 
-    <div class="actions">
-        <button class="btn btn-primary" id="openBtn">
-          <span>📲</span>
-          <span>Открыть в V2rayTun</span>
-        </button>
-        <button class="btn btn-secondary" id="copyBtn">
-          <span>📋</span>
-          <span>Копировать конфиг</span>
-        </button>
+    <!-- Status Section -->
+    <div class="status-section">
+      <div class="status-card">
+        <div class="status-icon">✅</div>
+        <div class="status-content">
+          <h3>Подписка готова</h3>
+          <p>Ваша конфигурация подготовлена для импорта в V2rayTun</p>
         </div>
+      </div>
+    </div>
 
-    <div class="help">
-      Если приложение не открылось автоматически — скопируйте конфиг и добавьте его в V2rayTun вручную.
+    <!-- Actions Section -->
+    <div class="actions-section">
+      <div class="action-buttons">
+        <button class="action-btn primary" id="openBtn">
+          <div class="btn-icon">📲</div>
+          <div class="btn-content">
+            <div class="btn-title">Открыть в V2rayTun</div>
+            <div class="btn-subtitle">Автоматический импорт</div>
+          </div>
+          <div class="btn-arrow">→</div>
+        </button>
+        
+        <button class="action-btn secondary" id="copyBtn">
+          <div class="btn-icon">📋</div>
+          <div class="btn-content">
+            <div class="btn-title">Копировать ссылку</div>
+            <div class="btn-subtitle">Ручной импорт</div>
+          </div>
+          <div class="btn-arrow">→</div>
+        </button>
+      </div>
+    </div>
+
+    <!-- Help Section -->
+    <div class="help-section">
+      <div class="help-card">
+        <div class="help-icon">💡</div>
+        <div class="help-content">
+          <h4>Как использовать</h4>
+          <p>Нажмите "Открыть в V2rayTun" для автоматического импорта или скопируйте ссылку для ручного добавления</p>
+        </div>
       </div>
     </div>
   </div>
@@ -471,6 +642,29 @@
       
       // Apply Telegram theme
       document.body.classList.add('telegram-theme');
+      
+      // Set theme colors from Telegram
+      if (tg.themeParams) {
+        const theme = tg.themeParams;
+        if (theme.bg_color) {
+          document.documentElement.style.setProperty('--bg', theme.bg_color);
+        }
+        if (theme.secondary_bg_color) {
+          document.documentElement.style.setProperty('--bg-secondary', theme.secondary_bg_color);
+        }
+        if (theme.text_color) {
+          document.documentElement.style.setProperty('--text', theme.text_color);
+        }
+        if (theme.hint_color) {
+          document.documentElement.style.setProperty('--text-secondary', theme.hint_color);
+        }
+        if (theme.button_color) {
+          document.documentElement.style.setProperty('--primary', theme.button_color);
+        }
+        if (theme.section_separator_color) {
+          document.documentElement.style.setProperty('--border', theme.section_separator_color);
+        }
+      }
       
       // Set header color
       if (tg.headerColor) {
@@ -496,7 +690,6 @@
     const openBtn = document.getElementById('openBtn');
     const copyBtn = document.getElementById('copyBtn');
     const toast = document.getElementById('toast');
-    const platformChip = document.getElementById('platform-chip');
     
     function showToast(text, type = 'success') {
       toast.textContent = text;
@@ -578,17 +771,9 @@
       configType
     });
     
-    // Определяем платформу и обновляем чип
+    // Определяем платформу
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
     const isTelegram = tg && tg.platform;
-    
-    if (isTelegram) {
-      platformChip.innerHTML = '<span>📱</span><span>Telegram Mini App</span>';
-    } else if (isMobile) {
-      platformChip.innerHTML = '<span>📱</span><span>Мобильное устройство</span>';
-    } else {
-      platformChip.innerHTML = '<span>🖥️</span><span>Откройте со смартфона</span>';
-    }
     
     // Обработчик кнопки "Открыть в V2rayTun"
     openBtn.addEventListener('click', async () => {
@@ -695,25 +880,18 @@
     
     // Улучшенная анимация появления
     function animateCard() {
-      const card = document.querySelector('.card');
-      const elements = card.querySelectorAll('.header, .status, .actions, .help');
+      const sections = document.querySelectorAll('.header-section, .status-section, .actions-section, .help-section');
       
-      // Анимация карточки
-      setTimeout(() => {
-        card.style.opacity = '1';
-        card.style.transform = 'translateY(0)';
-      }, 100);
-      
-      // Последовательная анимация элементов
-      elements.forEach((element, index) => {
-        element.style.opacity = '0';
-        element.style.transform = 'translateY(20px)';
-        element.style.transition = 'all 0.4s ease';
+      // Последовательная анимация секций
+      sections.forEach((section, index) => {
+        section.style.opacity = '0';
+        section.style.transform = 'translateY(20px)';
+        section.style.transition = 'all 0.4s ease';
         
         setTimeout(() => {
-          element.style.opacity = '1';
-          element.style.transform = 'translateY(0)';
-        }, 200 + (index * 100));
+          section.style.opacity = '1';
+          section.style.transform = 'translateY(0)';
+        }, 100 + (index * 150));
       });
     }
     
