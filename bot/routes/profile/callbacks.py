@@ -30,28 +30,39 @@ async def copy_config_callback(callback: types.CallbackQuery):
         async with acquire_action_lock(user_id, "copy_config"):
             # Получаем постоянный sub_key из внутреннего API
             sub_url_api = f"http://fastapi:8080/sub/{user_id}"
+            print(f"DEBUG: Requesting sub_key from {sub_url_api}")  # Debug log
+            
             async with session.get(sub_url_api, timeout=10, headers=headers) as resp:
+                print(f"DEBUG: API response status: {resp.status}")  # Debug log
                 if resp.status != 200:
-                    await callback.answer("Ошибка. Попробуйте позже", show_alert=True)
+                    print(f"DEBUG: API error - status {resp.status}")  # Debug log
+                    await callback.answer("Ошибка API. Попробуйте позже", show_alert=True)
                     return
                 data = await resp.json()
+                print(f"DEBUG: API response data: {data}")  # Debug log
                 sub_key = data.get("sub_key")
                 if not sub_key:
+                    print("DEBUG: No sub_key in response")  # Debug log
                     await callback.answer("Не удалось получить ссылку", show_alert=True)
                     return
+                
             # Формируем публичную ссылку подписки для Mini App
             base = os.getenv("PUBLIC_BASE_URL", "https://swaga.space").rstrip('/')
             web_url = f"{base}/subscription/{sub_key}"
+            print(f"DEBUG: Generated web_url: {web_url}")  # Debug log
+            
             kb = InlineKeyboardMarkup(inline_keyboard=[
                 [InlineKeyboardButton(text="📲 Добавить подписку в V2rayTun", web_app=WebAppInfo(url=web_url))],
                 [InlineKeyboardButton(text="📋 Скопировать ссылку", callback_data="copy_sub")],
             ])
             await callback.message.answer("Ваша подписка:", reply_markup=kb, disable_web_page_preview=True)
             await callback.answer()
-    except aiohttp.ClientError:
+    except aiohttp.ClientError as e:
+        print(f"DEBUG: aiohttp.ClientError: {e}")  # Debug log
         await callback.answer("Ошибка сети", show_alert=True)
-    except Exception:
-        await callback.answer("Ошибка", show_alert=True)
+    except Exception as e:
+        print(f"DEBUG: General error: {e}")  # Debug log
+        await callback.answer(f"Ошибка: {str(e)}", show_alert=True)
 
 @router.callback_query(F.data == "copy_sub")
 async def copy_subscription_callback(callback: types.CallbackQuery):

@@ -483,6 +483,16 @@
     const subscriptionParam = qs.get('subscription');
     const subKeyParam = qs.get('sub_key');
     
+    // Извлекаем sub_key из URL пути если он не передан как параметр
+    let subKeyFromPath = null;
+    if (!subKeyParam && location.pathname.includes('/subscription/')) {
+      const pathParts = location.pathname.split('/');
+      const subscriptionIndex = pathParts.indexOf('subscription');
+      if (subscriptionIndex !== -1 && pathParts[subscriptionIndex + 1]) {
+        subKeyFromPath = pathParts[subscriptionIndex + 1];
+      }
+    }
+    
     const openBtn = document.getElementById('openBtn');
     const copyBtn = document.getElementById('copyBtn');
     const toast = document.getElementById('toast');
@@ -508,7 +518,7 @@
     
     // Валидация и определение конфигурации
     function validateConfig() {
-      const hasConfig = configB64 || subscriptionParam || subKeyParam;
+      const hasConfig = configB64 || subscriptionParam || subKeyParam || subKeyFromPath;
       if (!hasConfig) {
         showToast('Отсутствуют параметры конфигурации', 'warning');
         return false;
@@ -521,6 +531,15 @@
     let displayUrl = '';
     let configType = '';
     
+    // Отладочная информация
+    console.log('Debug info:', {
+      configB64,
+      subscriptionParam,
+      subKeyParam,
+      subKeyFromPath,
+      pathname: location.pathname
+    });
+    
     try {
       if (configB64) {
         // Декодируем base64 конфигурацию
@@ -530,14 +549,15 @@
       } else if (subscriptionParam && !subscriptionParam.startsWith('http')) {
         // Если это не URL, а сырая конфигурация
         displayConfig = subscriptionParam;
-        displayUrl = subscriptionParam;
+      displayUrl = subscriptionParam;
         configType = 'raw';
-      } else if (subKeyParam) {
-        // Для подписки создаем URL
-        displayUrl = `https://swaga.space/subscription/${encodeURIComponent(subKeyParam)}`;
+      } else if (subKeyParam || subKeyFromPath) {
+        // Для подписки создаем URL (используем subKeyParam или subKeyFromPath)
+        const subKey = subKeyParam || subKeyFromPath;
+        displayUrl = `https://swaga.space/subscription/${encodeURIComponent(subKey)}`;
         displayConfig = displayUrl;
         configType = 'subscription';
-      } else {
+    } else {
         // Если нет конфигурации
         displayConfig = '';
         displayUrl = '';
@@ -550,6 +570,13 @@
       configType = 'error';
       showToast('Ошибка декодирования конфигурации', 'error');
     }
+    
+    // Отладочная информация о результате
+    console.log('Config result:', {
+      displayConfig,
+      displayUrl,
+      configType
+    });
     
     // Определяем платформу и обновляем чип
     const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
