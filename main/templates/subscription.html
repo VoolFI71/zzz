@@ -602,7 +602,7 @@
           <div class="btn-icon">📲</div>
           <div class="btn-content">
             <div class="btn-title">Открыть в V2rayTun</div>
-            <div class="btn-subtitle">Автоматический импорт</div>
+            <div class="btn-subtitle">Импорт подписки</div>
           </div>
           <div class="btn-arrow">→</div>
         </button>
@@ -624,7 +624,7 @@
         <div class="help-icon">💡</div>
         <div class="help-content">
           <h4>Как использовать</h4>
-          <p>Нажмите "Открыть в V2rayTun" для автоматического импорта или скопируйте ссылку для ручного добавления</p>
+          <p>Нажмите "Открыть в V2rayTun" для импорта подписки или скопируйте ссылку для ручного добавления в V2rayTun</p>
         </div>
       </div>
     </div>
@@ -765,13 +765,16 @@
     openBtn.addEventListener('click', () => {
       const url = displayUrl || window.location.href;
       
-      // Пробуем открыть V2rayTun
-      const v2rayUrl = `v2raytun://import/${btoa(unescape(encodeURIComponent(url)))}`;
+      // Для V2rayTun используем прямую ссылку на подписку
+      const subscriptionUrl = url.includes('/subscription/') ? url : window.location.href;
+      
+      // Используем только v2raytun://import/ схему
+      const v2rayUrl = `v2raytun://import/${btoa(unescape(encodeURIComponent(subscriptionUrl)))}`;
       window.open(v2rayUrl, '_blank');
       
-      // Копируем ссылку в буфер
-      navigator.clipboard.writeText(url).then(() => {
-        showToast('Ссылка скопирована', 'success');
+      // Копируем ссылку на подписку в буфер
+      navigator.clipboard.writeText(subscriptionUrl).then(() => {
+        showToast('Ссылка на подписку скопирована', 'success');
       }).catch(() => {
         showToast('Скопируйте ссылку вручную', 'warning');
       });
