@@ -691,6 +691,12 @@
     const copyBtn = document.getElementById('copyBtn');
     const toast = document.getElementById('toast');
     
+    console.log('Elements found:', {
+      openBtn: !!openBtn,
+      copyBtn: !!copyBtn,
+      toast: !!toast
+    });
+    
     function showToast(text, type = 'success') {
       toast.textContent = text;
       toast.className = `toast show ${type}`;
@@ -779,28 +785,18 @@
     const isTelegram = tg && tg.platform;
     
     // Обработчик кнопки "Открыть в V2rayTun"
-    openBtn.addEventListener('click', async () => {
-      if (!isMobile && !isTelegram) {
-        showToast('Откройте со смартфона для импорта', 'warning');
-        return;
-      }
-      
-      // Специальная обработка для Telegram Mini App
-      if (isTelegram && tg) {
-        // В Telegram Mini App используем Telegram.WebApp.openLink
-        if (tg.openLink) {
-          try {
-            tg.openLink(displayUrl);
-            showToast('Открываем в браузере...', 'success');
-            return;
-          } catch (e) {
-            console.log('Telegram openLink failed:', e);
-          }
-        }
-      }
+    if (openBtn) {
+      openBtn.addEventListener('click', async () => {
+      console.log('Open button clicked');
+      console.log('isMobile:', isMobile, 'isTelegram:', isTelegram, 'displayUrl:', displayUrl);
       
       if (!displayUrl) {
         showToast('Конфигурация не найдена', 'error');
+        return;
+      }
+      
+      if (!isMobile && !isTelegram) {
+        showToast('Откройте со смартфона для импорта', 'warning');
         return;
       }
       
@@ -809,51 +805,47 @@
       openBtn.classList.add('loading');
       
       try {
-        // Пробуем разные схемы для V2rayTun
-        const schemes = [
-          `v2raytun://import/${btoa(unescape(encodeURIComponent(displayUrl)))}`,
-          `v2ray://import/${btoa(unescape(encodeURIComponent(displayUrl)))}`,
-          `v2raytun://add/${encodeURIComponent(displayUrl)}`,
-          `v2ray://add/${encodeURIComponent(displayUrl)}`
-        ];
+        console.log('Trying to open V2rayTun with URL:', displayUrl);
         
-        let opened = false;
-        
-        // Пробуем открыть с каждой схемой
-        for (const scheme of schemes) {
+        // Специальная обработка для Telegram Mini App
+        if (isTelegram && tg && tg.openLink) {
+          console.log('Using Telegram openLink');
           try {
-            // Сначала пробуем через window.open (лучше для Mini App)
-            const newWindow = window.open(scheme, '_blank');
-            if (newWindow) {
-              opened = true;
-              break;
-            }
-            
-            // Fallback: создаем ссылку
-            const link = document.createElement('a');
-            link.href = scheme;
-            link.style.display = 'none';
-            document.body.appendChild(link);
-            link.click();
-            document.body.removeChild(link);
-            opened = true;
-            break;
+            tg.openLink(displayUrl);
+            showToast('Открываем в браузере...', 'success');
+            return;
           } catch (e) {
-            console.log('Scheme failed:', scheme, e);
+            console.log('Telegram openLink failed:', e);
           }
         }
         
-        if (opened) {
-          showToast('Открываем V2rayTun...', 'success');
-        } else {
-          // Fallback: копируем URL в буфер обмена
-          try {
-            await navigator.clipboard.writeText(displayUrl);
-            showToast('Ссылка скопирована. Вставьте в V2rayTun', 'warning');
-          } catch (clipboardError) {
-            // Если не удалось скопировать, показываем URL для ручного копирования
-            showToast(`Скопируйте ссылку: ${displayUrl}`, 'warning');
-          }
+        // Пробуем простую схему V2rayTun
+        const v2rayScheme = `v2raytun://import/${btoa(unescape(encodeURIComponent(displayUrl)))}`;
+        console.log('Trying scheme:', v2rayScheme);
+        
+        // Создаем ссылку и пытаемся открыть
+        const link = document.createElement('a');
+        link.href = v2rayScheme;
+        link.target = '_blank';
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        
+        // Пробуем кликнуть
+        link.click();
+        
+        // Удаляем ссылку
+        setTimeout(() => {
+          document.body.removeChild(link);
+        }, 100);
+        
+        showToast('Открываем V2rayTun...', 'success');
+        
+        // Сразу копируем ссылку как fallback
+        try {
+          await navigator.clipboard.writeText(displayUrl);
+          showToast('Ссылка скопирована. Вставьте в V2rayTun', 'success');
+        } catch (e) {
+          showToast(`Скопируйте ссылку: ${displayUrl}`, 'warning');
         }
         
         // Проверяем, открылось ли приложение
@@ -874,9 +866,13 @@
         openBtn.classList.remove('loading');
       }
     });
+    } else {
+      console.error('Open button not found!');
+    }
     
     // Обработчик кнопки "Копировать конфиг"
-    copyBtn.addEventListener('click', async () => {
+    if (copyBtn) {
+      copyBtn.addEventListener('click', async () => {
       if (!displayConfig && !displayUrl) {
         showToast('Конфигурация не найдена', 'error');
         return;
@@ -927,6 +923,9 @@
         }, 1000);
       }
     });
+    } else {
+      console.error('Copy button not found!');
+    }
     
     // Улучшенная анимация появления
     function animateCard() {
