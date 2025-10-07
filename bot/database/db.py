@@ -1,4 +1,4 @@
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
 import aiohttp
 import aiosqlite
 import random
@@ -381,7 +381,7 @@ async def build_subscription_kb(user_id: int):
     base = os.getenv("PUBLIC_BASE_URL", "https://swaga.space").rstrip('/')
     web_url = f"{base}/subscription/{sub_key}"
     inline_kb = InlineKeyboardMarkup(inline_keyboard=[
-        [InlineKeyboardButton(text="📲 Добавить подписку в V2rayTun", url=web_url)]
+        [InlineKeyboardButton(text="📲 Добавить подписку в V2rayTun", web_app=WebAppInfo(url=web_url))]
     ])
     return inline_kb
 

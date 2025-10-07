@@ -5,7 +5,7 @@
 import os
 import aiohttp
 from aiogram import Router, F, types
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 from utils import should_throttle, acquire_action_lock, check_all_servers_available, get_session
 from database import db
 from keyboards import keyboard
@@ -85,7 +85,7 @@ async def free_trial(message: types.Message):
                     # Fallback на старую ссылку, если что-то пошло не так
                     web_url = f"{base}/subscription"
                 kb = InlineKeyboardMarkup(inline_keyboard=[
-                    [InlineKeyboardButton(text="📲 Добавить подписку в V2rayTun", url=web_url)],
+                    [InlineKeyboardButton(text="📲 Добавить подписку в V2rayTun", web_app=WebAppInfo(url=web_url))],
                     [InlineKeyboardButton(text="📋 Скопировать ссылку", callback_data="copy_sub")],
                 ])
                 await message.answer(f"🎉 Пробная подписка на 3 дня активирована на {success_count} серверах!", reply_markup=kb)

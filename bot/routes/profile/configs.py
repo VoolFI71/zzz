@@ -6,7 +6,7 @@ import os
 import time
 import aiohttp
 from aiogram import Router, F, types
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 from keyboards import keyboard
 from utils import should_throttle, acquire_action_lock, get_session
 from database import db
@@ -111,7 +111,7 @@ async def my_configs(message: types.Message):
 
                         web_url = f"https://swaga.space/subscription/{sub_key}"
                         inline_kb = InlineKeyboardMarkup(inline_keyboard=[
-                            [InlineKeyboardButton(text="📲 Добавить подписку в V2rayTun", url=web_url)],
+                            [InlineKeyboardButton(text="📲 Добавить подписку в V2rayTun", web_app=WebAppInfo(url=web_url))],
                             [InlineKeyboardButton(text="📋 Скопировать ссылку", callback_data="copy_sub")],
                         ])
                         await message.answer(text, reply_markup=inline_kb, disable_web_page_preview=True)
