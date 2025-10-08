@@ -162,10 +162,11 @@ async def cleanup_expired_configs(callback: types.CallbackQuery):
 async def get_config_statistics() -> dict:
     """Получает статистику конфигов через API."""
     try:
-        async with aiohttp.ClientSession() as session:
-            url = f"{API_BASE_URL}/getids"
-            headers = {"X-API-Key": AUTH_CODE}
-            async with session.get(url, headers=headers, timeout=10) as resp:
+        from utils import get_session
+        session = await get_session()
+        url = f"{API_BASE_URL}/getids"
+        headers = {"X-API-Key": AUTH_CODE}
+        async with session.get(url, headers=headers, timeout=10) as resp:
                 if resp.status == 200:
                     data = await resp.json()
                     configs = data.get("configs", [])
@@ -215,10 +216,11 @@ async def get_config_statistics() -> dict:
 async def get_config_info(uid: str) -> dict | None:
     """Получает информацию о конкретном конфиге."""
     try:
-        async with aiohttp.ClientSession() as session:
-            url = f"{API_BASE_URL}/getids"
-            headers = {"X-API-Key": AUTH_CODE}
-            async with session.get(url, headers=headers, timeout=10) as resp:
+        from utils import get_session
+        session = await get_session()
+        url = f"{API_BASE_URL}/getids"
+        headers = {"X-API-Key": AUTH_CODE}
+        async with session.get(url, headers=headers, timeout=10) as resp:
                 if resp.status == 200:
                     data = await resp.json()
                     configs = data.get("configs", [])

@@ -20,25 +20,37 @@ import aiohttp
 common_router = Router()
 
 
-@common_router.callback_query(F.data.in_({"plan_1m", "plan_3m"}))
+@common_router.callback_query(F.data.in_({"plan_1m", "plan_3m", "plan_6m", "plan_12m"}))
 async def select_plan(callback_query: CallbackQuery, state: FSMContext) -> None:
     if callback_query.data == "plan_1m":
         days = 31
-    else:
+    elif callback_query.data == "plan_3m":
         days = 93
+    elif callback_query.data == "plan_6m":
+        days = 180
+    else:  # plan_12m
+        days = 365
     await state.update_data(selected_days=days)
 
     # Цены для отображения методов оплаты
     star_1m = int(os.getenv("PRICE_1M_STAR", "149"))
     star_3m = int(os.getenv("PRICE_3M_STAR", "299"))
+    star_6m = int(os.getenv("PRICE_6M_STAR", "549"))
+    star_12m = int(os.getenv("PRICE_12M_STAR", "999"))
     rub_1m = int(os.getenv("PRICE_1M_RUB", "149"))
     rub_3m = int(os.getenv("PRICE_3M_RUB", "299"))
+    rub_6m = int(os.getenv("PRICE_6M_RUB", "549"))
+    rub_12m = int(os.getenv("PRICE_12M_RUB", "999"))
 
 
     if days == 31:
         star_amount, rub_amount = star_1m, rub_1m
-    else:
+    elif days == 93:
         star_amount, rub_amount = star_3m, rub_3m
+    elif days == 186:
+        star_amount, rub_amount = star_6m, rub_6m
+    else:
+        star_amount, rub_amount = star_12m, rub_12m
 
     await callback_query.message.edit_text(
         text=f"Выбран тариф: {days} дн. Выберите способ оплаты:",
@@ -91,14 +103,34 @@ async def go_back(callback_query: CallbackQuery, bot: Bot, state: FSMContext) ->
         days = int(user_state.get("selected_days", 31))
         star_1m = int(os.getenv("PRICE_1M_STAR", "149"))
         star_3m = int(os.getenv("PRICE_3M_STAR", "299"))
+        star_6m = int(os.getenv("PRICE_6M_STAR", "549"))
+        star_12m = int(os.getenv("PRICE_12M_STAR", "999"))
         rub_1m = int(os.getenv("PRICE_1M_RUB", "149"))
         rub_3m = int(os.getenv("PRICE_3M_RUB", "299"))
+        rub_6m = int(os.getenv("PRICE_6M_RUB", "549"))
+        rub_12m = int(os.getenv("PRICE_12M_RUB", "999"))
 
 
         if days == 31:
             star_amount, rub_amount = star_1m, rub_1m
-        else:
+        elif days == 93:
             star_amount, rub_amount = star_3m, rub_3m
+        elif days == 180:
+            star_amount, rub_amount = star_6m, rub_6m
+        elif days == 365:
+            star_amount, rub_amount = star_12m, rub_12m
+        else:
+            star_amount, rub_amount = star_1m, rub_1m
+        if days == 31:
+            star_amount, rub_amount = star_1m, rub_1m
+        elif days == 93:
+            star_amount, rub_amount = star_3m, rub_3m
+        elif days == 180:
+            star_amount, rub_amount = star_6m, rub_6m
+        elif days == 365:
+            star_amount, rub_amount = star_12m, rub_12m
+        else:
+            star_amount, rub_amount = star_1m, rub_1m
 
         try:
             await callback_query.message.edit_text(

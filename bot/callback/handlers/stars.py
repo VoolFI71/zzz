@@ -22,10 +22,18 @@ async def pay_with_stars(callback_query: CallbackQuery, state: FSMContext, bot: 
     tg_id = callback_query.from_user.id
 
     user_data = await state.get_data()
-    # Подписка на 1 или 3 месяца
+    # Подписка на 1/3/6/12 месяцев
     days = int(user_data.get("selected_days", 31))
-    # Маппинг payload по длительности (31 → 1м, всё остальное → 3м)
-    payload = "sub_1m" if days == 31 else "sub_3m"
+    if days == 31:
+        payload = "sub_1m"
+    elif days == 93:
+        payload = "sub_3m"
+    elif days == 180:
+        payload = "sub_6m"
+    elif days == 365:
+        payload = "sub_12m"
+    else:
+        payload = "sub_1m"
 
     # Анти-спам и один активный счёт на пользователя
     now_ts = int(time.time())
@@ -95,7 +103,7 @@ async def pay_with_stars(callback_query: CallbackQuery, state: FSMContext, bot: 
             prices=[LabeledPrice(label="XTR", amount=int(os.getenv("PRICE_1M_STAR", "149")))],
             max_tip_amount=0,
         )
-    else:
+    elif payload == "sub_3m":
         invoice_msg = await bot.send_invoice(
             chat_id=tg_id,
             title="Подписка на 3 месяца",
@@ -104,6 +112,28 @@ async def pay_with_stars(callback_query: CallbackQuery, state: FSMContext, bot: 
             provider_token=provider_token,
             currency="XTR",
             prices=[LabeledPrice(label="XTR", amount=int(os.getenv("PRICE_3M_STAR", "299")))],
+            max_tip_amount=0,
+        )
+    elif payload == "sub_6m":
+        invoice_msg = await bot.send_invoice(
+            chat_id=tg_id,
+            title="Подписка на 6 месяцев",
+            description="GLS VPN доступ на 6 месяцев",
+            payload=payload,
+            provider_token=provider_token,
+            currency="XTR",
+            prices=[LabeledPrice(label="XTR", amount=int(os.getenv("PRICE_6M_STAR", "549")))],
+            max_tip_amount=0,
+        )
+    else:  # sub_12m
+        invoice_msg = await bot.send_invoice(
+            chat_id=tg_id,
+            title="Подписка на 12 месяцев",
+            description="GLS VPN доступ на 12 месяцев",
+            payload=payload,
+            provider_token=provider_token,
+            currency="XTR",
+            prices=[LabeledPrice(label="XTR", amount=int(os.getenv("PRICE_12M_STAR", "999")))],
             max_tip_amount=0,
         )
 
@@ -166,7 +196,7 @@ async def successful_payment_handler(message: Message, bot: Bot, state: FSMConte
     from utils import get_session
     tg_id = message.from_user.id
     payload = message.successful_payment.invoice_payload
-    payload_to_days = {"sub_1m": 31, "sub_3m": 93}
+    payload_to_days = {"sub_1m": 31, "sub_3m": 93, "sub_6m": 180, "sub_12m": 365}
     days = payload_to_days.get(payload, 31)
     user_data = await state.get_data()
     
@@ -257,10 +287,16 @@ async def extend_subscription_handler(callback_query: CallbackQuery, state: FSMC
     days = int(user_data.get("selected_days", 31))
     
     # Создаем инвойс для продления
-    payload = "sub_1m" if days == 31 else "sub_3m"
-    star_1m = int(os.getenv("PRICE_1M_STAR", "149"))
-    star_3m = int(os.getenv("PRICE_3M_STAR", "299"))
-    amount = star_1m if days == 31 else star_3m
+    if days == 31:
+        payload = "sub_1m"; amount = int(os.getenv("PRICE_1M_STAR", "149"))
+    elif days == 93:
+        payload = "sub_3m"; amount = int(os.getenv("PRICE_3M_STAR", "299"))
+    elif days == 180:
+        payload = "sub_6m"; amount = int(os.getenv("PRICE_6M_STAR", "549"))
+    elif days == 365:
+        payload = "sub_12m"; amount = int(os.getenv("PRICE_12M_STAR", "999"))
+    else:
+        payload = "sub_1m"; amount = int(os.getenv("PRICE_1M_STAR", "149"))
     
     try:
         await bot.send_invoice(
@@ -311,13 +347,23 @@ async def cancel_star_invoice(callback_query: CallbackQuery, state: FSMContext, 
         days = int((await state.get_data()).get("selected_days", 31))
         star_1m = int(os.getenv("PRICE_1M_STAR", "149"))
         star_3m = int(os.getenv("PRICE_3M_STAR", "299"))
+        star_6m = int(os.getenv("PRICE_6M_STAR", "549"))
+        star_12m = int(os.getenv("PRICE_12M_STAR", "999"))
         rub_1m = int(os.getenv("PRICE_1M_RUB", "149"))
         rub_3m = int(os.getenv("PRICE_3M_RUB", "299"))
+        rub_6m = int(os.getenv("PRICE_6M_RUB", "549"))
+        rub_12m = int(os.getenv("PRICE_12M_RUB", "999"))
 
         if days == 31:
             star_amount, rub_amount = star_1m, rub_1m
-        else:
+        elif days == 93:
             star_amount, rub_amount = star_3m, rub_3m
+        elif days == 180:
+            star_amount, rub_amount = star_6m, rub_6m
+        elif days == 365:
+            star_amount, rub_amount = star_12m, rub_12m
+        else:
+            star_amount, rub_amount = star_1m, rub_1m
         from keyboards.keyboard import create_payment_method_keyboard
         await bot.send_message(
             tg_id,

@@ -78,18 +78,32 @@ async def pay_with_yookassa(callback_query: CallbackQuery, state: FSMContext, bo
     Configuration.secret_key = YOOKASSA_SECRET
 
     days = int(user_data.get("selected_days", 31))
-    payload = "sub_1m" if days == 31 else "sub_3m"
     # Суммы и описания из окружения с адекватными дефолтами
     price_1m = int(os.getenv("PRICE_1M_RUB", "149"))
     price_3m = int(os.getenv("PRICE_3M_RUB", "299"))
+    price_6m = int(os.getenv("PRICE_6M_RUB", "549"))
+    price_12m = int(os.getenv("PRICE_12M_RUB", "999"))
 
     desc_1m = os.getenv("YK_DESC_1M", "Подписка GLS VPN — 1 месяц")
     desc_3m = os.getenv("YK_DESC_3M", "Подписка GLS VPN — 3 месяца")
+    desc_6m = os.getenv("YK_DESC_6M", "Подписка GLS VPN — 6 месяцев")
+    desc_12m = os.getenv("YK_DESC_12M", "Подписка GLS VPN — 12 месяцев")
 
     if days == 31:
+        payload = "sub_1m"
         amount_rub, description = price_1m, desc_1m
-    else:
+    elif days == 93:
+        payload = "sub_3m"
         amount_rub, description = price_3m, desc_3m
+    elif days == 180:
+        payload = "sub_6m"
+        amount_rub, description = price_6m, desc_6m
+    elif days == 365:
+        payload = "sub_12m"
+        amount_rub, description = price_12m, desc_12m
+    else:
+        payload = "sub_1m"
+        amount_rub, description = price_1m, desc_1m
 
     # Чек (receipt) с обязательным блоком customer
     receipt: dict = {
@@ -196,14 +210,23 @@ async def cancel_yk_invoice(callback_query: CallbackQuery, state: FSMContext, bo
         days = int((await state.get_data()).get("selected_days", 31))
         star_1m = int(os.getenv("PRICE_1M_STAR", "149"))
         star_3m = int(os.getenv("PRICE_3M_STAR", "299"))
+        star_6m = int(os.getenv("PRICE_6M_STAR", "549"))
+        star_12m = int(os.getenv("PRICE_12M_STAR", "999"))
         rub_1m = int(os.getenv("PRICE_1M_RUB", "149"))
         rub_3m = int(os.getenv("PRICE_3M_RUB", "299"))
+        rub_6m = int(os.getenv("PRICE_6M_RUB", "549"))
+        rub_12m = int(os.getenv("PRICE_12M_RUB", "999"))
 
         if days == 31:
             star_amount, rub_amount = star_1m, rub_1m
-        else:
-            # Любое значение, отличное от 31, считаем тарифом на 3 месяца (93 дня)
+        elif days == 93:
             star_amount, rub_amount = star_3m, rub_3m
+        elif days == 180:
+            star_amount, rub_amount = star_6m, rub_6m
+        elif days == 365:
+            star_amount, rub_amount = star_12m, rub_12m
+        else:
+            star_amount, rub_amount = star_1m, rub_1m
         from keyboards.keyboard import create_payment_method_keyboard
         await bot.send_message(
             tg_id,
@@ -241,7 +264,8 @@ async def check_yookassa(callback_query: CallbackQuery, state: FSMContext, bot: 
         tg_id = callback_query.from_user.id
         user_data = await state.get_data()
         payload = payment.metadata.get("payload") if hasattr(payment, "metadata") else "sub_1m"
-        days = 31 if payload == "sub_1m" else 93
+        payload_to_days = {"sub_1m": 31, "sub_3m": 93, "sub_6m": 180, "sub_12m": 365}
+        days = payload_to_days.get(payload, 31)
 
         # Проверяем, есть ли у пользователя уже АКТИВНЫЕ конфиги
         existing_configs = await db.get_active_configs_by_tg_id(tg_id)
@@ -392,10 +416,20 @@ async def extend_yookassa_handler(callback_query: CallbackQuery, state: FSMConte
     days = int(user_data.get("selected_days", 31))
     
     # Создаем платеж для продления
-    payload = "sub_1m" if days == 31 else "sub_3m"
     price_1m = int(os.getenv("PRICE_1M_RUB", "149"))
     price_3m = int(os.getenv("PRICE_3M_RUB", "299"))
-    amount = price_1m if days == 31 else price_3m
+    price_6m = int(os.getenv("PRICE_6M_RUB", "549"))
+    price_12m = int(os.getenv("PRICE_12M_RUB", "999"))
+    if days == 31:
+        payload = "sub_1m"; amount = price_1m
+    elif days == 93:
+        payload = "sub_3m"; amount = price_3m
+    elif days == 180:
+        payload = "sub_6m"; amount = price_6m
+    elif days == 365:
+        payload = "sub_12m"; amount = price_12m
+    else:
+        payload = "sub_1m"; amount = price_1m
     
     YOOKASSA_SHOP_ID = os.getenv("YOOKASSA_SHOP_ID")
     YOOKASSA_SECRET = os.getenv("YOOKASSA_SECRET_KEY")

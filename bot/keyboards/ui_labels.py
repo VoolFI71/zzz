@@ -35,6 +35,14 @@ def tariff_3m_label(stars: int, rub: int) -> str:
     return f"3 месяца · {stars} ⭐ / {rub} ₽"
 
 
+def tariff_6m_label(stars: int, rub: int) -> str:
+    return f"6 месяцев · {stars} ⭐ / {rub} ₽"
+
+
+def tariff_12m_label(stars: int, rub: int) -> str:
+    return f"12 месяцев · {stars} ⭐ / {rub} ₽"
+
+
 # Common user-facing messages (HTML safe where applicable)
 MSG_START_BRIEF = (
     "🛡️ <b>GLS VPN</b>\n\n"

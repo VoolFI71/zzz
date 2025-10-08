@@ -1,5 +1,4 @@
 from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, WebAppInfo
-import aiohttp
 import aiosqlite
 import random
 import asyncio
@@ -362,11 +361,12 @@ async def build_subscription_kb(user_id: int):
     headers = {"X-API-Key": auth_code} if auth_code else {}
     api_url = f"http://fastapi:8080/sub/{user_id}"
     try:
-        async with aiohttp.ClientSession() as session:
-            async with session.get(api_url, timeout=10, headers=headers) as resp:
-                if resp.status != 200:
-                    return None
-                data = await resp.json()
+        from utils import get_session
+        session = await get_session()
+        async with session.get(api_url, timeout=10, headers=headers) as resp:
+            if resp.status != 200:
+                return None
+            data = await resp.json()
     except Exception:
         return None
 
@@ -398,16 +398,17 @@ async def get_or_create_sub_key(tg_id: str) -> str:
     auth_code = os.getenv("AUTH_CODE", "")
     url = f"http://fastapi:8080/sub/{tg_id}"
     headers = {"X-API-Key": auth_code} if auth_code else {}
-    async with aiohttp.ClientSession() as session:
-        async with session.get(url, headers=headers) as resp:
-            if resp.status != 200:
-                # Propagate for caller to handle fallback if needed
-                raise RuntimeError(f"Failed to get sub_key: HTTP {resp.status}")
-            data = await resp.json()
-            sub_key = data.get("sub_key")
-            if not sub_key:
-                raise RuntimeError("sub_key missing in response")
-            return sub_key
+    from utils import get_session
+    session = await get_session()
+    async with session.get(url, headers=headers) as resp:
+        if resp.status != 200:
+            # Propagate for caller to handle fallback if needed
+            raise RuntimeError(f"Failed to get sub_key: HTTP {resp.status}")
+        data = await resp.json()
+        sub_key = data.get("sub_key")
+        if not sub_key:
+            raise RuntimeError("sub_key missing in response")
+        return sub_key
 
 
 async def get_all_active_users():

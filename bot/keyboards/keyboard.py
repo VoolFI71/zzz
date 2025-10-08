@@ -16,6 +16,8 @@ from .ui_labels import (
     BTN_COPY_SUB,
     tariff_1m_label,
     tariff_3m_label,
+    tariff_6m_label,
+    tariff_12m_label,
 )
 
 
@@ -91,12 +93,18 @@ def create_server_keyboard():
 def create_tariff_keyboard():
     star_1m = int(os.getenv("PRICE_1M_STAR", "149"))
     star_3m = int(os.getenv("PRICE_3M_STAR", "299"))
+    star_6m = int(os.getenv("PRICE_6M_STAR", "549"))
+    star_12m = int(os.getenv("PRICE_12M_STAR", "999"))
     rub_1m = int(os.getenv("PRICE_1M_RUB", "149"))
     rub_3m = int(os.getenv("PRICE_3M_RUB", "299"))
+    rub_6m = int(os.getenv("PRICE_6M_RUB", "549"))
+    rub_12m = int(os.getenv("PRICE_12M_RUB", "999"))
 
     kb_list = [
         [InlineKeyboardButton(text=tariff_1m_label(star_1m, rub_1m), callback_data="plan_1m")],
         [InlineKeyboardButton(text=tariff_3m_label(star_3m, rub_3m), callback_data="plan_3m")],
+        [InlineKeyboardButton(text=tariff_6m_label(star_6m, rub_6m), callback_data="plan_6m")],
+        [InlineKeyboardButton(text=tariff_12m_label(star_12m, rub_12m), callback_data="plan_12m")],
         [InlineKeyboardButton(text=BTN_BACK, callback_data="back")]
     ]
     keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)
@@ -105,11 +113,13 @@ def create_tariff_keyboard():
 
 
 def create_payment_method_keyboard(star_amount: int, rub_amount: int):
-    kb_list = [
-        [InlineKeyboardButton(text=f"Telegram Stars · {star_amount} ⭐", callback_data="pay_star")],
-        [InlineKeyboardButton(text=f"Картой (ЮKassa) · {rub_amount} ₽", callback_data="pay_cash")],
-        [InlineKeyboardButton(text=BTN_BACK, callback_data="back")],
-    ]
+    kb_list = []
+    # Show methods that have positive amounts
+    if star_amount and star_amount > 0:
+        kb_list.append([InlineKeyboardButton(text=f"Telegram Stars · {star_amount} ⭐", callback_data="pay_star")])
+    if rub_amount and rub_amount > 0:
+        kb_list.append([InlineKeyboardButton(text=f"Картой (ЮKassa) · {rub_amount} ₽", callback_data="pay_cash")])
+    kb_list.append([InlineKeyboardButton(text=BTN_BACK, callback_data="back")])
     return InlineKeyboardMarkup(inline_keyboard=kb_list)
 
 

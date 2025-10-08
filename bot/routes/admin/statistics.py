@@ -219,46 +219,46 @@ async def get_users_with_active_subscription() -> list[str]:
         # получаем всех пользователей из bot БД и проверяем их через /usercodes
         all_bot_users = await get_all_user_ids()
         active_users = []
-        
-        async with aiohttp.ClientSession() as session:
-            for user_id in all_bot_users:
-                try:
-                    url = f"{API_BASE_URL}/usercodes/{user_id}"
-                    headers = {"X-API-Key": AUTH_CODE}
-                    async with session.get(url, headers=headers, timeout=15) as resp:
-                        if resp.status == 200:
-                            # Разбираем конфиги и ищем действительно АКТИВНЫЕ (time_end > now)
+        from utils import get_session
+        session = await get_session()
+        for user_id in all_bot_users:
+            try:
+                url = f"{API_BASE_URL}/usercodes/{user_id}"
+                headers = {"X-API-Key": AUTH_CODE}
+                async with session.get(url, headers=headers, timeout=15) as resp:
+                    if resp.status == 200:
+                        # Разбираем конфиги и ищем действительно АКТИВНЫЕ (time_end > now)
+                        try:
+                            data = await resp.json()
+                        except Exception as e:
+                            # Ошибка парсинга — НЕ добавляем в активные
+                            logger.warning(f"JSON parse error for user {user_id}: {e}")
+                            continue
+                        now_ts = int(time.time())
+                        def _parse_time_end(raw: object) -> int:
                             try:
-                                data = await resp.json()
-                            except Exception as e:
-                                # Ошибка парсинга — НЕ добавляем в активные
-                                logger.warning(f"JSON parse error for user {user_id}: {e}")
-                                continue
-                            now_ts = int(time.time())
-                            def _parse_time_end(raw: object) -> int:
-                                try:
-                                    val = int(raw)
-                                except Exception:
-                                    return 0
-                                # Защита от миллисекунд
-                                if val > 10**11:
-                                    val = val // 1000
-                                return val
-                            has_active = any(_parse_time_end(item.get("time_end", 0)) > now_ts for item in data)
-                            if has_active:
-                                active_users.append(user_id)
+                                val = int(raw)
+                            except Exception:
+                                return 0
+                            # Защита от миллисекунд
+                            if val > 10**11:
+                                val = val // 1000
+                            return val
+                        has_active = any(_parse_time_end(item.get("time_end", 0)) > now_ts for item in data)
+                        if has_active:
+                            active_users.append(user_id)
+                    else:
+                        # 404 — нет конфигов у пользователя (точно не активный)
+                        if resp.status == 404:
+                            pass
                         else:
-                            # 404 — нет конфигов у пользователя (точно не активный)
-                            if resp.status == 404:
-                                pass
-                            else:
-                                # Любая иная ошибка API — НЕ добавляем в активные
-                                logger.warning(f"API error for user {user_id}: {resp.status}")
-                                pass
-                except Exception as e:
-                    # Сетевая ошибка — НЕ добавляем в активные
-                    logger.warning(f"Network error for user {user_id}: {e}")
-                    continue
+                            # Любая иная ошибка API — НЕ добавляем в активные
+                            logger.warning(f"API error for user {user_id}: {resp.status}")
+                            pass
+            except Exception as e:
+                # Сетевая ошибка — НЕ добавляем в активные
+                logger.warning(f"Network error for user {user_id}: {e}")
+                continue
         return active_users
     except Exception as e:
         logger.error(f"Error getting users with active subscription: {e}")
