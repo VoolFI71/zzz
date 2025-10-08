@@ -7,19 +7,19 @@
   <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
     <style>
     :root {
-      --bg: #ffffff;
-      --bg-secondary: #f8f9fa;
-      --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-      --text: #000000;
-      --text-secondary: #6c757d;
+      --bg: #000000;
+      --bg-secondary: #1a1a1a;
+      --bg-gradient: #000000;
+      --text: #ffffff;
+      --text-secondary: #cccccc;
       --primary: #0088cc;
       --primary-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
       --success: #28a745;
       --success-gradient: linear-gradient(135deg, #11998e 0%, #38ef7d 100%);
       --error: #dc3545;
-      --border: #e9ecef;
-      --shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
-      --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.15);
+      --border: #333333;
+      --shadow: 0 4px 20px rgba(0, 0, 0, 0.5);
+      --shadow-hover: 0 8px 30px rgba(0, 0, 0, 0.7);
       --radius: 16px;
       --radius-sm: 8px;
       --radius-lg: 24px;
@@ -53,7 +53,7 @@
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Helvetica Neue', Arial, sans-serif;
       color: var(--text);
-      background: var(--bg-gradient);
+      background: #000000;
       background-attachment: fixed;
       display: flex;
       align-items: center;
@@ -65,27 +65,7 @@
       overflow-x: hidden;
     }
 
-    /* Animated background particles */
-    body::before {
-      content: '';
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background:
-        radial-gradient(circle at 20% 80%, rgba(120, 119, 198, 0.3) 0%, transparent 50%),
-        radial-gradient(circle at 80% 20%, rgba(255, 119, 198, 0.3) 0%, transparent 50%),
-        radial-gradient(circle at 40% 40%, rgba(120, 219, 255, 0.2) 0%, transparent 50%);
-      animation: backgroundFloat 20s ease-in-out infinite;
-      z-index: -1;
-    }
-
-    @keyframes backgroundFloat {
-      0%, 100% { transform: translateY(0px) rotate(0deg); }
-      33% { transform: translateY(-20px) rotate(1deg); }
-      66% { transform: translateY(10px) rotate(-1deg); }
-    }
+    /* Removed animated background for black theme */
 
     /* Removed unused animated background */
 
@@ -97,9 +77,9 @@
       display: flex;
       flex-direction: column;
       gap: 20px;
-      background: rgba(255, 255, 255, 0.1);
+      background: rgba(255, 255, 255, 0.05);
       backdrop-filter: blur(20px);
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      border: 1px solid rgba(255, 255, 255, 0.1);
       border-radius: var(--radius-lg);
       box-shadow: var(--shadow);
       transition: all 0.3s ease;
@@ -184,7 +164,7 @@
 
     .subtitle {
       font-size: 14px;
-      color: #000000;
+      color: #ffffff;
       margin: 0;
     }
 
@@ -201,8 +181,8 @@
     }
 
     .status-card {
-      background: rgba(255, 255, 255, 0.95);
-      border: 1px solid rgba(0, 0, 0, 0.1);
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
       border-radius: var(--radius);
       padding: 16px;
       display: flex;
@@ -224,13 +204,13 @@
     .status-content h3 {
       font-size: 16px;
       font-weight: 600;
-      color: #000000;
+      color: #ffffff;
       margin: 0 0 4px 0;
     }
 
     .status-content p {
       font-size: 14px;
-      color: #333333;
+      color: #cccccc;
       margin: 0;
       line-height: 1.4;
     }
@@ -295,9 +275,9 @@
       align-items: center;
       gap: 16px;
       padding: 20px;
-      border: 1px solid rgba(0, 0, 0, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
       border-radius: var(--radius);
-      background: rgba(255, 255, 255, 0.9);
+      background: rgba(255, 255, 255, 0.1);
       backdrop-filter: blur(10px);
       cursor: pointer;
       transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -346,9 +326,9 @@
     }
 
     .action-btn.secondary {
-      background: rgba(248, 249, 250, 0.95);
+      background: rgba(255, 255, 255, 0.05);
       color: var(--text);
-      border: 1px solid rgba(0, 0, 0, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.1);
     }
 
     .telegram-theme .action-btn.secondary {
@@ -401,8 +381,8 @@
     }
 
     .help-card {
-      background: rgba(255, 255, 255, 0.95);
-      border: 1px solid rgba(0, 0, 0, 0.1);
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.2);
       border-radius: var(--radius);
       padding: 16px;
       display: flex;
@@ -425,13 +405,13 @@
     .help-content h4 {
       font-size: 14px;
       font-weight: 600;
-      color: #000000;
+      color: #ffffff;
       margin: 0 0 4px 0;
     }
 
     .help-content p {
       font-size: 13px;
-      color: #333333;
+      color: #cccccc;
       margin: 0;
       line-height: 1.4;
     }
