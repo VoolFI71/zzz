@@ -47,7 +47,7 @@ async def select_plan(callback_query: CallbackQuery, state: FSMContext) -> None:
         star_amount, rub_amount = star_1m, rub_1m
     elif days == 93:
         star_amount, rub_amount = star_3m, rub_3m
-    elif days == 186:
+    elif days == 180:
         star_amount, rub_amount = star_6m, rub_6m
     else:
         star_amount, rub_amount = star_12m, rub_12m
@@ -56,6 +56,10 @@ async def select_plan(callback_query: CallbackQuery, state: FSMContext) -> None:
         text=f"Выбран тариф: {days} дн. Выберите способ оплаты:",
         reply_markup=create_payment_method_keyboard(star_amount, rub_amount),
     )
+    try:
+        await state.update_data(last_view="payment_methods")
+    except Exception:
+        pass
     await callback_query.answer()
 
 
@@ -76,6 +80,34 @@ async def select_server(callback_query: CallbackQuery, state: FSMContext) -> Non
 async def go_back(callback_query: CallbackQuery, bot: Bot, state: FSMContext) -> None:
     tg_id = callback_query.from_user.id
     current_text = (callback_query.message.text or "").lower()
+
+    # 0) Навигация по сохранённому состоянию экрана
+    try:
+        user_state = await state.get_data()
+        last_view = user_state.get("last_view")
+    except Exception:
+        user_state = {}
+        last_view = None
+
+    if last_view == "payment_methods":
+        # Возвращаемся к выбору тарифа
+        try:
+            await callback_query.message.edit_text(
+                text="Выберите тариф:",
+                reply_markup=keyboard.create_tariff_keyboard(),
+            )
+        except Exception:
+            await bot.send_message(
+                chat_id=tg_id,
+                text="Выберите тариф:",
+                reply_markup=keyboard.create_tariff_keyboard(),
+            )
+        try:
+            await state.update_data(last_view="tariff_selection")
+        except Exception:
+            pass
+        await callback_query.answer()
+        return
 
     # Если на экране выбор способа оплаты — вернёмся к выбору тарифа
     if "выбран тариф" in current_text and ("оплат" in current_text or "⭐" in current_text or "₽" in current_text):
@@ -121,16 +153,6 @@ async def go_back(callback_query: CallbackQuery, bot: Bot, state: FSMContext) ->
             star_amount, rub_amount = star_12m, rub_12m
         else:
             star_amount, rub_amount = star_1m, rub_1m
-        if days == 31:
-            star_amount, rub_amount = star_1m, rub_1m
-        elif days == 93:
-            star_amount, rub_amount = star_3m, rub_3m
-        elif days == 180:
-            star_amount, rub_amount = star_6m, rub_6m
-        elif days == 365:
-            star_amount, rub_amount = star_12m, rub_12m
-        else:
-            star_amount, rub_amount = star_1m, rub_1m
 
         try:
             await callback_query.message.edit_text(
@@ -147,30 +169,28 @@ async def go_back(callback_query: CallbackQuery, bot: Bot, state: FSMContext) ->
         return
 
     if "тариф" in current_text:
-        text = (
-            "Вы оформляете доступ к услугам GLS VPN.\n\n"
-            "- 🔐 Полная конфиденциальность и анонимность\n"
-            "- ♾️ Безлимитный трафик\n"
-            "- 🚀 Стабильная скорость и мгновенное подключение\n\n"
-            "🌍 Доступные локации:\n"
-            "├ 🇳🇱 Нидерланды — в разработке\n"
-            "├ 🇺🇸 США — в разработке\n"
-            "├ 🇩🇪 Германия — в разработке\n"
-            "└ 🇫🇮 Финляндия — доступно"
-        )
-        await callback_query.message.edit_text(text=text, reply_markup=keyboard.create_server_keyboard())
+        # Возвращаемся в главное меню, а не к выбору стран
+        try:
+            await bot.delete_message(chat_id=tg_id, message_id=callback_query.message.message_id)
+        except Exception:
+            pass
+            await bot.send_message(
+                chat_id=tg_id,
+                text="Выберите действие:",
+                reply_markup=create_keyboard(),
+            )
     elif "страну" in current_text or "страна" in current_text:
         await bot.delete_message(chat_id=tg_id, message_id=callback_query.message.message_id)
         await bot.send_message(
             chat_id=tg_id,
-            text="Выберите опцию:",
+            text="Выберите действие:",
             reply_markup=create_keyboard(),
         )
     else:
         await bot.delete_message(chat_id=tg_id, message_id=callback_query.message.message_id)
         await bot.send_message(
             chat_id=tg_id,
-            text="Выберите опцию:",
+            text="Выберите действие:",
             reply_markup=create_keyboard(),
         )
 

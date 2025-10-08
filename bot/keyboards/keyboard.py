@@ -23,9 +23,9 @@ from .ui_labels import (
 
 def create_keyboard():
     kb_list = [
-        [KeyboardButton(text=BTN_TARIFF), KeyboardButton(text=BTN_PROFILE)],
-        [KeyboardButton(text=BTN_TRIAL)],
-        [KeyboardButton(text=BTN_INVITE), KeyboardButton(text=BTN_GUIDE)]
+        [KeyboardButton(text=BTN_TRIAL), KeyboardButton(text=BTN_TARIFF)],
+        [KeyboardButton(text=BTN_PROFILE), KeyboardButton(text=BTN_INVITE)],
+        [KeyboardButton(text=BTN_GUIDE), KeyboardButton(text=BTN_SUPPORT)]
     ]
     keyboard = ReplyKeyboardMarkup(keyboard=kb_list, resize_keyboard=True, one_time_keyboard=False)
     return keyboard
@@ -33,9 +33,9 @@ def create_keyboard():
 def create_admin_keyboard():
     """Создает клавиатуру для администратора."""
     kb_list = [
-        [KeyboardButton(text=BTN_TARIFF), KeyboardButton(text=BTN_PROFILE)],
-        [KeyboardButton(text=BTN_TRIAL)],
-        [KeyboardButton(text=BTN_INVITE), KeyboardButton(text=BTN_GUIDE)],
+        [KeyboardButton(text=BTN_TRIAL), KeyboardButton(text=BTN_TARIFF)],
+        [KeyboardButton(text=BTN_PROFILE), KeyboardButton(text=BTN_INVITE)],
+        [KeyboardButton(text=BTN_GUIDE), KeyboardButton(text=BTN_SUPPORT)],
         [KeyboardButton(text="🔧 Админ панель")]
     ]
     keyboard = ReplyKeyboardMarkup(keyboard=kb_list, resize_keyboard=True, one_time_keyboard=False)
@@ -116,9 +116,9 @@ def create_payment_method_keyboard(star_amount: int, rub_amount: int):
     kb_list = []
     # Show methods that have positive amounts
     if star_amount and star_amount > 0:
-        kb_list.append([InlineKeyboardButton(text=f"Telegram Stars · {star_amount} ⭐", callback_data="pay_star")])
+        kb_list.append([InlineKeyboardButton(text=f"⭐ Оплатить Stars · {star_amount}", callback_data="pay_star")])
     if rub_amount and rub_amount > 0:
-        kb_list.append([InlineKeyboardButton(text=f"Картой (ЮKassa) · {rub_amount} ₽", callback_data="pay_cash")])
+        kb_list.append([InlineKeyboardButton(text=f"💳 Оплатить картой · {rub_amount} ₽", callback_data="pay_cash")])
     kb_list.append([InlineKeyboardButton(text=BTN_BACK, callback_data="back")])
     return InlineKeyboardMarkup(inline_keyboard=kb_list)
 

@@ -401,7 +401,7 @@ async def give_configs_on_all_servers(tg_id: int, days: int, servers: list, bot:
     
     # Уведомляем пользователя о результате
     if success_count > 0:
-        await bot.send_message(tg_id, f"✅ Оплата прошла успешно! Подписка активирована на {success_count} серверах.\n\nПолучить подписку можно в Личном кабинете → Мои конфиги")
+        await bot.send_message(tg_id, f"✅ Оплата прошла успешно! Подписка активирована на {success_count} серверах.\n\nПолучить подписку можно в Личном кабинете → Мои подключения")
     
     if failed_servers:
         await bot.send_message(tg_id, f"⚠️ Не удалось создать конфиги на серверах: {', '.join(failed_servers)}")
@@ -435,7 +435,7 @@ async def extend_existing_configs(tg_id: int, days: int, bot: Bot) -> None:
     
     # Уведомляем пользователя о результате
     if success_count > 0:
-        await bot.send_message(tg_id, f"✅ Оплата прошла успешно! \n\nПолучить подписку можно в Личном кабинете → Мои конфиги")
+        await bot.send_message(tg_id, f"✅ Оплата прошла успешно! \n\nПолучить подписку можно в Личном кабинете → Мои подключения")
     
     if failed_configs:
         await bot.send_message(tg_id, f"⚠️ Не удалось продлить {len(failed_configs)} конфигов")

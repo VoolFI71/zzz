@@ -354,7 +354,7 @@ async def give_configs_on_all_servers_yookassa(tg_id: int, days: int, servers: l
     
     # Уведомляем пользователя о результате
     if success_count > 0:
-        await bot.send_message(tg_id, f"✅ Оплата прошла успешно! \n\nПолучить подписку можно в Личном кабинете → Мои конфиги")
+        await bot.send_message(tg_id, f"✅ Оплата прошла успешно! \n\nПолучить подписку можно в Личном кабинете → Мои подключения")
     
     if failed_servers:
         await bot.send_message(tg_id, f"⚠️ Не удалось создать конфиги на серверах: {', '.join(failed_servers)}")
@@ -388,7 +388,7 @@ async def extend_existing_configs_yookassa(tg_id: int, days: int, bot: Bot) -> N
     
     # Уведомляем пользователя о результате
     if success_count > 0:
-        await bot.send_message(tg_id, f"✅ Оплата прошла успешно! Подписка продлена на {success_count} конфигах.\n\nПолучить подписку можно в Личном кабинете → Мои конфиги")
+        await bot.send_message(tg_id, f"✅ Оплата прошла успешно! Подписка продлена на {success_count} конфигах.\n\nПолучить подписку можно в Личном кабинете → Мои подключения")
     
     if failed_configs:
         await bot.send_message(tg_id, f"⚠️ Не удалось продлить {len(failed_configs)} конфигов")

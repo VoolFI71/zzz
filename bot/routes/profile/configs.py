@@ -56,16 +56,30 @@ async def my_configs(message: types.Message):
                         now_ts = int(time.time())
                     
                         active_configs = []
-                        # Map server code -> nice title and flag
+                        # Map server code -> nice title and flag (synced with keyboard)
                         server_titles = {
                             'fi': 'Финляндия',
                             'nl': 'Нидерланды',
                             'ge': 'Германия',
+                            'us': 'США',
+                            'pl': 'Польша',
+                            'se': 'Швеция',
+                            'fr': 'Франция',
+                            'gb': 'Великобритания',
+                            'uk': 'Великобритания',
+                            'tr': 'Турция',
                         }
                         server_flags = {
                             'fi': '🇫🇮',
                             'nl': '🇳🇱',
                             'ge': '🇩🇪',
+                            'us': '🇺🇸',
+                            'pl': '🇵🇱',
+                            'se': '🇸🇪',
+                            'fr': '🇫🇷',
+                            'gb': '🇬🇧',
+                            'uk': '🇬🇧',
+                            'tr': '🇹🇷',
                         }
 
                         def _fmt_duration(seconds: int) -> str:
@@ -120,7 +134,8 @@ async def my_configs(message: types.Message):
                                 await message.answer("Не удалось получить sub_key.", reply_markup=keyboard.create_profile_keyboard())
                                 return
 
-                        web_url = f"https://swaga.space/subscription/{sub_key}"
+                        base = os.getenv("PUBLIC_BASE_URL", "https://swaga.space").rstrip('/')
+                        web_url = f"{base}/subscription/{sub_key}"
                         inline_kb = InlineKeyboardMarkup(inline_keyboard=[
                             [InlineKeyboardButton(text=BTN_ADD_SUB_WEBAPP, web_app=WebAppInfo(url=web_url))],
                             [InlineKeyboardButton(text=BTN_COPY_SUB, callback_data="copy_sub")],
@@ -128,7 +143,7 @@ async def my_configs(message: types.Message):
                         await message.answer(text, reply_markup=inline_kb, disable_web_page_preview=True, parse_mode="HTML")
                         await message.answer("Выберите действие:", reply_markup=keyboard.create_profile_keyboard())
                     else:
-                        await message.answer("У вас нет конфигов", reply_markup=keyboard.create_profile_keyboard())
+                        await message.answer(MSG_PROFILE_NO_CONFIGS, reply_markup=keyboard.create_profile_keyboard(), disable_web_page_preview=True, parse_mode="HTML")
                 else:
                     error_message = await response.json()
                     error_detail = error_message.get('detail', 'Неизвестная ошибка')

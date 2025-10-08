@@ -1,6 +1,7 @@
 from aiogram import Router, types, F
 from aiogram.filters import Command
 from keyboards import keyboard
+from keyboards.ui_labels import MSG_START_BRIEF, BTN_TRIAL, BTN_TARIFF, BTN_GUIDE, BTN_SUPPORT
 from database import db
 import os
 from aiogram.types import FSInputFile
@@ -82,21 +83,11 @@ async def start_command(message: types.Message):
             await message.answer("Вы уже использовали реферальную ссылку ранее. Это можно сделать только один раз.")
 
     start_caption = (
-        "🛡️ <b>GLS VPN</b> — ваш надёжный спутник в мире интернета!\n\n"
-        "🚀 <b>Что вы получите:</b>\n"
-        "• 🔐 Полная анонимность и защита данных\n"
-        "• ⚡ Высокая скорость на всех устройствах\n"
-        "• 🌍 Доступ к интостранным ресурсам\n"
-        "• 📱 Работает на iOS, Android, Windows, macOS\n\n"
-        "🎁 <b>Специально для вас:</b>\n"
-        "• 3 дня бесплатного тестирования\n"
-        "• Простая настройка за 2 минуты\n"
-        "• Поддержка 24/7\n\n"
-        "💡 <b>Как начать:</b>\n"
-        "1️⃣ Нажмите '🎁 Пробные 3 дня' для тестирования\n"
-        "2️⃣ Или выберите тариф для полного доступа\n"
-        "3️⃣ Следуйте инструкциям по установке\n\n"
-        "❓ <b>Нужна помощь?</b> Напишите в поддержку — мы всегда на связи!"
+        f"{MSG_START_BRIEF}\n\n"
+        "💡 <b>Как начать</b>\n"
+        f"— Нажмите «{BTN_TRIAL}» или «{BTN_TARIFF}»\n"
+        f"— При необходимости — «{BTN_GUIDE}»\n\n"
+        f"🆘 <b>Нужна помощь?</b> Откройте «{BTN_SUPPORT}»"
     )
 
     try:
@@ -117,11 +108,11 @@ async def start_command(message: types.Message):
         if image_path_found:
             await message.answer_photo(photo=FSInputFile(image_path_found), caption=start_caption, reply_markup=user_keyboard, parse_mode="HTML")
         else:
-            await message.answer("Добро пожаловать! Выберите действие:", reply_markup=user_keyboard)
+            await message.answer(start_caption, reply_markup=user_keyboard, parse_mode="HTML")
     except Exception:
         # Фолбэк на случай ошибки при отправке изображения
         user_keyboard = keyboard.create_admin_keyboard() if is_admin(message.from_user.id) else keyboard.create_keyboard()
-        await message.answer("Добро пожаловать! Выберите действие:", reply_markup=user_keyboard)
+        await message.answer(start_caption, reply_markup=user_keyboard, parse_mode="HTML")
 
     # Отправляем уведомление о реферальном бонусе после приветствия
     if referral_bonus_message:

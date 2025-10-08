@@ -13,7 +13,6 @@ from database import db
 from keyboards.ui_labels import (
     BTN_ADD_SUB_WEBAPP,
     BTN_COPY_SUB,
-    BTN_REFRESH,
     BTN_CLOSE,
     MSG_COPY_SUB_PROMPT,
     MSG_ERR_API,
@@ -106,6 +105,8 @@ async def copy_subscription_callback(callback: types.CallbackQuery):
             await callback.answer("Ошибка", show_alert=True)
         except Exception:
             pass
+
+
 
 @router.callback_query(F.data == "delmsg")
 async def delete_message_callback(callback: types.CallbackQuery):
