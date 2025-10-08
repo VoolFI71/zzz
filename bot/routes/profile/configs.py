@@ -89,7 +89,7 @@ async def my_configs(message: types.Message):
                                 active_configs.append(f"- {flag} {title}: {_fmt_duration(remaining_secs)}")
 
                         if not active_configs:
-                            await message.answer(MSG_PROFILE_NO_CONFIGS, reply_markup=keyboard.create_profile_keyboard(), disable_web_page_preview=True)
+                            await message.answer(MSG_PROFILE_NO_CONFIGS, reply_markup=keyboard.create_profile_keyboard(), disable_web_page_preview=True, parse_mode="HTML")
                             return
 
                         text = (
@@ -125,7 +125,7 @@ async def my_configs(message: types.Message):
                             [InlineKeyboardButton(text=BTN_ADD_SUB_WEBAPP, web_app=WebAppInfo(url=web_url))],
                             [InlineKeyboardButton(text=BTN_COPY_SUB, callback_data="copy_sub")],
                         ])
-                        await message.answer(text, reply_markup=inline_kb, disable_web_page_preview=True)
+                        await message.answer(text, reply_markup=inline_kb, disable_web_page_preview=True, parse_mode="HTML")
                         await message.answer("Выберите действие:", reply_markup=keyboard.create_profile_keyboard())
                     else:
                         await message.answer("У вас нет конфигов", reply_markup=keyboard.create_profile_keyboard())
@@ -133,7 +133,7 @@ async def my_configs(message: types.Message):
                     error_message = await response.json()
                     error_detail = error_message.get('detail', 'Неизвестная ошибка')
                     if "404" in str(error_detail) or "not found" in str(error_detail).lower():
-                        await message.answer(MSG_PROFILE_NO_CONFIGS, reply_markup=keyboard.create_profile_keyboard(), disable_web_page_preview=True)
+                        await message.answer(MSG_PROFILE_NO_CONFIGS, reply_markup=keyboard.create_profile_keyboard(), disable_web_page_preview=True, parse_mode="HTML")
                     elif "timeout" in str(error_detail).lower():
                         await message.answer(MSG_ERR_TIMEOUT, reply_markup=keyboard.create_profile_keyboard())
                     else:
