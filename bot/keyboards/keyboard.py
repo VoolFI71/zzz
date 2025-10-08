@@ -6,7 +6,6 @@ from .ui_labels import (
     BTN_TRIAL,
     BTN_INVITE,
     BTN_GUIDE,
-    BTN_SUPPORT,
     BTN_BACK,
     BTN_MY_CONFIGS,
     BTN_ACTIVATE_DAYS,
@@ -23,9 +22,9 @@ from .ui_labels import (
 
 def create_keyboard():
     kb_list = [
-        [KeyboardButton(text=BTN_TRIAL), KeyboardButton(text=BTN_TARIFF)],
-        [KeyboardButton(text=BTN_PROFILE), KeyboardButton(text=BTN_INVITE)],
-        [KeyboardButton(text=BTN_GUIDE), KeyboardButton(text=BTN_SUPPORT)]
+        [KeyboardButton(text=BTN_TARIFF), KeyboardButton(text=BTN_PROFILE)],
+        [KeyboardButton(text=BTN_TRIAL)],
+        [KeyboardButton(text=BTN_INVITE), KeyboardButton(text=BTN_GUIDE)]
     ]
     keyboard = ReplyKeyboardMarkup(keyboard=kb_list, resize_keyboard=True, one_time_keyboard=False)
     return keyboard
@@ -33,9 +32,9 @@ def create_keyboard():
 def create_admin_keyboard():
     """Создает клавиатуру для администратора."""
     kb_list = [
-        [KeyboardButton(text=BTN_TRIAL), KeyboardButton(text=BTN_TARIFF)],
-        [KeyboardButton(text=BTN_PROFILE), KeyboardButton(text=BTN_INVITE)],
-        [KeyboardButton(text=BTN_GUIDE), KeyboardButton(text=BTN_SUPPORT)],
+        [KeyboardButton(text=BTN_TARIFF), KeyboardButton(text=BTN_PROFILE)],
+        [KeyboardButton(text=BTN_TRIAL)],
+        [KeyboardButton(text=BTN_INVITE), KeyboardButton(text=BTN_GUIDE)],
         [KeyboardButton(text="🔧 Админ панель")]
     ]
     keyboard = ReplyKeyboardMarkup(keyboard=kb_list, resize_keyboard=True, one_time_keyboard=False)
@@ -126,7 +125,6 @@ def create_payment_method_keyboard(star_amount: int, rub_amount: int):
 def create_settings_keyboard():
     kb_list = [
         [KeyboardButton(text=BTN_SETUP_PHONE), KeyboardButton(text=BTN_SETUP_PC)],
-        [KeyboardButton(text=BTN_SUPPORT)],
         [KeyboardButton(text=BTN_BACK)]
     ]
     keyboard = ReplyKeyboardMarkup(keyboard=kb_list, resize_keyboard=True, one_time_keyboard=False)

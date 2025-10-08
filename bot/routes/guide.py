@@ -5,7 +5,6 @@ from keyboards.ui_labels import (
     BTN_GUIDE,
     BTN_SETUP_PHONE,
     BTN_SETUP_PC,
-    BTN_SUPPORT,
     BTN_BACK,
 )
 
@@ -45,9 +44,7 @@ async def pc_guide_command(message: types.Message):
     disable_web_page_preview=True
     )
 
-@router.message(F.text.in_({"Поддержка", "🆘 Поддержка", BTN_SUPPORT}))
-async def support_command(message: types.Message):
-    await message.answer("@helpervpn71")
+# Кнопка поддержки удалена из интерфейса
 
 @router.message(F.text.in_({"Назад", "🔙 Назад", BTN_BACK}))
 async def back_command(message: types.Message):

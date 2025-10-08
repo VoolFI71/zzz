@@ -1,7 +1,7 @@
 from aiogram import Router, types, F
 from aiogram.filters import Command
 from keyboards import keyboard
-from keyboards.ui_labels import MSG_START_BRIEF, BTN_TRIAL, BTN_TARIFF, BTN_GUIDE, BTN_SUPPORT
+from keyboards.ui_labels import MSG_START_BRIEF, BTN_TRIAL, BTN_TARIFF, BTN_GUIDE
 from database import db
 import os
 from aiogram.types import FSInputFile
@@ -86,8 +86,7 @@ async def start_command(message: types.Message):
         f"{MSG_START_BRIEF}\n\n"
         "💡 <b>Как начать</b>\n"
         f"— Нажмите «{BTN_TRIAL}» или «{BTN_TARIFF}»\n"
-        f"— При необходимости — «{BTN_GUIDE}»\n\n"
-        f"🆘 <b>Нужна помощь?</b> Откройте «{BTN_SUPPORT}»"
+        f"— При необходимости — «{BTN_GUIDE}»"
     )
 
     try:
