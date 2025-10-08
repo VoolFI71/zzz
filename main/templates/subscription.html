@@ -65,7 +65,31 @@
       overflow-x: hidden;
     }
 
-    /* Removed animated background for black theme */
+    /* Animated particles background */
+    body::after {
+      content: '';
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: 
+        radial-gradient(2px 2px at 20px 30px, rgba(0, 212, 255, 0.3), transparent),
+        radial-gradient(2px 2px at 40px 70px, rgba(0, 255, 136, 0.3), transparent),
+        radial-gradient(1px 1px at 90px 40px, rgba(255, 193, 7, 0.3), transparent),
+        radial-gradient(1px 1px at 130px 80px, rgba(0, 212, 255, 0.2), transparent),
+        radial-gradient(2px 2px at 160px 30px, rgba(0, 255, 136, 0.2), transparent);
+      background-repeat: repeat;
+      background-size: 200px 100px;
+      animation: particlesMove 20s linear infinite;
+      z-index: -1;
+      pointer-events: none;
+    }
+
+    @keyframes particlesMove {
+      0% { transform: translateY(0px) translateX(0px); }
+      100% { transform: translateY(-100px) translateX(50px); }
+    }
 
     /* Removed unused animated background */
 
@@ -156,16 +180,21 @@
     }
 
     .title {
-      font-size: 24px;
-      font-weight: 700;
-      color: var(--text);
+      font-size: 28px;
+      font-weight: 800;
+      background: linear-gradient(45deg, #00d4ff, #0099cc, #00ff88);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
       margin: 0 0 4px 0;
+      text-shadow: 0 0 20px rgba(0, 212, 255, 0.5);
     }
 
     .subtitle {
-      font-size: 14px;
+      font-size: 16px;
       color: #ffffff;
       margin: 0;
+      opacity: 0.8;
     }
 
     .telegram-theme .subtitle {
@@ -181,14 +210,49 @@
     }
 
     .status-card {
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(0, 255, 136, 0.1));
+      border: 1px solid rgba(0, 212, 255, 0.3);
       border-radius: var(--radius);
-      padding: 16px;
+      padding: 20px;
       display: flex;
       align-items: center;
-      gap: 12px;
-      box-shadow: var(--shadow);
+      gap: 16px;
+      box-shadow: 
+        0 8px 32px rgba(0, 212, 255, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      position: relative;
+      overflow: hidden;
+      animation: statusPulse 3s ease-in-out infinite;
+    }
+
+    .status-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+      animation: statusShimmer 3s ease-in-out infinite;
+    }
+
+    @keyframes statusPulse {
+      0%, 100% { 
+        box-shadow: 
+          0 8px 32px rgba(0, 212, 255, 0.2),
+          inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      }
+      50% { 
+        box-shadow: 
+          0 12px 40px rgba(0, 212, 255, 0.4),
+          inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      }
+    }
+
+    @keyframes statusShimmer {
+      0% { left: -100%; }
+      50% { left: 100%; }
+      100% { left: 100%; }
     }
 
     .telegram-theme .status-card {
@@ -197,8 +261,42 @@
     }
 
     .status-icon {
-      font-size: 24px;
+      font-size: 28px;
       flex-shrink: 0;
+      animation: statusIconBounce 2s ease-in-out infinite;
+      filter: drop-shadow(0 0 10px rgba(0, 255, 136, 0.6));
+      position: relative;
+    }
+
+    .status-icon::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 40px;
+      height: 40px;
+      background: radial-gradient(circle, rgba(0, 255, 136, 0.3) 0%, transparent 70%);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      animation: statusIconRipple 2s ease-in-out infinite;
+    }
+
+    @keyframes statusIconBounce {
+      0%, 100% { transform: scale(1) rotate(0deg); }
+      25% { transform: scale(1.1) rotate(5deg); }
+      50% { transform: scale(1.05) rotate(-3deg); }
+      75% { transform: scale(1.08) rotate(2deg); }
+    }
+
+    @keyframes statusIconRipple {
+      0% { 
+        transform: translate(-50%, -50%) scale(0.8);
+        opacity: 0.8;
+      }
+      100% { 
+        transform: translate(-50%, -50%) scale(1.5);
+        opacity: 0;
+      }
     }
 
     .status-content h3 {
@@ -274,18 +372,41 @@
       display: flex;
       align-items: center;
       gap: 16px;
-      padding: 20px;
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      padding: 24px;
+      border: 2px solid transparent;
       border-radius: var(--radius);
-      background: rgba(255, 255, 255, 0.1);
-      backdrop-filter: blur(10px);
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
+      backdrop-filter: blur(20px);
       cursor: pointer;
-      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
       text-align: left;
       width: 100%;
       position: relative;
       overflow: hidden;
-      box-shadow: var(--shadow);
+      box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      animation: buttonFloat 6s ease-in-out infinite;
+    }
+
+    .action-btn::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+      transition: left 0.6s ease;
+    }
+
+    .action-btn:hover::before {
+      left: 100%;
+    }
+
+    @keyframes buttonFloat {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-2px); }
     }
 
     .telegram-theme .action-btn {
@@ -309,20 +430,49 @@
     }
 
     .action-btn:hover {
-      transform: translateY(-2px) scale(1.02);
-      box-shadow: var(--shadow-hover);
-      border-color: rgba(255, 255, 255, 0.3);
+      transform: translateY(-4px) scale(1.03);
+      box-shadow: 
+        0 16px 48px rgba(0, 0, 0, 0.4),
+        0 0 20px rgba(0, 212, 255, 0.3),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      border-color: rgba(0, 212, 255, 0.5);
+      background: linear-gradient(135deg, rgba(0, 212, 255, 0.1), rgba(0, 255, 136, 0.1));
     }
 
     .action-btn.primary {
-      background: var(--primary-gradient);
+      background: linear-gradient(135deg, #00d4ff 0%, #0099cc 50%, #00ff88 100%);
       color: white;
-      border-color: rgba(255, 255, 255, 0.2);
+      border: 2px solid rgba(0, 212, 255, 0.3);
+      box-shadow: 
+        0 8px 32px rgba(0, 212, 255, 0.3),
+        0 0 20px rgba(0, 212, 255, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      animation: primaryButtonGlow 3s ease-in-out infinite;
     }
 
     .action-btn.primary:hover {
-      background: linear-gradient(135deg, #5a6fd8 0%, #6a4190 100%);
-      transform: translateY(-3px) scale(1.03);
+      background: linear-gradient(135deg, #00e6ff 0%, #00aadd 50%, #00ff99 100%);
+      transform: translateY(-6px) scale(1.05);
+      box-shadow: 
+        0 20px 60px rgba(0, 212, 255, 0.5),
+        0 0 30px rgba(0, 212, 255, 0.4),
+        inset 0 1px 0 rgba(255, 255, 255, 0.3);
+      border-color: rgba(0, 212, 255, 0.6);
+    }
+
+    @keyframes primaryButtonGlow {
+      0%, 100% { 
+        box-shadow: 
+          0 8px 32px rgba(0, 212, 255, 0.3),
+          0 0 20px rgba(0, 212, 255, 0.2),
+          inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      }
+      50% { 
+        box-shadow: 
+          0 12px 40px rgba(0, 212, 255, 0.4),
+          0 0 30px rgba(0, 212, 255, 0.3),
+          inset 0 1px 0 rgba(255, 255, 255, 0.3);
+      }
     }
 
     .action-btn.secondary {
@@ -381,14 +531,50 @@
     }
 
     .help-card {
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.2);
+      background: linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03));
+      border: 1px solid rgba(255, 255, 255, 0.15);
       border-radius: var(--radius);
-      padding: 16px;
+      padding: 20px;
       display: flex;
       align-items: flex-start;
-      gap: 12px;
-      box-shadow: var(--shadow);
+      gap: 16px;
+      box-shadow: 
+        0 8px 32px rgba(0, 0, 0, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.1);
+      position: relative;
+      overflow: hidden;
+      animation: helpCardFloat 8s ease-in-out infinite;
+      cursor: pointer;
+      transition: all 0.3s ease;
+    }
+
+    .help-card:hover {
+      transform: translateY(-2px);
+      box-shadow: 
+        0 12px 40px rgba(0, 0, 0, 0.3),
+        0 0 20px rgba(0, 212, 255, 0.2),
+        inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      border-color: rgba(0, 212, 255, 0.3);
+    }
+
+    .help-card::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(0, 212, 255, 0.1), transparent);
+      transition: left 0.8s ease;
+    }
+
+    .help-card:hover::before {
+      left: 100%;
+    }
+
+    @keyframes helpCardFloat {
+      0%, 100% { transform: translateY(0px); }
+      50% { transform: translateY(-1px); }
     }
 
     .telegram-theme .help-card {
@@ -397,9 +583,47 @@
     }
 
     .help-icon {
-      font-size: 20px;
+      font-size: 24px;
       flex-shrink: 0;
       margin-top: 2px;
+      animation: helpIconPulse 4s ease-in-out infinite;
+      filter: drop-shadow(0 0 8px rgba(255, 193, 7, 0.6));
+      position: relative;
+    }
+
+    .help-icon::before {
+      content: '';
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: 30px;
+      height: 30px;
+      background: radial-gradient(circle, rgba(255, 193, 7, 0.3) 0%, transparent 70%);
+      border-radius: 50%;
+      transform: translate(-50%, -50%);
+      animation: helpIconRipple 4s ease-in-out infinite;
+    }
+
+    @keyframes helpIconPulse {
+      0%, 100% { 
+        transform: scale(1) rotate(0deg);
+        filter: drop-shadow(0 0 8px rgba(255, 193, 7, 0.6));
+      }
+      50% { 
+        transform: scale(1.1) rotate(10deg);
+        filter: drop-shadow(0 0 12px rgba(255, 193, 7, 0.8));
+      }
+    }
+
+    @keyframes helpIconRipple {
+      0% { 
+        transform: translate(-50%, -50%) scale(0.8);
+        opacity: 0.8;
+      }
+      100% { 
+        transform: translate(-50%, -50%) scale(1.2);
+        opacity: 0;
+      }
     }
 
     .help-content h4 {
