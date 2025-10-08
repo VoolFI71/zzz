@@ -4,42 +4,28 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>GLS VPN — Добавить конфиг</title>
-  <script src="https://telegram.org/js/telegram-web-app.js"></script>
+  <script src="https://telegram.org/js/telegram-web-app.js" defer></script>
     <style>
     :root {
-      /* Telegram Mini App адаптивные цвета */
       --bg: #ffffff;
       --bg-secondary: #f8f9fa;
-      --bg-tertiary: #f1f3f4;
       --text: #000000;
       --text-secondary: #6c757d;
-      --text-muted: #adb5bd;
       --primary: #0088cc;
-      --primary-hover: #006bb3;
       --success: #28a745;
-      --warning: #ffc107;
       --error: #dc3545;
       --border: #e9ecef;
-      --border-hover: #dee2e6;
       --shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-      --shadow-lg: 0 4px 16px rgba(0, 0, 0, 0.15);
       --radius: 12px;
-      --radius-sm: 8px;
-      --radius-lg: 16px;
     }
 
-    /* Telegram темная тема */
     .telegram-theme {
       --bg: #17212b;
       --bg-secondary: #242f3d;
-      --bg-tertiary: #2b5278;
       --text: #ffffff;
       --text-secondary: #a8b2bb;
-      --text-muted: #7a8a99;
       --primary: #64a9dc;
-      --primary-hover: #5a9bd4;
       --border: #3e546a;
-      --border-hover: #4a5f7a;
     }
 
     * {
@@ -66,11 +52,7 @@
       transition: background-color 0.3s ease;
     }
 
-    /* Animated background elements */
-    /* Убираем анимированный фон для Mini App */
-    .bg-blur {
-      display: none;
-    }
+    /* Removed unused animated background */
 
     /* Main container */
     .container {
@@ -499,210 +481,54 @@
       }
     }
 
-    /* Loading animation */
-    .loading {
-      display: inline-block;
-      width: 20px;
-      height: 20px;
-      border: 2px solid rgba(255, 255, 255, 0.3);
-      border-radius: 50%;
-      border-top-color: var(--primary);
-      animation: spin 1s ease-in-out infinite;
-    }
+    /* Removed unused loading animation */
 
-    @keyframes spin {
-      to { transform: rotate(360deg); }
-    }
-
-    /* Desktop adaptation */
+    /* Desktop styles */
     @media (min-width: 768px) {
-      .container {
-        max-width: 500px;
-        margin: 0 auto;
-        padding: 24px;
-      }
-      
-      .header-section {
-        padding: 32px 0;
-      }
-      
-      .logo-container {
-        gap: 20px;
-      }
-      
-      .logo {
-        width: 64px;
-        height: 64px;
-        font-size: 28px;
-      }
-      
-      .title {
-        font-size: 28px;
-      }
-      
-      .subtitle {
-        font-size: 16px;
-      }
-      
-      .status-card {
-        padding: 20px;
-      }
-      
-      .status-content h3 {
-        font-size: 18px;
-      }
-      
-      .status-content p {
-        font-size: 15px;
-      }
-      
-      .action-btn {
-        padding: 20px;
-        gap: 20px;
-      }
-      
-      .btn-title {
-        font-size: 18px;
-      }
-      
-      .btn-subtitle {
-        font-size: 15px;
-      }
-      
-      .help-card {
-        padding: 20px;
-      }
-      
-      .help-content h4 {
-        font-size: 16px;
-      }
-      
-      .help-content p {
-        font-size: 14px;
-      }
+      .container { max-width: 500px; margin: 0 auto; padding: 24px; }
+      .header-section { padding: 32px 0; }
+      .logo { width: 64px; height: 64px; font-size: 28px; }
+      .title { font-size: 28px; }
+      .action-btn { padding: 20px; gap: 20px; }
+      .btn-title { font-size: 18px; }
     }
 
-    /* Large desktop */
     @media (min-width: 1024px) {
-      .container {
-        max-width: 600px;
-        padding: 32px;
-      }
-      
-      .header-section {
-        padding: 40px 0;
-      }
-      
-      .logo {
-        width: 72px;
-        height: 72px;
-        font-size: 32px;
-      }
-      
-      .title {
-        font-size: 32px;
-      }
-      
-      .action-btn {
-        padding: 24px;
-      }
-      
-      .btn-title {
-        font-size: 20px;
-      }
+      .container { max-width: 600px; padding: 32px; }
+      .logo { width: 72px; height: 72px; font-size: 32px; }
+      .title { font-size: 32px; }
+      .action-btn { padding: 24px; }
+      .btn-title { font-size: 20px; }
     }
 
-    /* Mobile adaptation */
+    /* Mobile styles */
     @media (max-width: 480px) {
-      .container {
-        padding: 12px;
-        gap: 12px;
-      }
-      
-      .header-section {
-        padding: 16px 0;
-      }
-      
-      .logo-container {
-        flex-direction: column;
-        text-align: center;
-        gap: 12px;
-      }
-      
-      .brand-info {
-        text-align: center;
-      }
-      
-      .title {
-        font-size: 20px;
-      }
-      
-      .action-btn {
-        padding: 14px;
-        gap: 12px;
-      }
-      
-      .btn-title {
-        font-size: 15px;
-      }
-      
-      .btn-subtitle {
-        font-size: 13px;
-      }
-      
-      .help-card {
-        padding: 14px;
-      }
+      .container { padding: 12px; gap: 12px; }
+      .header-section { padding: 16px 0; }
+      .logo-container { flex-direction: column; text-align: center; gap: 12px; }
+      .brand-info { text-align: center; }
+      .title { font-size: 20px; }
+      .action-btn { padding: 14px; gap: 12px; }
+      .btn-title { font-size: 15px; }
+      .btn-subtitle { font-size: 13px; }
+      .help-card { padding: 14px; }
     }
 
-    /* Tablet adaptation */
+    /* Tablet styles */
     @media (min-width: 481px) and (max-width: 767px) {
-      .container {
-        max-width: 450px;
-        margin: 0 auto;
-        padding: 20px;
-      }
-      
-      .header-section {
-        padding: 24px 0;
-      }
-      
-      .logo {
-        width: 56px;
-        height: 56px;
-        font-size: 26px;
-      }
-      
-      .title {
-        font-size: 24px;
-      }
-      
-      .action-btn {
-        padding: 18px;
-        gap: 16px;
-      }
-      
-      .btn-title {
-        font-size: 17px;
-      }
-      
-      .btn-subtitle {
-        font-size: 14px;
-      }
+      .container { max-width: 450px; margin: 0 auto; padding: 20px; }
+      .header-section { padding: 24px 0; }
+      .logo { width: 56px; height: 56px; font-size: 26px; }
+      .title { font-size: 24px; }
+      .action-btn { padding: 18px; gap: 16px; }
+      .btn-title { font-size: 17px; }
+      .btn-subtitle { font-size: 14px; }
     }
 
-    /* Telegram Mini App specific adjustments */
-    .telegram-theme .container {
-      padding: 8px;
-    }
-    
-    .telegram-theme .header-section {
-      padding: 12px 0;
-    }
-    
-    .telegram-theme .action-btn {
-      border-radius: 8px;
-    }
+    /* Telegram Mini App styles */
+    .telegram-theme .container { padding: 8px; }
+    .telegram-theme .header-section { padding: 12px 0; }
+    .telegram-theme .action-btn { border-radius: 8px; }
     </style>
 </head>
 <body>
@@ -768,41 +594,18 @@
 
   <script>
     // Telegram Mini App integration
-    let tg = null;
-    if (window.Telegram && window.Telegram.WebApp) {
-      tg = window.Telegram.WebApp;
+    const tg = window.Telegram?.WebApp;
+    if (tg) {
       tg.ready();
       tg.expand();
-      
-      // Apply Telegram theme
       document.body.classList.add('telegram-theme');
       
-      // Set theme colors from Telegram
-      if (tg.themeParams) {
-        const theme = tg.themeParams;
-        if (theme.bg_color) {
-          document.documentElement.style.setProperty('--bg', theme.bg_color);
-        }
-        if (theme.secondary_bg_color) {
-          document.documentElement.style.setProperty('--bg-secondary', theme.secondary_bg_color);
-        }
-        if (theme.text_color) {
-          document.documentElement.style.setProperty('--text', theme.text_color);
-        }
-        if (theme.hint_color) {
-          document.documentElement.style.setProperty('--text-secondary', theme.hint_color);
-        }
-        if (theme.button_color) {
-          document.documentElement.style.setProperty('--primary', theme.button_color);
-        }
-        if (theme.section_separator_color) {
-          document.documentElement.style.setProperty('--border', theme.section_separator_color);
-        }
-      }
-      
-      // Set header color
-      if (tg.headerColor) {
-        document.documentElement.style.setProperty('--primary', tg.headerColor);
+      // Apply theme colors
+      const theme = tg.themeParams;
+      if (theme) {
+        if (theme.bg_color) document.documentElement.style.setProperty('--bg', theme.bg_color);
+        if (theme.text_color) document.documentElement.style.setProperty('--text', theme.text_color);
+        if (theme.button_color) document.documentElement.style.setProperty('--primary', theme.button_color);
       }
     }
 
@@ -811,7 +614,7 @@
     const subscriptionParam = qs.get('subscription');
     const subKeyParam = qs.get('sub_key');
     
-    // Извлекаем sub_key из URL пути если он не передан как параметр
+    // Extract sub_key from URL path
     let subKeyFromPath = null;
     if (!subKeyParam && location.pathname.includes('/subscription/')) {
       const pathParts = location.pathname.split('/');
@@ -831,110 +634,53 @@
       setTimeout(() => toast.classList.remove('show'), 2000);
     }
     
-    
-    // Нормализуем URL-safe base64
-    function normalizeB64(input) {
-      if (!input) return '';
-      let s = input.replace(/-/g, '+').replace(/_/g, '/');
-      const pad = s.length % 4;
-      if (pad === 2) s += '==';
-      else if (pad === 3) s += '=';
-      else if (pad !== 0) s += '===';
-      return s;
-    }
-    
-    // Валидация и определение конфигурации
-    function validateConfig() {
-      const hasConfig = configB64 || subscriptionParam || subKeyParam || subKeyFromPath;
-      if (!hasConfig) {
-        showToast('Отсутствуют параметры конфигурации', 'warning');
-        return false;
-      }
-      return true;
-    }
-    
-    // Определяем конфигурацию для использования
-    let displayConfig = '';
+    // Determine configuration
     let displayUrl = '';
-    let configType = '';
-    
-    
     try {
       if (configB64) {
-        // Декодируем base64 конфигурацию
-        displayConfig = atob(normalizeB64(configB64));
-        displayUrl = displayConfig;
-        configType = 'base64';
+        displayUrl = atob(configB64.replace(/-/g, '+').replace(/_/g, '/'));
       } else if (subscriptionParam && !subscriptionParam.startsWith('http')) {
-        // Если это не URL, а сырая конфигурация
-        displayConfig = subscriptionParam;
       displayUrl = subscriptionParam;
-        configType = 'raw';
       } else if (subKeyParam || subKeyFromPath) {
-        // Для подписки создаем URL (используем subKeyParam или subKeyFromPath)
         const subKey = subKeyParam || subKeyFromPath;
         displayUrl = `https://swaga.space/subscription/${encodeURIComponent(subKey)}`;
-        displayConfig = displayUrl;
-        configType = 'subscription';
     } else {
-        // Если нет конфигурации
-        displayConfig = '';
-        displayUrl = '';
-        configType = 'none';
+        displayUrl = window.location.href;
       }
     } catch (error) {
-      console.error('Error decoding config:', error);
-      displayConfig = '';
-      displayUrl = '';
-      configType = 'error';
-      showToast('Ошибка декодирования конфигурации', 'error');
+      displayUrl = window.location.href;
     }
     
-    
-    // Определяем платформу
-    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-    const isTelegram = tg && tg.platform;
-    
-    // Обработчик кнопки "Открыть в V2rayTun"
+    // Button handlers
     openBtn.addEventListener('click', () => {
-      const url = displayUrl || window.location.href;
-      
-      // Для V2rayTun используем прямую ссылку на подписку
-      const subscriptionUrl = url.includes('/subscription/') ? url : window.location.href;
-      
-      // Используем только v2raytun://import/ схему
+      const subscriptionUrl = displayUrl.includes('/subscription/') ? displayUrl : window.location.href;
       const v2rayUrl = `v2raytun://import/${btoa(unescape(encodeURIComponent(subscriptionUrl)))}`;
       window.open(v2rayUrl, '_blank');
       
-      // Копируем ссылку на подписку в буфер
       navigator.clipboard.writeText(subscriptionUrl).then(() => {
-        showToast('Ссылка на подписку скопирована', 'success');
+        showToast('Ссылка скопирована', 'success');
       }).catch(() => {
-        showToast('Скопируйте ссылку вручную', 'warning');
+        showToast('Скопируйте вручную', 'warning');
       });
     });
     
-    // Обработчик кнопки "Копировать конфиг"
     copyBtn.addEventListener('click', () => {
-      const url = displayUrl || window.location.href;
-      
-      navigator.clipboard.writeText(url).then(() => {
+      navigator.clipboard.writeText(displayUrl).then(() => {
         showToast('Скопировано', 'success');
       }).catch(() => {
         showToast('Не удалось скопировать', 'error');
       });
     });
     
-    // Простая анимация появления
+    // Simple fade-in animation
     setTimeout(() => {
-      const sections = document.querySelectorAll('.header-section, .status-section, .actions-section, .help-section');
-      sections.forEach((section, index) => {
+      document.querySelectorAll('.header-section, .status-section, .actions-section, .help-section').forEach((section, index) => {
         setTimeout(() => {
           section.style.opacity = '1';
           section.style.transform = 'translateY(0)';
-        }, index * 100);
+        }, index * 50);
       });
-    }, 100);
+    }, 50);
     
     </script>
 </body>
