@@ -22,7 +22,8 @@ async def init_db():
                     trial_3d_used INTEGER DEFAULT 0,
                     balance INTEGER DEFAULT 0,
                     paid_count INTEGER DEFAULT 0,
-                    last_payment_at INTEGER DEFAULT 0
+                    last_payment_at INTEGER DEFAULT 0,
+                    created_at INTEGER DEFAULT 0
                 )
             ''')
             await conn.commit()
@@ -37,6 +38,13 @@ async def init_db():
                 await cursor.execute("ALTER TABLE users ADD COLUMN paid_count INTEGER DEFAULT 0")
             if "last_payment_at" not in col_names:
                 await cursor.execute("ALTER TABLE users ADD COLUMN last_payment_at INTEGER DEFAULT 0")
+            if "created_at" not in col_names:
+                await cursor.execute("ALTER TABLE users ADD COLUMN created_at INTEGER DEFAULT 0")
+                now_ts = int(time.time())
+                await cursor.execute(
+                    "UPDATE users SET created_at = ? WHERE created_at IS NULL OR created_at = 0",
+                    (now_ts,)
+                )
             await conn.commit()
 
         # Таблица агрегатов платежей (одна строка)
@@ -96,7 +104,7 @@ async def get_referral_code(tg_id):
 
                 # Если пользователя нет в базе данных, добавляем его
                 if not user_exists:
-                    await cursor.execute("INSERT INTO users (tg_id) VALUES (?)", (tg_id,))
+                    await cursor.execute("INSERT INTO users (tg_id, created_at) VALUES (?, ?)", (tg_id, int(time.time())))
 
                 # Шаг 3: Генерируем новый уникальный референс-код
                 while True:
@@ -158,7 +166,7 @@ async def add_referral_by(user_id, referral_code, max_invites: int = 7) -> dict:
             # 1. Создаём запись пользователя (если её нет) и выставляем referred_by
             await cursor.execute("SELECT tg_id FROM users WHERE tg_id = ?", (str(user_id),))
             if await cursor.fetchone() is None:
-                await cursor.execute("INSERT INTO users (tg_id) VALUES (?)", (str(user_id),))
+                await cursor.execute("INSERT INTO users (tg_id, created_at) VALUES (?, ?)", (str(user_id), int(time.time())))
 
             await cursor.execute(
                 "UPDATE users SET referred_by = ? WHERE tg_id = ?",
@@ -202,7 +210,7 @@ async def ensure_user_row(tg_id: str) -> None:
             await cursor.execute("SELECT tg_id FROM users WHERE tg_id = ?", (str(tg_id),))
             exists = await cursor.fetchone()
             if exists is None:
-                await cursor.execute("INSERT INTO users (tg_id) VALUES (?)", (str(tg_id),))
+                await cursor.execute("INSERT INTO users (tg_id, created_at) VALUES (?, ?)", (str(tg_id), int(time.time())))
                 await conn.commit()
 
 
@@ -220,7 +228,7 @@ async def set_trial_3d_used(tg_id: str) -> None:
             await cursor.execute("UPDATE users SET trial_3d_used = 1 WHERE tg_id = ?", (str(tg_id),))
             if cursor.rowcount == 0:
                 # На случай отсутствия строки создадим её и повторим
-                await cursor.execute("INSERT INTO users (tg_id, trial_3d_used) VALUES (?, 1)", (str(tg_id),))
+                await cursor.execute("INSERT INTO users (tg_id, trial_3d_used, created_at) VALUES (?, 1, ?)", (str(tg_id), int(time.time())))
             await conn.commit()
 
 
@@ -247,8 +255,8 @@ async def mark_payment(tg_id: str, days: int) -> None:
             )
             if cursor.rowcount == 0:
                 await cursor.execute(
-                    "INSERT INTO users (tg_id, paid_count, last_payment_at) VALUES (?, ?, ?)",
-                    (str(tg_id), 1, now_ts)
+                    "INSERT INTO users (tg_id, paid_count, last_payment_at, created_at) VALUES (?, ?, ?, ?)",
+                    (str(tg_id), 1, now_ts, now_ts)
                 )
             await conn.commit()
 
@@ -335,7 +343,7 @@ async def add_balance_days(tg_id: str, days: int) -> None:
             await cursor.execute("SELECT balance FROM users WHERE tg_id = ?", (str(tg_id),))
             row = await cursor.fetchone()
             if row is None:
-                await cursor.execute("INSERT INTO users (tg_id, balance) VALUES (?, ?)", (str(tg_id), int(days)))
+                await cursor.execute("INSERT INTO users (tg_id, balance, created_at) VALUES (?, ?, ?)", (str(tg_id), int(days), int(time.time())))
             else:
                 current_balance = int(row[0]) if row[0] is not None else 0
                 await cursor.execute("UPDATE users SET balance = ? WHERE tg_id = ?", (current_balance + int(days), str(tg_id)))

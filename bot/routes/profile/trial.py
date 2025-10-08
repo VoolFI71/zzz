@@ -7,12 +7,21 @@ import aiohttp
 from aiogram import Router, F, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 from utils import should_throttle, acquire_action_lock, check_all_servers_available, get_session
+from keyboards.ui_labels import BTN_TRIAL
 from database import db
 from keyboards import keyboard
 
 router = Router()
 
-@router.message(F.text.in_({"Пробная 3 дня", "🎁 Пробная 3 дня", "Пробные 3 дня", "🎁 Пробные 3 дня"}))
+@router.message(F.text.in_({
+    "Пробная 3 дня",
+    "🎁 Пробная 3 дня",
+    "Пробные 3 дня",
+    "🎁 Пробные 3 дня",
+    "Пробный доступ 3 дня",
+    "🎁 Пробный доступ 3 дня",
+    BTN_TRIAL,
+}))
 async def free_trial(message: types.Message):
     """Активация пробной подписки на 3 дня."""
     user_id = message.from_user.id
