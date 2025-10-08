@@ -1,10 +1,11 @@
 from aiogram import Router, types, F
 from keyboards import keyboard
+from keyboards.ui_labels import BTN_TARIFF
 
 router = Router()
 
-# Поддерживаем старый и новый варианты текста кнопки
-@router.message(F.text.in_({"Выбрать тариф", "📦 Выбрать тариф"}))
+# Поддерживаем старые варианты текста, основной — константа
+@router.message(F.text.in_({"Выбрать тариф", "📦 Выбрать тариф", BTN_TARIFF}))
 async def choose_tariff(message: types.Message):
     # Сначала предлагаем выбрать сервер
     text = (

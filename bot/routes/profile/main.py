@@ -5,6 +5,7 @@
 import os
 from aiogram import Router, F, types
 from keyboards import keyboard
+from keyboards.ui_labels import BTN_PROFILE
 
 router = Router()
 
@@ -16,8 +17,8 @@ def _env_any(*keys: str, default: str = "") -> str:
             return value
     return default
 
-# Поддерживаем старый и новый варианты кнопки
-@router.message(F.text.in_({"Личный кабинет", "👤 Личный кабинет"}))
+# Поддерживаем старые варианты, основной — константа
+@router.message(F.text.in_({"Личный кабинет", "👤 Личный кабинет", BTN_PROFILE}))
 async def my_account(message: types.Message):
     """Показывает главное меню личного кабинета."""
     # Переходим в подменю профиля

@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 """
 Callback обработчики для профиля.
 """
@@ -8,6 +10,14 @@ from aiogram import Router, F, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 from utils import acquire_action_lock, get_session
 from database import db
+from keyboards.ui_labels import (
+    BTN_ADD_SUB_WEBAPP,
+    BTN_COPY_SUB,
+    BTN_REFRESH,
+    BTN_CLOSE,
+    MSG_COPY_SUB_PROMPT,
+    MSG_ERR_API,
+)
 
 router = Router()
 
@@ -32,21 +42,19 @@ async def copy_config_callback(callback: types.CallbackQuery):
             sub_url_api = f"http://fastapi:8080/sub/{user_id}"
             async with session.get(sub_url_api, timeout=10, headers=headers) as resp:
                 if resp.status != 200:
-                    await callback.answer("Ошибка API. Попробуйте позже", show_alert=True)
+                    await callback.answer(MSG_ERR_API, show_alert=True)
                     return
                 data = await resp.json()
                 sub_key = data.get("sub_key")
                 if not sub_key:
-                    await callback.answer("Не удалось получить ссылку", show_alert=True)
+                    await callback.answer(MSG_ERR_API, show_alert=True)
                     return
-                
             # Формируем публичную ссылку подписки для Mini App
             base = os.getenv("PUBLIC_BASE_URL", "https://swaga.space").rstrip('/')
             web_url = f"{base}/subscription/{sub_key}"
-            
             kb = InlineKeyboardMarkup(inline_keyboard=[
-                [InlineKeyboardButton(text="📲 Добавить подписку в V2rayTun", web_app=WebAppInfo(url=web_url))],
-                [InlineKeyboardButton(text="📋 Скопировать ссылку", callback_data="copy_sub")],
+                [InlineKeyboardButton(text=BTN_ADD_SUB_WEBAPP, web_app=WebAppInfo(url=web_url))],
+                [InlineKeyboardButton(text=BTN_COPY_SUB, callback_data="copy_sub")],
             ])
             await callback.message.answer("Ваша подписка:", reply_markup=kb, disable_web_page_preview=True)
             await callback.answer()
@@ -66,7 +74,7 @@ async def copy_subscription_callback(callback: types.CallbackQuery):
         async with acquire_action_lock(user_id, "copy_sub"):
             async with session.get(sub_url_api, timeout=10, headers=headers) as resp:
                 if resp.status != 200:
-                    await callback.answer("Ошибка", show_alert=True)
+                    await callback.answer(MSG_ERR_API, show_alert=True)
                     return
                 data = await resp.json()
                 sub_key = data.get("sub_key")
@@ -79,7 +87,7 @@ async def copy_subscription_callback(callback: types.CallbackQuery):
                         return
         base = os.getenv("PUBLIC_BASE_URL", "https://swaga.space").rstrip('/')
         web_url = f"{base}/subscription/{sub_key}"
-        # Редактируем текущее сообщение: показываем только ссылку без кнопок
+        # Редактируем текущее сообщение: показываем только ссылку без кнопок и без превью
         try:
             await callback.message.edit_text(web_url, disable_web_page_preview=True)
         except Exception:
@@ -90,7 +98,7 @@ async def copy_subscription_callback(callback: types.CallbackQuery):
                 pass
         # Сообщаем пользователю
         try:
-            await callback.answer("Скопируйте ссылку", show_alert=False)
+            await callback.answer(MSG_COPY_SUB_PROMPT, show_alert=False)
         except Exception:
             pass
     except Exception:

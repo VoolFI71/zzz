@@ -8,6 +8,15 @@ import aiohttp
 from aiogram import Router, F, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 from keyboards import keyboard
+from keyboards.ui_labels import (
+    MSG_PROFILE_TITLE,
+    MSG_PROFILE_NO_CONFIGS,
+    MSG_PROFILE_IMPORT_NOTE,
+    MSG_ERR_TIMEOUT,
+    MSG_ERR_NETWORK,
+    MSG_ERR_GENERIC,
+)
+from keyboards.ui_labels import BTN_MY_CONFIGS, BTN_ADD_SUB_WEBAPP, BTN_COPY_SUB
 from utils import should_throttle, acquire_action_lock, get_session
 from database import db
 
@@ -15,7 +24,7 @@ router = Router()
 
 AUTH_CODE = os.getenv("AUTH_CODE")
 
-@router.message(F.text.in_({"Мои конфиги", "📂 Мои конфиги"}))
+@router.message(F.text.in_({"Мои конфиги", "📂 Мои конфиги", BTN_MY_CONFIGS}))
 async def my_configs(message: types.Message):
     """Показывает активные конфигурации пользователя."""
     user_id = message.from_user.id
@@ -80,10 +89,12 @@ async def my_configs(message: types.Message):
                                 active_configs.append(f"- {flag} {title}: {_fmt_duration(remaining_secs)}")
 
                         if not active_configs:
-                            await message.answer("У вас нет активных конфигураций", reply_markup=keyboard.create_profile_keyboard())
+                            await message.answer(MSG_PROFILE_NO_CONFIGS, reply_markup=keyboard.create_profile_keyboard(), disable_web_page_preview=True)
                             return
 
-                        text = "Ваши активные конфигурации:\n" + "\n".join(active_configs)
+                        text = (
+                            f"{MSG_PROFILE_TITLE}\n\n" + "\n".join(active_configs) + "\n\n" + MSG_PROFILE_IMPORT_NOTE
+                        )
 
                         # Постоянная ссылка подписки по sub_key
                         sub_url = f"http://fastapi:8080/sub/{user_id}"
@@ -111,11 +122,10 @@ async def my_configs(message: types.Message):
 
                         web_url = f"https://swaga.space/subscription/{sub_key}"
                         inline_kb = InlineKeyboardMarkup(inline_keyboard=[
-                            [InlineKeyboardButton(text="📲 Добавить подписку в V2rayTun", web_app=WebAppInfo(url=web_url))],
-                            [InlineKeyboardButton(text="📋 Скопировать ссылку", callback_data="copy_sub")],
+                            [InlineKeyboardButton(text=BTN_ADD_SUB_WEBAPP, web_app=WebAppInfo(url=web_url))],
+                            [InlineKeyboardButton(text=BTN_COPY_SUB, callback_data="copy_sub")],
                         ])
                         await message.answer(text, reply_markup=inline_kb, disable_web_page_preview=True)
-                        await message.answer("Подписка может быть не добавлена при нажатии на кнопку на сайте, в этом случае необходимо скопировать ссылку на подписку и вставить в V2rayTun вручную.")
                         await message.answer("Выберите действие:", reply_markup=keyboard.create_profile_keyboard())
                     else:
                         await message.answer("У вас нет конфигов", reply_markup=keyboard.create_profile_keyboard())
@@ -123,17 +133,17 @@ async def my_configs(message: types.Message):
                     error_message = await response.json()
                     error_detail = error_message.get('detail', 'Неизвестная ошибка')
                     if "404" in str(error_detail) or "not found" in str(error_detail).lower():
-                        await message.answer("🔍 Конфигурации не найдены. Возможно, у вас нет активных подписок.", reply_markup=keyboard.create_profile_keyboard())
+                        await message.answer(MSG_PROFILE_NO_CONFIGS, reply_markup=keyboard.create_profile_keyboard(), disable_web_page_preview=True)
                     elif "timeout" in str(error_detail).lower():
-                        await message.answer("⏱️ Серверы временно недоступны. Попробуйте через 2-3 минуты.", reply_markup=keyboard.create_profile_keyboard())
+                        await message.answer(MSG_ERR_TIMEOUT, reply_markup=keyboard.create_profile_keyboard())
                     else:
-                        await message.answer("❌ Не удалось получить конфигурации. Обратитесь в поддержку.", reply_markup=keyboard.create_profile_keyboard())
+                        await message.answer(MSG_ERR_GENERIC, reply_markup=keyboard.create_profile_keyboard())
     except aiohttp.ClientError as e:
         if "timeout" in str(e).lower():
-            await message.answer("⏱️ Серверы временно недоступны. Попробуйте через 2-3 минуты.", reply_markup=keyboard.create_profile_keyboard())
+            await message.answer(MSG_ERR_TIMEOUT, reply_markup=keyboard.create_profile_keyboard())
         elif "connection" in str(e).lower():
-            await message.answer("🌐 Проблемы с подключением. Проверьте интернет и попробуйте позже.", reply_markup=keyboard.create_profile_keyboard())
+            await message.answer(MSG_ERR_NETWORK, reply_markup=keyboard.create_profile_keyboard())
         else:
-            await message.answer("❌ Ошибка сети. Попробуйте позже или обратитесь в поддержку.", reply_markup=keyboard.create_profile_keyboard())
+            await message.answer(MSG_ERR_GENERIC, reply_markup=keyboard.create_profile_keyboard())
     except Exception as e:
-        await message.answer("❌ Произошла неожиданная ошибка. Обратитесь в поддержку.", reply_markup=keyboard.create_profile_keyboard())
+        await message.answer(MSG_ERR_GENERIC, reply_markup=keyboard.create_profile_keyboard())

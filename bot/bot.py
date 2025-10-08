@@ -18,7 +18,7 @@ logging.basicConfig(level=logging.INFO)
 
 bot = Bot(token=API_TOKEN)
 dp = Dispatcher()
-# Anti-flood / throttling middleware
+    # Anti-flood / throttling middleware
 dp.message.middleware(ThrottlingMiddleware(default_window=1.5, default_burst=3))
 dp.callback_query.middleware(ThrottlingMiddleware(default_window=1.0, default_burst=4))
 dp.include_routers(guide.router, start.router, tariff.router, profile.router, callback.callback_router, invite.router, admin.router, advanced_broadcast.router, monitoring.router)

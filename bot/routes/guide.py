@@ -1,15 +1,22 @@
 from aiogram import Router, types, F
 from aiogram.filters import Command
 from keyboards import keyboard
+from keyboards.ui_labels import (
+    BTN_GUIDE,
+    BTN_SETUP_PHONE,
+    BTN_SETUP_PC,
+    BTN_SUPPORT,
+    BTN_BACK,
+)
 
 router = Router()
 
-# Поддерживаем старый и новый варианты кнопки
-@router.message(F.text.in_({"Инструкция⚙️", "🛠️ Инструкция"}))
+# Поддерживаем старые варианты текста, но основной — из констант
+@router.message(F.text.in_({"Инструкция⚙️", "🛠️ Инструкция", BTN_GUIDE}))
 async def guide_command(message: types.Message):
     await message.answer("📚 Выберите способ установки:", reply_markup=keyboard.create_settings_keyboard())
 
-@router.message(F.text.in_({"Установка на Телефон", "📱 Установка на Телефон", "Установка на телефон", "📱 Установка на телефон"}))
+@router.message(F.text.in_({"Установка на Телефон", "📱 Установка на Телефон", "Установка на телефон", "📱 Установка на телефон", BTN_SETUP_PHONE}))
 async def tel_guide_command(message: types.Message):
     await message.answer(
         "📱 Установка на телефон (Android/iOS):\n\n"
@@ -25,7 +32,7 @@ async def tel_guide_command(message: types.Message):
         disable_web_page_preview=True
     )
 
-@router.message(F.text.in_({"Установка на PC", "💻 Установка на PC", "Установка на ПК", "💻 Установка на ПК"}))
+@router.message(F.text.in_({"Установка на PC", "💻 Установка на PC", "Установка на ПК", "💻 Установка на ПК", BTN_SETUP_PC}))
 async def pc_guide_command(message: types.Message):
     await message.answer("💻 Установка на компьютер (Windows/macOS/Linux):\n\n"
     "- Windows: v2RayTun — [скачать](https://v2raytun.com)\n"
@@ -38,10 +45,10 @@ async def pc_guide_command(message: types.Message):
     disable_web_page_preview=True
     )
 
-@router.message(F.text.in_({"Поддержка", "🆘 Поддержка"}))
+@router.message(F.text.in_({"Поддержка", "🆘 Поддержка", BTN_SUPPORT}))
 async def support_command(message: types.Message):
     await message.answer("@helpervpn71")
 
-@router.message(F.text.in_({"Назад", "🔙 Назад"}))
+@router.message(F.text.in_({"Назад", "🔙 Назад", BTN_BACK}))
 async def back_command(message: types.Message):
     await message.answer("Выберите действие:", reply_markup=keyboard.create_keyboard())
