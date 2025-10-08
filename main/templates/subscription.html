@@ -65,30 +65,29 @@
       overflow-x: hidden;
     }
 
-    /* Animated particles background */
-    body::after {
-      content: '';
-      position: fixed;
-      top: 0;
-      left: 0;
-      width: 100%;
-      height: 100%;
-      background-image: 
-        radial-gradient(2px 2px at 20px 30px, rgba(0, 212, 255, 0.3), transparent),
-        radial-gradient(2px 2px at 40px 70px, rgba(0, 255, 136, 0.3), transparent),
-        radial-gradient(1px 1px at 90px 40px, rgba(255, 193, 7, 0.3), transparent),
-        radial-gradient(1px 1px at 130px 80px, rgba(0, 212, 255, 0.2), transparent),
-        radial-gradient(2px 2px at 160px 30px, rgba(0, 255, 136, 0.2), transparent);
-      background-repeat: repeat;
-      background-size: 200px 100px;
-      animation: particlesMove 20s linear infinite;
-      z-index: -1;
-      pointer-events: none;
-    }
+    /* Optimized particles for mobile */
+    @media (min-width: 768px) {
+      body::after {
+        content: '';
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-image: 
+          radial-gradient(2px 2px at 20px 30px, rgba(0, 212, 255, 0.2), transparent),
+          radial-gradient(2px 2px at 40px 70px, rgba(0, 255, 136, 0.2), transparent);
+        background-repeat: repeat;
+        background-size: 200px 100px;
+        animation: particlesMove 30s linear infinite;
+        z-index: -1;
+        pointer-events: none;
+      }
 
-    @keyframes particlesMove {
-      0% { transform: translateY(0px) translateX(0px); }
-      100% { transform: translateY(-100px) translateX(50px); }
+      @keyframes particlesMove {
+        0% { transform: translateY(0px); }
+        100% { transform: translateY(-100px); }
+      }
     }
 
     /* Removed unused animated background */
@@ -222,18 +221,24 @@
         inset 0 1px 0 rgba(255, 255, 255, 0.1);
       position: relative;
       overflow: hidden;
-      animation: statusPulse 3s ease-in-out infinite;
     }
 
-    .status-card::before {
-      content: '';
-      position: absolute;
-      top: 0;
-      left: -100%;
-      width: 100%;
-      height: 100%;
-      background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
-      animation: statusShimmer 3s ease-in-out infinite;
+    /* Desktop only animations */
+    @media (min-width: 768px) {
+      .status-card {
+        animation: statusPulse 3s ease-in-out infinite;
+      }
+
+      .status-card::before {
+        content: '';
+        position: absolute;
+        top: 0;
+        left: -100%;
+        width: 100%;
+        height: 100%;
+        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+        animation: statusShimmer 3s ease-in-out infinite;
+      }
     }
 
     @keyframes statusPulse {
@@ -263,22 +268,28 @@
     .status-icon {
       font-size: 28px;
       flex-shrink: 0;
-      animation: statusIconBounce 2s ease-in-out infinite;
       filter: drop-shadow(0 0 10px rgba(0, 255, 136, 0.6));
       position: relative;
     }
 
-    .status-icon::before {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 40px;
-      height: 40px;
-      background: radial-gradient(circle, rgba(0, 255, 136, 0.3) 0%, transparent 70%);
-      border-radius: 50%;
-      transform: translate(-50%, -50%);
-      animation: statusIconRipple 2s ease-in-out infinite;
+    /* Desktop only animations */
+    @media (min-width: 768px) {
+      .status-icon {
+        animation: statusIconBounce 2s ease-in-out infinite;
+      }
+
+      .status-icon::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 40px;
+        height: 40px;
+        background: radial-gradient(circle, rgba(0, 255, 136, 0.3) 0%, transparent 70%);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        animation: statusIconRipple 2s ease-in-out infinite;
+      }
     }
 
     @keyframes statusIconBounce {
@@ -378,7 +389,7 @@
       background: linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.05));
       backdrop-filter: blur(20px);
       cursor: pointer;
-      transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+      transition: all 0.3s ease;
       text-align: left;
       width: 100%;
       position: relative;
@@ -386,7 +397,22 @@
       box-shadow: 
         0 8px 32px rgba(0, 0, 0, 0.3),
         inset 0 1px 0 rgba(255, 255, 255, 0.1);
-      animation: buttonFloat 6s ease-in-out infinite;
+    }
+
+    /* Disable animations on mobile for better performance */
+    @media (max-width: 767px) {
+      * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+
+    /* Desktop only animations */
+    @media (min-width: 768px) {
+      .action-btn {
+        animation: buttonFloat 6s ease-in-out infinite;
+      }
     }
 
     .action-btn::before {
@@ -543,9 +569,15 @@
         inset 0 1px 0 rgba(255, 255, 255, 0.1);
       position: relative;
       overflow: hidden;
-      animation: helpCardFloat 8s ease-in-out infinite;
       cursor: pointer;
       transition: all 0.3s ease;
+    }
+
+    /* Desktop only animations */
+    @media (min-width: 768px) {
+      .help-card {
+        animation: helpCardFloat 8s ease-in-out infinite;
+      }
     }
 
     .help-card:hover {
@@ -586,22 +618,28 @@
       font-size: 24px;
       flex-shrink: 0;
       margin-top: 2px;
-      animation: helpIconPulse 4s ease-in-out infinite;
       filter: drop-shadow(0 0 8px rgba(255, 193, 7, 0.6));
       position: relative;
     }
 
-    .help-icon::before {
-      content: '';
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: 30px;
-      height: 30px;
-      background: radial-gradient(circle, rgba(255, 193, 7, 0.3) 0%, transparent 70%);
-      border-radius: 50%;
-      transform: translate(-50%, -50%);
-      animation: helpIconRipple 4s ease-in-out infinite;
+    /* Desktop only animations */
+    @media (min-width: 768px) {
+      .help-icon {
+        animation: helpIconPulse 4s ease-in-out infinite;
+      }
+
+      .help-icon::before {
+        content: '';
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        width: 30px;
+        height: 30px;
+        background: radial-gradient(circle, rgba(255, 193, 7, 0.3) 0%, transparent 70%);
+        border-radius: 50%;
+        transform: translate(-50%, -50%);
+        animation: helpIconRipple 4s ease-in-out infinite;
+      }
     }
 
     @keyframes helpIconPulse {
