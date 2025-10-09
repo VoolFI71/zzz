@@ -460,18 +460,46 @@ async def extend_yookassa_handler(callback_query: CallbackQuery, state: FSMConte
         })
         
         await state.update_data(yookassa_payment_id=payment.id)
-        await callback_query.message.edit_text(
+        msg = await callback_query.message.edit_text(
             f"💳 <b>Продление подписки GLS VPN — {days} дн.</b>\n\n"
             f"Сумма: {amount} ₽\n\n"
             f"Нажмите кнопку ниже для оплаты:",
             reply_markup=InlineKeyboardMarkup(inline_keyboard=[
                 [InlineKeyboardButton(text="💳 Оплатить", url=payment.confirmation.confirmation_url)],
                 [InlineKeyboardButton(text="✅ Проверить оплату", callback_data="check_yookassa")],
-                [InlineKeyboardButton(text="❌ Отмена", callback_data="cancel_payment")]
+                [InlineKeyboardButton(text="❌ Отменить счёт", callback_data="cancel_yk_invoice")]
             ]),
             parse_mode="HTML"
         )
+        try:
+            await state.update_data(yookassa_msg_id=msg.message_id)
+        except Exception:
+            pass
         await callback_query.answer("Счёт для продления создан!")
+        # Авто-истечение (10 минут) для продления
+        import asyncio as _asyncio
+        async def _expire_yk_invoice_renewal() -> None:
+            try:
+                await _asyncio.sleep(10 * 60)
+                data_state = await state.get_data()
+                current_pid = data_state.get("yookassa_payment_id")
+                current_msg_id = data_state.get("yookassa_msg_id")
+                if current_pid == payment.id and current_msg_id:
+                    try:
+                        await bot.delete_message(chat_id=tg_id, message_id=current_msg_id)
+                    except Exception:
+                        pass
+                    try:
+                        await state.update_data(yookassa_payment_id=None, yookassa_msg_id=None)
+                    except Exception:
+                        pass
+                    try:
+                        await bot.send_message(tg_id, "Счёт истёк. Если хотите, создайте новый.")
+                    except Exception:
+                        pass
+            except Exception:
+                pass
+        _asyncio.create_task(_expire_yk_invoice_renewal())
     except Exception as e:
         logger.error(f"Failed to create YooKassa payment: {e}")
         await callback_query.answer("Ошибка создания счёта", show_alert=True)
