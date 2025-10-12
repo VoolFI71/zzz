@@ -65,7 +65,13 @@ async def pay_with_yookassa(callback_query: CallbackQuery, state: FSMContext, bo
     servers_to_use = [s.strip().lower() for s in env_order.split(',') if s.strip()]
     
     # Сохраняем список серверов для использования
-    await state.update_data(servers_to_use=servers_to_use)
+    # Если настроены варианты (fi2, ge3), выберем по одному варианту на регион
+    try:
+        from utils import pick_servers_one_per_region
+        selected = await pick_servers_one_per_region(servers_to_use)
+    except Exception:
+        selected = servers_to_use
+    await state.update_data(servers_to_use=selected)
 
     YOOKASSA_SHOP_ID = os.getenv("YOOKASSA_SHOP_ID")
     YOOKASSA_SECRET = os.getenv("YOOKASSA_SECRET_KEY")
@@ -79,10 +85,9 @@ async def pay_with_yookassa(callback_query: CallbackQuery, state: FSMContext, bo
 
     days = int(user_data.get("selected_days", 31))
     # Суммы и описания из окружения с адекватными дефолтами
-    price_1m = int(os.getenv("PRICE_1M_RUB", "149"))
-    price_3m = int(os.getenv("PRICE_3M_RUB", "299"))
-    price_6m = int(os.getenv("PRICE_6M_RUB", "549"))
-    price_12m = int(os.getenv("PRICE_12M_RUB", "999"))
+    price_1m = int(os.getenv("PRICE_1M_RUB", "100"))
+    price_3m = int(os.getenv("PRICE_3M_RUB", "250"))
+    price_6m = int(os.getenv("PRICE_6M_RUB", "450"))
 
     desc_1m = os.getenv("YK_DESC_1M", "Подписка GLS VPN — 1 месяц")
     desc_3m = os.getenv("YK_DESC_3M", "Подписка GLS VPN — 3 месяца")
@@ -98,9 +103,6 @@ async def pay_with_yookassa(callback_query: CallbackQuery, state: FSMContext, bo
     elif days == 180:
         payload = "sub_6m"
         amount_rub, description = price_6m, desc_6m
-    elif days == 365:
-        payload = "sub_12m"
-        amount_rub, description = price_12m, desc_12m
     else:
         payload = "sub_1m"
         amount_rub, description = price_1m, desc_1m
@@ -208,14 +210,12 @@ async def cancel_yk_invoice(callback_query: CallbackQuery, state: FSMContext, bo
     # Вернём клавиатуру способов оплаты
     try:
         days = int((await state.get_data()).get("selected_days", 31))
-        star_1m = int(os.getenv("PRICE_1M_STAR", "149"))
-        star_3m = int(os.getenv("PRICE_3M_STAR", "299"))
-        star_6m = int(os.getenv("PRICE_6M_STAR", "549"))
-        star_12m = int(os.getenv("PRICE_12M_STAR", "999"))
-        rub_1m = int(os.getenv("PRICE_1M_RUB", "149"))
-        rub_3m = int(os.getenv("PRICE_3M_RUB", "299"))
-        rub_6m = int(os.getenv("PRICE_6M_RUB", "549"))
-        rub_12m = int(os.getenv("PRICE_12M_RUB", "999"))
+        star_1m = int(os.getenv("PRICE_1M_STAR", "100"))
+        star_3m = int(os.getenv("PRICE_3M_STAR", "250"))
+        star_6m = int(os.getenv("PRICE_6M_STAR", "450"))
+        rub_1m = int(os.getenv("PRICE_1M_RUB", "100"))
+        rub_3m = int(os.getenv("PRICE_3M_RUB", "250"))
+        rub_6m = int(os.getenv("PRICE_6M_RUB", "450"))
 
         if days == 31:
             star_amount, rub_amount = star_1m, rub_1m
@@ -223,8 +223,6 @@ async def cancel_yk_invoice(callback_query: CallbackQuery, state: FSMContext, bo
             star_amount, rub_amount = star_3m, rub_3m
         elif days == 180:
             star_amount, rub_amount = star_6m, rub_6m
-        elif days == 365:
-            star_amount, rub_amount = star_12m, rub_12m
         else:
             star_amount, rub_amount = star_1m, rub_1m
         from keyboards.keyboard import create_payment_method_keyboard
@@ -274,10 +272,18 @@ async def check_yookassa(callback_query: CallbackQuery, state: FSMContext, bot: 
             # Продлеваем существующие конфиги
             await extend_existing_configs_yookassa(tg_id, days, bot)
         else:
-            # Выдаем конфиги на всех серверах из SERVER_ORDER
-            import os
-            server_order_env = os.getenv("SERVER_ORDER", "fi,ge")
-            servers_to_use = [s.strip().lower() for s in server_order_env.split(',') if s.strip()]
+            # Выдаем конфиги на ранее выбранных серверах (по одному на регион)
+            data_state = await state.get_data()
+            servers_to_use = data_state.get("servers_to_use")
+            if not servers_to_use:
+                import os
+                server_order_env = os.getenv("SERVER_ORDER", "fi,ge")
+                fallback = [s.strip().lower() for s in server_order_env.split(',') if s.strip()]
+                try:
+                    from utils import pick_servers_one_per_region
+                    servers_to_use = await pick_servers_one_per_region(fallback)
+                except Exception:
+                    servers_to_use = fallback
             await give_configs_on_all_servers_yookassa(tg_id, days, servers_to_use, bot)
         
         # Записываем платеж в статистику
@@ -414,20 +420,17 @@ async def extend_yookassa_handler(callback_query: CallbackQuery, state: FSMConte
     
     user_data = await state.get_data()
     days = int(user_data.get("selected_days", 31))
-    
+
     # Создаем платеж для продления
-    price_1m = int(os.getenv("PRICE_1M_RUB", "149"))
-    price_3m = int(os.getenv("PRICE_3M_RUB", "299"))
-    price_6m = int(os.getenv("PRICE_6M_RUB", "549"))
-    price_12m = int(os.getenv("PRICE_12M_RUB", "999"))
+    price_1m = int(os.getenv("PRICE_1M_RUB", "100"))
+    price_3m = int(os.getenv("PRICE_3M_RUB", "250"))
+    price_6m = int(os.getenv("PRICE_6M_RUB", "450"))
     if days == 31:
         payload = "sub_1m"; amount = price_1m
     elif days == 93:
         payload = "sub_3m"; amount = price_3m
     elif days == 180:
         payload = "sub_6m"; amount = price_6m
-    elif days == 365:
-        payload = "sub_12m"; amount = price_12m
     else:
         payload = "sub_1m"; amount = price_1m
     

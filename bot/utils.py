@@ -83,30 +83,82 @@ async def pick_first_available_server(preferred_order: list[str] | None = None) 
     return None
 
 
-async def check_all_servers_available() -> bool:
-    """Проверяет, что ВСЕ основные серверы (Германия и Финляндия) доступны.
-    
-    Возвращает True только если ВСЕ серверы fi и ge доступны.
-    Если хотя бы один сервер недоступен, возвращает False.
-    """
-    # Получаем список серверов из конфигурации
+def _parse_server_order() -> list[str]:
     env_order = os.getenv("SERVER_ORDER", "fi,ge")
-    servers_to_check = [s.strip().lower() for s in env_order.split(",") if s.strip()]
-    if not servers_to_check:
-        servers_to_check = ["fi", "ge"]
-    
-    logger.info(f"Checking availability of all servers: {servers_to_check}")
-    
-    for server in servers_to_check:
-        try:
-            if not await check_available_configs(server):
-                logger.warning(f"Server {server} is NOT available")
-                return False
-        except Exception as e:
-            logger.warning(f"Error checking server {server}: {e}")
+    order = [s.strip().lower() for s in env_order.split(",") if s.strip()]
+    return order or ["fi", "ge"]
+
+
+def _get_region_variants_map() -> dict[str, list[str]]:
+    """Возвращает карту базового кода региона -> список вариантов серверов.
+
+    Читает переменные окружения вида SERVER_VARIANTS_FI, SERVER_VARIANTS_GE.
+    Если переменная не задана, по умолчанию использует один вариант — сам базовый код.
+    """
+    region_to_variants: dict[str, list[str]] = {}
+    for base in _parse_server_order():
+        env_key = f"SERVER_VARIANTS_{base.upper()}"
+        raw = os.getenv(env_key, base)
+        variants = [s.strip().lower() for s in raw.split(",") if s.strip()]
+        # уникализируем порядок
+        seen: set[str] = set()
+        uniq: list[str] = []
+        for v in variants:
+            if v not in seen:
+                uniq.append(v)
+                seen.add(v)
+        region_to_variants[base] = uniq or [base]
+    return region_to_variants
+
+
+async def pick_servers_one_per_region(order_bases: list[str] | None = None) -> list[str]:
+    """Выбирает по одному серверу из каждой региональной группы (fi*, ge*).
+
+    Стратегия: для каждой базовой страны берём первый вариант, на котором есть свободные конфиги
+    (по данным /check-available-configs?server=...). Если ни один вариант не доступен,
+    возвращаем первый из списка (best-effort), чтобы не блокировать логику — окончательная
+    проверка произойдёт на /giveconfig.
+    """
+    bases = order_bases or _parse_server_order()
+    region_map = _get_region_variants_map()
+    picked: list[str] = []
+    for base in bases:
+        variants = region_map.get(base, [base])
+        chosen: str | None = None
+        for code in variants:
+            try:
+                if await check_available_configs(code):
+                    chosen = code
+                    break
+            except Exception:
+                # переходим к следующему варианту
+                continue
+        picked.append(chosen or variants[0])
+    return picked
+
+
+async def check_all_servers_available() -> bool:
+    """Проверяет доступность по регионам: для каждой базовой страны (из SERVER_ORDER)
+    должен быть доступен хотя бы один вариант (fi/fi2/fi3..., ge/ge2...).
+
+    Если у региона нет ни одного доступного варианта — возвращает False.
+    """
+    region_map = _get_region_variants_map()
+    logger.info(f"Checking availability by regions: {region_map}")
+    for base, variants in region_map.items():
+        region_ok = False
+        for code in variants:
+            try:
+                if await check_available_configs(code):
+                    region_ok = True
+                    break
+            except Exception as e:
+                logger.warning(f"Error checking server {code}: {e}")
+                continue
+        if not region_ok:
+            logger.warning(f"No available servers found for region {base} among {variants}")
             return False
-    
-    logger.info(f"All servers {servers_to_check} are available")
+    logger.info("All regions have at least one available server")
     return True
 
 # --- Simple per-user rate limiting and action locks ---

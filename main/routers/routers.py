@@ -9,6 +9,7 @@ import random
 import time
 import uuid
 from typing import Any, Dict, List
+import re
 
 import httpx
 from fastapi import (
@@ -59,35 +60,78 @@ def _env_any(*keys: str, default: str = "") -> str:
             return value
     return default
 
-COUNTRY_SETTINGS: dict[str, dict[str, str]] = {
-    "fi": {
-        "urlcreate": _env_any("URLCREATE_FI", "urlcreate_fi", default=""),
-        "urlupdate": _env_any("URLUPDATE_FI", "urlupdate_fi", default=""),
-        "urldelete": _env_any("URLDELETE_FI", "urldelete_fi", default=""),
-        # Параметры для генерации VLESS
-        "host": _env_any("HOST_FI", "host_fi", default="77.110.108.194"),
-        "pbk": _env_any("PBK_FI", "pbk_fi", default=""),
-        "sni": "eh.vk.com",
-        "sid": _env_any("SID_FI", "sid_fi", default=""),
-    },
-    # Germany (GE)
-    "ge": {
-        # Поддерживаем и правильные, и возможные опечатки ключей
-        "urlcreate": _env_any("URLCREATE_GE", "urlcreate_ge", "urlcreate_ge", default=""),
-        "urlupdate": _env_any("URLUPDATE_GE", "urlupdate_ge", "urlupdate_ge", default=""),
-        "urldelete": _env_any("URLDELETE_GE", "urldelete_ge", default=""),
-        # Параметры для генерации VLESS
-        "host": _env_any("HOST_GE", "host_ge", default=""),
-        "pbk": _env_any("PBK_GE", "pbk_ge", default=""),
-        "sni": "ozon.ru",
-        "sid": _env_any("SID_GE", "sid_ge", default=""),
-    },
-}
+def _base_code(code: str) -> str:
+    m = re.match(r"([a-zA-Z]+)", str(code))
+    return m.group(1).lower() if m else str(code).lower()
+
+
+def load_country_settings() -> dict[str, dict[str, str]]:
+    """Dynamically load COUNTRY_SETTINGS from environment.
+
+    Supports variant codes like FI2/GE2 if env contains pairs like URLCREATE_FI2, URLUPDATE_FI2, etc.
+    Falls back to base defaults for SNI/host if missing for a variant.
+    """
+    # Start with explicit base defaults
+    settings: dict[str, dict[str, str]] = {
+        "fi": {
+            "urlcreate": _env_any("URLCREATE_FI", "urlcreate_fi", default=""),
+            "urlupdate": _env_any("URLUPDATE_FI", "urlupdate_fi", default=""),
+            "urldelete": _env_any("URLDELETE_FI", "urldelete_fi", default=""),
+            "host": _env_any("HOST_FI", "host_fi", default="77.110.108.194"),
+            "pbk": _env_any("PBK_FI", "pbk_fi", default=""),
+            "sni": _env_any("SNI_FI", "sni_fi", default="eh.vk.com"),
+            "sid": _env_any("SID_FI", "sid_fi", default=""),
+        },
+        "ge": {
+            "urlcreate": _env_any("URLCREATE_GE", "urlcreate_ge", default=""),
+            "urlupdate": _env_any("URLUPDATE_GE", "urlupdate_ge", default=""),
+            "urldelete": _env_any("URLDELETE_GE", "urldelete_ge", default=""),
+            "host": _env_any("HOST_GE", "host_ge", default=""),
+            "pbk": _env_any("PBK_GE", "pbk_ge", default=""),
+            "sni": _env_any("SNI_GE", "sni_ge", default="ozon.ru"),
+            "sid": _env_any("SID_GE", "sid_ge", default=""),
+        },
+    }
+
+    # Discover variant codes by scanning env for URLCREATE_*, URLUPDATE_* or URLDELETE_*
+    variant_codes: set[str] = set()
+    for key in os.environ.keys():
+        u = key.upper()
+        if u.startswith("URLCREATE_") or u.startswith("URLUPDATE_") or u.startswith("URLDELETE_"):
+            suffix = u.split("_", 1)[1].lower()
+            if suffix:
+                variant_codes.add(suffix)
+
+    # Ensure base codes present
+    variant_codes.update(["fi", "ge"])  # keep existing bases
+
+    for code in sorted(variant_codes):
+        lc = code.lower()
+        if lc in settings:
+            # already set (base)
+            continue
+        base = _base_code(lc)
+        base_defaults = settings.get(base, {})
+        # Build settings for variant, falling back to base where missing
+        settings[lc] = {
+            "urlcreate": _env_any(f"URLCREATE_{lc.upper()}", f"urlcreate_{lc.lower()}", default=base_defaults.get("urlcreate", "")),
+            "urlupdate": _env_any(f"URLUPDATE_{lc.upper()}", f"urlupdate_{lc.lower()}", default=base_defaults.get("urlupdate", "")),
+            "urldelete": _env_any(f"URLDELETE_{lc.upper()}", f"urldelete_{lc.lower()}", default=base_defaults.get("urldelete", "")),
+            "host": _env_any(f"HOST_{lc.upper()}", f"host_{lc.lower()}", default=base_defaults.get("host", "")),
+            "pbk": _env_any(f"PBK_{lc.upper()}", f"pbk_{lc.lower()}", default=base_defaults.get("pbk", "")),
+            "sni": _env_any(f"SNI_{lc.upper()}", f"sni_{lc.lower()}", default=base_defaults.get("sni", "")),
+            "sid": _env_any(f"SID_{lc.upper()}", f"sid_{lc.lower()}", default=base_defaults.get("sid", "")),
+        }
+
+    return settings
+
+
+COUNTRY_SETTINGS: dict[str, dict[str, str]] = load_country_settings()
 
 COUNTRY_LABELS: dict[str, str] = {
     "nl": "Netherlands 🇳🇱",
-    "fi": "Finland 🇫🇮 (MTS, TELE2, YOTA)",
-    "ge": "Germany 🇩🇪 (ОБХОД НЕ РАБОТАЕТ MEGAFON)",
+    "fi": "Finland 🇫🇮",
+    "ge": "Germany 🇩🇪",
 }
 
 def _is_browser_request(headers: dict[str, str]) -> bool:
@@ -961,7 +1005,8 @@ async def get_subscription(tg_id: int):
                 # Если сервер неизвестен – пропускаем
                 logger.warning("Unknown server %s for user_code %s", server, user_code)
                 continue
-            label = COUNTRY_LABELS.get(server, "GLS VPN")
+            base = _base_code(server)
+            label = COUNTRY_LABELS.get(base, "GLS VPN")
             vless_config = (
                 f"vless://{user_code}@{settings['host']}:443?"
                 f"security=reality&encryption=none&pbk={settings['pbk']}&"
@@ -1309,26 +1354,53 @@ async def offer_page(request: Request):  # noqa: D401
 
 @router.get("/robots.txt", include_in_schema=False)
 async def robots_txt() -> PlainTextResponse:
+    """Возвращает robots.txt для поисковых систем."""
     content = (
+        "# Robots.txt для GLS VPN\n"
+        "# https://swaga.space/robots.txt\n\n"
         "User-agent: *\n"
         "Allow: /\n"
-        f"Sitemap: {BASE_URL}/sitemap.xml\n"
+        "Disallow: /api/\n"
+        "Disallow: /admin/\n"
+        "Disallow: /_internal/\n"
+        "Disallow: /*.json\n"
+        "Disallow: /*?*\n\n"
+        "# Разрешаем индексацию основных страниц\n"
+        "Allow: /\n"
+        "Allow: /offer\n"
+        "# Sitemap\n"
+        f"Sitemap: {BASE_URL}/sitemap.xml\n\n"
+        "# Crawl-delay для уважения к серверу\n"
+        "Crawl-delay: 1\n"
     )
     return PlainTextResponse(content=content, media_type="text/plain; charset=utf-8")
 
 
 @router.get("/sitemap.xml", include_in_schema=False)
 async def sitemap_xml() -> Response:
-    urls: list[str] = [
-        f"{BASE_URL}/",
-        f"{BASE_URL}/subscription",
+    """Генерирует карту сайта для поисковых систем."""
+    urls: list[dict] = [
+        {"loc": f"{BASE_URL}/", "changefreq": "weekly", "priority": "1.0"},
+        {"loc": f"{BASE_URL}/offer", "changefreq": "monthly", "priority": "0.8"},
     ]
-    urlset = "\n".join(
-        f"  <url>\n    <loc>{loc}</loc>\n    <changefreq>weekly</changefreq>\n    <priority>0.8</priority>\n  </url>" for loc in urls
-    )
+
+    # Генерируем XML для каждой страницы
+    url_entries = []
+    for url_info in urls:
+        url_entries.append(
+            "  <url>\n"
+            f"    <loc>{url_info['loc']}</loc>\n"
+            f"    <changefreq>{url_info['changefreq']}</changefreq>\n"
+            f"    <priority>{url_info['priority']}</priority>\n"
+            "    <lastmod>2024-10-10</lastmod>\n"
+            "  </url>"
+        )
+
+    urlset = "\n".join(url_entries)
+
     xml = (
-        "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n"
-        "<urlset xmlns=\"http://www.sitemaps.org/schemas/sitemap/0.9\">\n"
+        '<?xml version="1.0" encoding="UTF-8"?>\n'
+        '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
         f"{urlset}\n"
         "</urlset>\n"
     )

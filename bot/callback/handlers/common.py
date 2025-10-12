@@ -33,14 +33,12 @@ async def select_plan(callback_query: CallbackQuery, state: FSMContext) -> None:
     await state.update_data(selected_days=days)
 
     # Цены для отображения методов оплаты
-    star_1m = int(os.getenv("PRICE_1M_STAR", "149"))
-    star_3m = int(os.getenv("PRICE_3M_STAR", "299"))
-    star_6m = int(os.getenv("PRICE_6M_STAR", "549"))
-    star_12m = int(os.getenv("PRICE_12M_STAR", "999"))
-    rub_1m = int(os.getenv("PRICE_1M_RUB", "149"))
-    rub_3m = int(os.getenv("PRICE_3M_RUB", "299"))
-    rub_6m = int(os.getenv("PRICE_6M_RUB", "549"))
-    rub_12m = int(os.getenv("PRICE_12M_RUB", "999"))
+    star_1m = int(os.getenv("PRICE_1M_STAR", "100"))
+    star_3m = int(os.getenv("PRICE_3M_STAR", "250"))
+    star_6m = int(os.getenv("PRICE_6M_STAR", "450"))
+    rub_1m = int(os.getenv("PRICE_1M_RUB", "100"))
+    rub_3m = int(os.getenv("PRICE_3M_RUB", "250"))
+    rub_6m = int(os.getenv("PRICE_6M_RUB", "450"))
 
 
     if days == 31:
@@ -133,26 +131,24 @@ async def go_back(callback_query: CallbackQuery, bot: Bot, state: FSMContext) ->
         except Exception:
             user_state = {}
         days = int(user_state.get("selected_days", 31))
-        star_1m = int(os.getenv("PRICE_1M_STAR", "149"))
-        star_3m = int(os.getenv("PRICE_3M_STAR", "299"))
+        star_1m = int(os.getenv("PRICE_1M_STAR", "100"))
+        star_3m = int(os.getenv("PRICE_3M_STAR", "250"))
         star_6m = int(os.getenv("PRICE_6M_STAR", "549"))
         star_12m = int(os.getenv("PRICE_12M_STAR", "999"))
-        rub_1m = int(os.getenv("PRICE_1M_RUB", "149"))
-        rub_3m = int(os.getenv("PRICE_3M_RUB", "299"))
+        rub_1m = int(os.getenv("PRICE_1M_RUB", "100"))
+        rub_3m = int(os.getenv("PRICE_3M_RUB", "250"))
         rub_6m = int(os.getenv("PRICE_6M_RUB", "549"))
         rub_12m = int(os.getenv("PRICE_12M_RUB", "999"))
 
 
-        if days == 31:
-            star_amount, rub_amount = star_1m, rub_1m
-        elif days == 93:
-            star_amount, rub_amount = star_3m, rub_3m
-        elif days == 180:
-            star_amount, rub_amount = star_6m, rub_6m
-        elif days == 365:
-            star_amount, rub_amount = star_12m, rub_12m
-        else:
-            star_amount, rub_amount = star_1m, rub_1m
+    if days == 31:
+        star_amount, rub_amount = star_1m, rub_1m
+    elif days == 93:
+        star_amount, rub_amount = star_3m, rub_3m
+    elif days == 180:
+        star_amount, rub_amount = star_6m, rub_6m
+    else:
+        star_amount, rub_amount = star_1m, rub_1m
 
         try:
             await callback_query.message.edit_text(
@@ -228,8 +224,13 @@ async def activate_balance(callback_query: CallbackQuery, bot: Bot, state: FSMCo
         # Выдаем конфиги на всех серверах из SERVER_ORDER
         env_order = os.getenv("SERVER_ORDER", "fi,ge")
         servers_to_use = [s.strip().lower() for s in env_order.split(',') if s.strip()]
-        
-        await give_configs_on_all_servers_balance(tg_id, days, servers_to_use, bot)
+        # При наличии вариантов (fi2, ge2) выберем по одному варианту на регион
+        try:
+            from utils import pick_servers_one_per_region
+            selected = await pick_servers_one_per_region(servers_to_use)
+        except Exception:
+            selected = servers_to_use
+        await give_configs_on_all_servers_balance(tg_id, days, selected, bot)
     
     try:
         await callback_query.answer()

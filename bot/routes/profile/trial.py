@@ -54,6 +54,12 @@ async def free_trial(message: types.Message):
     # Выдаем конфиги на всех серверах из SERVER_ORDER (как при покупке подписки)
     server_order_env = os.getenv("SERVER_ORDER", "fi,ge")
     servers_to_use = [s.strip().lower() for s in server_order_env.split(',') if s.strip()]
+    # Выбираем по одному варианту на регион (fi*/ge*)
+    try:
+        from utils import pick_servers_one_per_region
+        servers_to_use = await pick_servers_one_per_region(servers_to_use)
+    except Exception:
+        pass
 
     # Выдаём бесплатные 3 дня на всех серверах
     AUTH_CODE = os.getenv("AUTH_CODE")

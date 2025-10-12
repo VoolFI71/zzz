@@ -90,20 +90,17 @@ def create_server_keyboard():
 
 
 def create_tariff_keyboard():
-    star_1m = int(os.getenv("PRICE_1M_STAR", "149"))
-    star_3m = int(os.getenv("PRICE_3M_STAR", "299"))
-    star_6m = int(os.getenv("PRICE_6M_STAR", "549"))
-    star_12m = int(os.getenv("PRICE_12M_STAR", "999"))
-    rub_1m = int(os.getenv("PRICE_1M_RUB", "149"))
-    rub_3m = int(os.getenv("PRICE_3M_RUB", "299"))
-    rub_6m = int(os.getenv("PRICE_6M_RUB", "549"))
-    rub_12m = int(os.getenv("PRICE_12M_RUB", "999"))
+    star_1m = int(os.getenv("PRICE_1M_STAR", "100"))
+    star_3m = int(os.getenv("PRICE_3M_STAR", "250"))
+    star_6m = int(os.getenv("PRICE_6M_STAR", "450"))
+    rub_1m = int(os.getenv("PRICE_1M_RUB", "100"))
+    rub_3m = int(os.getenv("PRICE_3M_RUB", "250"))
+    rub_6m = int(os.getenv("PRICE_6M_RUB", "450"))
 
     kb_list = [
         [InlineKeyboardButton(text=tariff_1m_label(star_1m, rub_1m), callback_data="plan_1m")],
         [InlineKeyboardButton(text=tariff_3m_label(star_3m, rub_3m), callback_data="plan_3m")],
         [InlineKeyboardButton(text=tariff_6m_label(star_6m, rub_6m), callback_data="plan_6m")],
-        [InlineKeyboardButton(text=tariff_12m_label(star_12m, rub_12m), callback_data="plan_12m")],
         [InlineKeyboardButton(text=BTN_BACK, callback_data="back")]
     ]
     keyboard = InlineKeyboardMarkup(inline_keyboard=kb_list)

@@ -68,16 +68,6 @@ async def start_command(message: types.Message):
                 except Exception:
                     logger.exception("Failed to process referral bonus for owner_tg_id=%s", owner_tg_id)
 
-            # Дополнительный бонус при достижении 7/7 — единовременно +15 дней
-            if result.get("award_15d"):
-                try:
-                    await db.add_balance_days(str(owner_tg_id), 15)
-                    await message.bot.send_message(
-                        int(owner_tg_id),
-                        "Поздравляем! Вы пригласили 7 друзей. На ваш баланс начислено дополнительно +15 дней. Активируйте дни в Личном кабинете — они продлят все ваши конфиги."
-                    )
-                except Exception:
-                    logger.exception("Failed to grant +15d milestone bonus to %s", owner_tg_id)
         else:
             # Пользователь уже активировал реферальную ссылку ранее
             await message.answer("Вы уже использовали реферальную ссылку ранее. Это можно сделать только один раз.")

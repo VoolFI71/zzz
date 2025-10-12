@@ -154,11 +154,9 @@ async def add_referral_by(user_id, referral_code, max_invites: int = 7) -> dict:
     Логика:
     - Счётчик приглашений растёт без потолка (может быть > max_invites), чтобы отображать, например, 10/7.
     - Бонус +2 дня выдаётся только если new_count <= max_invites.
-    - Доп. бонус +15 дней выдаётся однократно на достижении new_count == max_invites.
 
     Возвращает словарь:
     - award_2d: bool — начислять ли +2 дня за это приглашение
-    - award_15d: bool — начислять ли +15 дней (достигнут порог 7)
     - new_count: int — новое значение счётчика приглашений
     """
     async with aiosqlite.connect("users.db") as conn:
@@ -190,8 +188,7 @@ async def add_referral_by(user_id, referral_code, max_invites: int = 7) -> dict:
             await conn.commit()
 
             award_2d = new_count <= max_invites
-            award_15d = new_count == max_invites
-            return {"award_2d": award_2d, "award_15d": award_15d, "new_count": new_count}
+            return {"award_2d": award_2d, "new_count": new_count}
 
 async def get_tg_id_by_referral_code(referral_code):
     async with aiosqlite.connect("users.db") as conn:

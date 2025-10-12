@@ -30,8 +30,6 @@ async def pay_with_stars(callback_query: CallbackQuery, state: FSMContext, bot: 
         payload = "sub_3m"
     elif days == 180:
         payload = "sub_6m"
-    elif days == 365:
-        payload = "sub_12m"
     else:
         payload = "sub_1m"
 
@@ -82,7 +80,13 @@ async def pay_with_stars(callback_query: CallbackQuery, state: FSMContext, bot: 
     servers_to_use = [s.strip().lower() for s in env_order.split(',') if s.strip()]
     
     # Сохраняем список серверов для использования
-    await state.update_data(servers_to_use=servers_to_use)
+    # При наличии вариантов (fi2, ge2) выберем по одному варианту на регион
+    try:
+        from utils import pick_servers_one_per_region
+        selected = await pick_servers_one_per_region(servers_to_use)
+    except Exception:
+        selected = servers_to_use
+    await state.update_data(servers_to_use=selected)
 
     provider_token = ""
 
@@ -100,7 +104,7 @@ async def pay_with_stars(callback_query: CallbackQuery, state: FSMContext, bot: 
             payload=payload,
             provider_token=provider_token,
             currency="XTR",
-            prices=[LabeledPrice(label="XTR", amount=int(os.getenv("PRICE_1M_STAR", "149")))],
+            prices=[LabeledPrice(label="XTR", amount=int(os.getenv("PRICE_1M_STAR", "100")))],
             max_tip_amount=0,
         )
     elif payload == "sub_3m":
@@ -111,7 +115,7 @@ async def pay_with_stars(callback_query: CallbackQuery, state: FSMContext, bot: 
             payload=payload,
             provider_token=provider_token,
             currency="XTR",
-            prices=[LabeledPrice(label="XTR", amount=int(os.getenv("PRICE_3M_STAR", "299")))],
+            prices=[LabeledPrice(label="XTR", amount=int(os.getenv("PRICE_3M_STAR", "250")))],
             max_tip_amount=0,
         )
     elif payload == "sub_6m":
@@ -122,7 +126,7 @@ async def pay_with_stars(callback_query: CallbackQuery, state: FSMContext, bot: 
             payload=payload,
             provider_token=provider_token,
             currency="XTR",
-            prices=[LabeledPrice(label="XTR", amount=int(os.getenv("PRICE_6M_STAR", "549")))],
+            prices=[LabeledPrice(label="XTR", amount=int(os.getenv("PRICE_6M_STAR", "450")))],
             max_tip_amount=0,
         )
     else:  # sub_12m
@@ -207,10 +211,18 @@ async def successful_payment_handler(message: Message, bot: Bot, state: FSMConte
         # Продлеваем существующие конфиги
         await extend_existing_configs(tg_id, days, bot)
     else:
-        # Выдаем конфиги на всех серверах из SERVER_ORDER
-        import os
-        server_order_env = os.getenv("SERVER_ORDER", "fi,ge")
-        servers_to_use = [s.strip().lower() for s in server_order_env.split(',') if s.strip()]
+        # Выдаем конфиги на ранее выбранных серверах (по одному на регион)
+        data_state = await state.get_data()
+        servers_to_use = data_state.get("servers_to_use")
+        if not servers_to_use:
+            import os
+            server_order_env = os.getenv("SERVER_ORDER", "fi,ge")
+            fallback = [s.strip().lower() for s in server_order_env.split(',') if s.strip()]
+            try:
+                from utils import pick_servers_one_per_region
+                servers_to_use = await pick_servers_one_per_region(fallback)
+            except Exception:
+                servers_to_use = fallback
         await give_configs_on_all_servers(tg_id, days, servers_to_use, bot)
     
     # Записываем платеж в статистику
@@ -288,15 +300,13 @@ async def extend_subscription_handler(callback_query: CallbackQuery, state: FSMC
     
     # Создаем инвойс для продления
     if days == 31:
-        payload = "sub_1m"; amount = int(os.getenv("PRICE_1M_STAR", "149"))
+        payload = "sub_1m"; amount = int(os.getenv("PRICE_1M_STAR", "100"))
     elif days == 93:
-        payload = "sub_3m"; amount = int(os.getenv("PRICE_3M_STAR", "299"))
+        payload = "sub_3m"; amount = int(os.getenv("PRICE_3M_STAR", "250"))
     elif days == 180:
-        payload = "sub_6m"; amount = int(os.getenv("PRICE_6M_STAR", "549"))
-    elif days == 365:
-        payload = "sub_12m"; amount = int(os.getenv("PRICE_12M_STAR", "999"))
+        payload = "sub_6m"; amount = int(os.getenv("PRICE_6M_STAR", "450"))
     else:
-        payload = "sub_1m"; amount = int(os.getenv("PRICE_1M_STAR", "149"))
+        payload = "sub_1m"; amount = int(os.getenv("PRICE_1M_STAR", "100"))
     
     try:
         await bot.send_invoice(
@@ -345,14 +355,12 @@ async def cancel_star_invoice(callback_query: CallbackQuery, state: FSMContext, 
     # Возвращаемся к выбору способа оплаты
     try:
         days = int((await state.get_data()).get("selected_days", 31))
-        star_1m = int(os.getenv("PRICE_1M_STAR", "149"))
-        star_3m = int(os.getenv("PRICE_3M_STAR", "299"))
-        star_6m = int(os.getenv("PRICE_6M_STAR", "549"))
-        star_12m = int(os.getenv("PRICE_12M_STAR", "999"))
-        rub_1m = int(os.getenv("PRICE_1M_RUB", "149"))
-        rub_3m = int(os.getenv("PRICE_3M_RUB", "299"))
-        rub_6m = int(os.getenv("PRICE_6M_RUB", "549"))
-        rub_12m = int(os.getenv("PRICE_12M_RUB", "999"))
+        star_1m = int(os.getenv("PRICE_1M_STAR", "100"))
+        star_3m = int(os.getenv("PRICE_3M_STAR", "250"))
+        star_6m = int(os.getenv("PRICE_6M_STAR", "450"))
+        rub_1m = int(os.getenv("PRICE_1M_RUB", "100"))
+        rub_3m = int(os.getenv("PRICE_3M_RUB", "250"))
+        rub_6m = int(os.getenv("PRICE_6M_RUB", "450"))
 
         if days == 31:
             star_amount, rub_amount = star_1m, rub_1m
@@ -360,8 +368,6 @@ async def cancel_star_invoice(callback_query: CallbackQuery, state: FSMContext, 
             star_amount, rub_amount = star_3m, rub_3m
         elif days == 180:
             star_amount, rub_amount = star_6m, rub_6m
-        elif days == 365:
-            star_amount, rub_amount = star_12m, rub_12m
         else:
             star_amount, rub_amount = star_1m, rub_1m
         from keyboards.keyboard import create_payment_method_keyboard
