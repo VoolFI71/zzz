@@ -79,7 +79,7 @@ def load_country_settings() -> dict[str, dict[str, str]]:
             "urldelete": _env_any("URLDELETE_FI", "urldelete_fi", default=""),
             "host": _env_any("HOST_FI", "host_fi", default="77.110.108.194"),
             "pbk": _env_any("PBK_FI", "pbk_fi", default=""),
-            "sni": _env_any("SNI_FI", "sni_fi", default="google.com"),
+            "sni": _env_any("SNI_FI", "sni_fi", default="eh.vk.com"),
             "sid": _env_any("SID_FI", "sid_fi", default=""),
         },
         "ge": {
@@ -88,7 +88,7 @@ def load_country_settings() -> dict[str, dict[str, str]]:
             "urldelete": _env_any("URLDELETE_GE", "urldelete_ge", default=""),
             "host": _env_any("HOST_GE", "host_ge", default=""),
             "pbk": _env_any("PBK_GE", "pbk_ge", default=""),
-            "sni": _env_any("SNI_GE", "sni_ge", default="google.com"),
+            "sni": _env_any("SNI_GE", "sni_ge", default="eh.vk.com"),
             "sid": _env_any("SID_GE", "sid_ge", default=""),
         },
     }
@@ -130,7 +130,7 @@ COUNTRY_SETTINGS: dict[str, dict[str, str]] = load_country_settings()
 
 COUNTRY_LABELS: dict[str, str] = {
     "nl": "Netherlands 🇳🇱",
-    "fi": "Finland 🇫🇮",
+    "fi": "Finland 🇫🇮 НЕ РАБОТАЕТ",
     "ge": "Germany 🇩🇪",
 }
 
@@ -188,8 +188,11 @@ async def verify_api_key(x_api_key: str = Header(...)) -> None:  # noqa: D401
 # Вспомогательные функции
 # ---------------------------------------------------------------------------
 
-def build_payload(uid: str, enable: bool, expiry_time: int = 0) -> Dict[str, Any]:
+def build_payload(uid: str, enable: bool, expiry_time: int = 0, is_trial: bool = False) -> Dict[str, Any]:
     """Формирует payload для панели управления."""
+    # Лимит трафика: 5ГБ для пробных подписок, 0 (безлимит) для обычных
+    traffic_limit = 5 * 1024 * 1024 * 1024 if is_trial else 0  # 5GB в байтах
+
     return {
         "id": 1,
         "settings": json.dumps(
@@ -200,7 +203,7 @@ def build_payload(uid: str, enable: bool, expiry_time: int = 0) -> Dict[str, Any
                         "flow": "xtls-rprx-vision",
                         "email": str(random.randint(10_000_000, 100_000_000)),
                         "limitIp": 1,
-                        "totalGB": 0,
+                        "totalGB": traffic_limit,
                         "expiryTime": expiry_time * 1000 if expiry_time else 0,
                         "enable": enable,
                         "tgId": "",
@@ -263,7 +266,7 @@ async def create_config(
 
     for _ in range(client_data.count):
         uid = str(uuid.uuid4())
-        payload = build_payload(uid, enable=False)
+        payload = build_payload(uid, enable=False, is_trial=False)
 
         url = COUNTRY_SETTINGS[client_data.server]["urlcreate"]
         logger.info("panel.create URL=%s", url)
@@ -337,11 +340,11 @@ async def give_config(
                     try:
                         # Создаем новый конфиг напрямую
                         uid = str(uuid.uuid4())
-                        payload = build_payload(uid, enable=False)
+                        payload = build_payload(uid, enable=False, is_trial=client_data.is_trial)
                         url = COUNTRY_SETTINGS[client_data.server]["urlcreate"]
                         logger.info("panel.create URL=%s", url)
                         response = await panel_request(request, url, client_data.server, payload)
-                        
+
                         if response.status_code == 200:
                             # Сохраняем в БД
                             await db.insert_into_db(
@@ -351,14 +354,14 @@ async def give_config(
                                 server_country=client_data.server,
                             )
                             logger.info("Config %s created", uid)
-                            
+
                             # Теперь пытаемся зарезервировать только что созданный конфиг
                             reserved_uid = await db.reserve_one_free_config(
                                 reserver_tg_id=str(client_data.id),
                                 server_country=client_data.server,
                                 reservation_ttl_seconds=120,
                             )
-                            
+
                             if reserved_uid:
                                 logger.info("Successfully created and reserved new config %s for user %s", reserved_uid, client_data.id)
                             else:
@@ -390,7 +393,7 @@ async def give_config(
                     )
 
     expiry_unix = int(time.time()) + (60 * 60 * 24 * client_data.time)
-    payload = build_payload(reserved_uid, enable=True, expiry_time=expiry_unix)
+    payload = build_payload(reserved_uid, enable=True, expiry_time=expiry_unix, is_trial=client_data.is_trial)
     url = COUNTRY_SETTINGS[client_data.server]["urlupdate"] + reserved_uid
     logger.info("panel.update URL=%s", url)
 
@@ -466,7 +469,7 @@ async def extend_config(
     base_time = max(current_time_end, int(time.time()))
     new_time_end = base_time + added_seconds
 
-    payload = build_payload(uid, enable=True, expiry_time=new_time_end)
+    payload = build_payload(uid, enable=True, expiry_time=new_time_end, is_trial=False)
 
     url = f"{COUNTRY_SETTINGS[update_data.server]['urlupdate']}{uid}"
     logger.info("panel.extend URL=%s", url)
@@ -813,7 +816,7 @@ async def reprovision_all(
             skipped += 1
             continue
 
-        payload = build_payload(str(user_code), enable=True, expiry_time=int(time_end))
+        payload = build_payload(str(user_code), enable=True, expiry_time=int(time_end), is_trial=False)
 
         try:
             resp = await panel_request(request, create_url, server_to, payload)
@@ -885,7 +888,7 @@ async def reprovision_all_configs(
             continue
 
         # Создаем конфиг на новой панели
-        payload = build_payload(str(user_code), enable=True, expiry_time=int(time_end) if time_end else None)
+        payload = build_payload(str(user_code), enable=True, expiry_time=int(time_end) if time_end else None, is_trial=False)
 
         try:
             resp = await panel_request(request, create_url, server_to, payload)
@@ -1213,7 +1216,7 @@ async def add_server_to_all_users(
                     raise ValueError(f"Неизвестный сервер: {data.server}")
                 
                 # Создаем конфиг на панели с активацией сразу
-                payload = build_payload(uid, enable=True, expiry_time=user["time_end"])
+                payload = build_payload(uid, enable=True, expiry_time=user["time_end"], is_trial=False)
                 url = COUNTRY_SETTINGS[data.server]["urlcreate"]
                 
                 logger.info("Creating and activating config for user %s on server %s", user["tg_id"], data.server)
@@ -1286,7 +1289,7 @@ async def add_server_to_user(
         uid = str(uuid.uuid4())
         
         # Создаем конфиг на панели с активацией сразу
-        payload = build_payload(uid, enable=True, expiry_time=user_info["time_end"])
+        payload = build_payload(uid, enable=True, expiry_time=user_info["time_end"], is_trial=False)
         url = COUNTRY_SETTINGS[data.server]["urlcreate"]
         
         logger.info("Creating and activating config for user %s on server %s", data.tg_id, data.server)

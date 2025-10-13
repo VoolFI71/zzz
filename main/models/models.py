@@ -30,6 +30,7 @@ class ClientData(BaseModel):
     time: int  # срок действия в днях
     id: str  # telegram id пользователя
     server: str  # код страны сервера
+    is_trial: bool = False  # является ли это пробной подпиской
 
 
 class DeleteConfig(BaseModel):
