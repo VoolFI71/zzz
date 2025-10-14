@@ -79,7 +79,7 @@ def load_country_settings() -> dict[str, dict[str, str]]:
             "urldelete": _env_any("URLDELETE_FI", "urldelete_fi", default=""),
             "host": _env_any("HOST_FI", "host_fi", default="77.110.108.194"),
             "pbk": _env_any("PBK_FI", "pbk_fi", default=""),
-            "sni": _env_any("SNI_FI", "sni_fi", default="eh.vk.com"),
+            "sni": _env_any("SNI_FI", "sni_fi", default="google.com"),
             "sid": _env_any("SID_FI", "sid_fi", default=""),
         },
         "ge": {
@@ -88,7 +88,7 @@ def load_country_settings() -> dict[str, dict[str, str]]:
             "urldelete": _env_any("URLDELETE_GE", "urldelete_ge", default=""),
             "host": _env_any("HOST_GE", "host_ge", default=""),
             "pbk": _env_any("PBK_GE", "pbk_ge", default=""),
-            "sni": _env_any("SNI_GE", "sni_ge", default="eh.vk.com"),
+            "sni": _env_any("SNI_GE", "sni_ge", default="google.com"),
             "sid": _env_any("SID_GE", "sid_ge", default=""),
         },
     }
