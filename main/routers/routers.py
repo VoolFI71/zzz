@@ -753,6 +753,45 @@ async def delete_free_configs(
     return f"Удалено {deleted} свободных конфигов, ошибок {failed}"
 
 
+@router.delete(
+    "/delete-db-configs",
+    response_model=str,
+)
+async def delete_db_configs(
+    data: dict = Body(..., description="JSON с полем server"),
+    _: None = Depends(verify_api_key),
+) -> str:
+    """Удаляет ВСЕ конфиги указанного сервера ТОЛЬКО из базы данных.
+
+    Никаких запросов на панель не выполняется.
+    """
+    server = data.get("server")
+    if not server:
+        raise HTTPException(status_code=400, detail="Поле 'server' обязательно")
+
+    rows = await db.get_all_rows_by_server(server)
+    if not rows:
+        return f"Нет конфигов на сервере {server} для удаления из БД"
+
+    deleted, failed = 0, 0
+    errors: list[str] = []
+
+    for tg_id, user_code, time_end, srv in rows:
+        if not user_code:
+            continue
+        try:
+            await db.delete_user_code(user_code)
+            deleted += 1
+        except Exception as e:
+            failed += 1
+            err = f"DB delete failed for {user_code} on {srv}: {e}"
+            errors.append(err)
+            logger.error(err)
+
+    logger.info("DB-only delete for %s: removed=%s, failed=%s", server, deleted, failed)
+    details = f" Ошибок: {failed}." if failed else ""
+    return f"Из БД удалено {deleted} конфигов сервера {server}.{details}"
+
 @router.post(
     "/reprovision-all",
     response_model=dict,
