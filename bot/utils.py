@@ -57,13 +57,13 @@ async def pick_first_available_server(preferred_order: list[str] | None = None) 
 
     Порядок:
     - Если передан preferred_order — используем его.
-    - Иначе читаем из ENV SERVER_ORDER (например, "fi,ge"), иначе дефолт ["fi", "ge"].
+    - Иначе читаем из ENV SERVER_ORDER (например, "ge"), иначе дефолт ["ge"].
     """
     if preferred_order is None:
-        env_order = os.getenv("SERVER_ORDER", "fi,ge")
+        env_order = os.getenv("SERVER_ORDER", "ge")
         preferred_order = [s.strip().lower() for s in env_order.split(",") if s.strip()]
         if not preferred_order:
-            preferred_order = ["fi", "ge"]
+            preferred_order = ["ge"]
 
     # Уникализируем, сохраняем порядок
     seen: set[str] = set()
@@ -84,9 +84,9 @@ async def pick_first_available_server(preferred_order: list[str] | None = None) 
 
 
 def _parse_server_order() -> list[str]:
-    env_order = os.getenv("SERVER_ORDER", "fi,ge")
+    env_order = os.getenv("SERVER_ORDER", "ge")
     order = [s.strip().lower() for s in env_order.split(",") if s.strip()]
-    return order or ["fi", "ge"]
+    return order or ["ge"]
 
 
 def _get_region_variants_map() -> dict[str, list[str]]:
@@ -112,7 +112,7 @@ def _get_region_variants_map() -> dict[str, list[str]]:
 
 
 async def pick_servers_one_per_region(order_bases: list[str] | None = None) -> list[str]:
-    """Выбирает по одному серверу из каждой региональной группы (fi*, ge*).
+    """Выбирает по одному серверу из каждой региональной группы (ge*).
 
     Стратегия: для каждой базовой страны берём первый вариант, на котором есть свободные конфиги
     (по данным /check-available-configs?server=...). Если ни один вариант не доступен,
@@ -139,7 +139,7 @@ async def pick_servers_one_per_region(order_bases: list[str] | None = None) -> l
 
 async def check_all_servers_available() -> bool:
     """Проверяет доступность по регионам: для каждой базовой страны (из SERVER_ORDER)
-    должен быть доступен хотя бы один вариант (fi/fi2/fi3..., ge/ge2...).
+    должен быть доступен хотя бы один вариант (ge/ge2...).
 
     Если у региона нет ни одного доступного варианта — возвращает False.
     """

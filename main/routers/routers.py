@@ -73,15 +73,6 @@ def load_country_settings() -> dict[str, dict[str, str]]:
     """
     # Start with explicit base defaults
     settings: dict[str, dict[str, str]] = {
-        "fi": {
-            "urlcreate": _env_any("URLCREATE_FI", "urlcreate_fi", default=""),
-            "urlupdate": _env_any("URLUPDATE_FI", "urlupdate_fi", default=""),
-            "urldelete": _env_any("URLDELETE_FI", "urldelete_fi", default=""),
-            "host": _env_any("HOST_FI", "host_fi", default="77.110.108.194"),
-            "pbk": _env_any("PBK_FI", "pbk_fi", default=""),
-            "sni": _env_any("SNI_FI", "sni_fi", default="google.com"),
-            "sid": _env_any("SID_FI", "sid_fi", default=""),
-        },
         "ge": {
             "urlcreate": _env_any("URLCREATE_GE", "urlcreate_ge", default=""),
             "urlupdate": _env_any("URLUPDATE_GE", "urlupdate_ge", default=""),
@@ -103,7 +94,7 @@ def load_country_settings() -> dict[str, dict[str, str]]:
                 variant_codes.add(suffix)
 
     # Ensure base codes present
-    variant_codes.update(["fi", "ge"])  # keep existing bases
+    variant_codes.update(["ge"])  # keep existing bases
 
     for code in sorted(variant_codes):
         lc = code.lower()
@@ -130,7 +121,6 @@ COUNTRY_SETTINGS: dict[str, dict[str, str]] = load_country_settings()
 
 COUNTRY_LABELS: dict[str, str] = {
     "nl": "Netherlands 🇳🇱",
-    "fi": "Finland 🇫🇮 НЕ РАБОТАЕТ",
     "ge": "Germany 🇩🇪",
 }
 

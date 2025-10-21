@@ -45,7 +45,6 @@ async def show_config_management(callback: types.CallbackQuery):
             f"• Активных: {config_stats['active']}\n"
             f"• Истекших: {config_stats['expired']}\n"
             f"• Свободных: {config_stats['free']}\n"
-            f"• 🇫🇮 Финляндия: {config_stats['fi_count']}\n"
             f"• 🇳🇱 Нидерланды: {config_stats['nl_count']}\n"
             f"• 🇩🇪 Германия: {config_stats['ge_count']}"
         )
@@ -126,7 +125,6 @@ async def show_config_statistics(callback: types.CallbackQuery):
             f"• Истекших: {config_stats['expired']}\n"
             f"• Свободных: {config_stats['free']}\n\n"
             f"🌍 По серверам:\n"
-            f"• 🇫🇮 Финляндия: {config_stats['fi_count']}\n"
             f"• 🇳🇱 Нидерланды: {config_stats['nl_count']}\n"
             f"• 🇩🇪 Германия: {config_stats['ge_count']}"
         )
@@ -187,7 +185,7 @@ async def get_config_statistics() -> dict:
                         'active': active,
                         'expired': expired,
                         'free': free,
-                        'fi_count': fi_count,
+                        'fi_count': 0,
                         'nl_count': nl_count,
                         'ge_count': ge_count
                     }
@@ -197,7 +195,6 @@ async def get_config_statistics() -> dict:
                         'active': 0,
                         'expired': 0,
                         'free': 0,
-                        'fi_count': 0,
                         'nl_count': 0,
                         'ge_count': 0
                     }
@@ -208,7 +205,6 @@ async def get_config_statistics() -> dict:
             'active': 0,
             'expired': 0,
             'free': 0,
-            'fi_count': 0,
             'nl_count': 0,
             'ge_count': 0
         }

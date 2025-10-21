@@ -76,7 +76,7 @@ async def pay_with_stars(callback_query: CallbackQuery, state: FSMContext, bot: 
     
     # У пользователя нет конфигов - создаем новые на всех серверах
     # Используем все серверы из SERVER_ORDER (как при покупке подписки)
-    env_order = os.getenv("SERVER_ORDER", "fi,ge")
+    env_order = os.getenv("SERVER_ORDER", "ge")
     servers_to_use = [s.strip().lower() for s in env_order.split(',') if s.strip()]
     
     # Сохраняем список серверов для использования
@@ -216,7 +216,7 @@ async def successful_payment_handler(message: Message, bot: Bot, state: FSMConte
         servers_to_use = data_state.get("servers_to_use")
         if not servers_to_use:
             import os
-            server_order_env = os.getenv("SERVER_ORDER", "fi,ge")
+            server_order_env = os.getenv("SERVER_ORDER", "ge")
             fallback = [s.strip().lower() for s in server_order_env.split(',') if s.strip()]
             try:
                 from utils import pick_servers_one_per_region
