@@ -1443,7 +1443,7 @@ async def add_server_to_user(
 @router.get("/", response_class=HTMLResponse)
 async def landing(request: Request):  # noqa: D401
     """Красочная посадочная страница VPN."""
-    return templates.TemplateResponse("index.html", {"request": request})
+    return templates.TemplateResponse("index.html", {"request": request, "base_url": BASE_URL})
 
 @router.get("/offer", response_class=HTMLResponse)
 async def offer_page(request: Request):  # noqa: D401
@@ -1452,13 +1452,42 @@ async def offer_page(request: Request):  # noqa: D401
 
 
 # ---------------------------------------------------------------------------
-# Favicon
+# Favicon и Web Manifest
 # ---------------------------------------------------------------------------
 
 @router.get("/favicon.ico", include_in_schema=False)
 async def favicon() -> RedirectResponse:
     """Редирект на SVG favicon для совместимости с браузерами."""
     return RedirectResponse(url="/static/gls-avatar-wordmark.svg", status_code=302)
+
+@router.get("/site.webmanifest", include_in_schema=False)
+async def web_manifest(request: Request) -> JSONResponse:
+    """Возвращает web manifest с правильными HTTPS путями для предотвращения mixed-content."""
+    # Определяем базовый URL из запроса
+    scheme = request.url.scheme
+    host = request.url.hostname
+    port = request.url.port
+    if port and ((scheme == "http" and port != 80) or (scheme == "https" and port != 443)):
+        base_url = f"{scheme}://{host}:{port}"
+    else:
+        base_url = f"{scheme}://{host}"
+    
+    manifest = {
+        "name": "GLS VPN",
+        "short_name": "GLS VPN",
+        "start_url": "/",
+        "display": "standalone",
+        "background_color": "#ffffff",
+        "theme_color": "#0ea5e9",
+        "icons": [
+            {
+                "src": f"{base_url}/static/gls-avatar-wordmark.svg",
+                "sizes": "any",
+                "type": "image/svg+xml"
+            }
+        ]
+    }
+    return JSONResponse(content=manifest)
 
 # ---------------------------------------------------------------------------
 # SEO: robots.txt и sitemap.xml

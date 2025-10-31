@@ -9,7 +9,7 @@
   <meta property="og:title" content="Купить VPN в России - GLS VPN | VPN который обходит глушилки" />
   <meta property="og:description" content="Купить VPN в России - GLS VPN. VPN который обходит глушилки и DPI-фильтрацию. VLESS/Reality протокол, обход блокировок. Цена от 100₽. Работает на всех устройствах." />
   <meta property="og:url" content="https://swaga.space/" />
-  <meta property="og:image" content="{{ url_for('static', path='gls-avatar-wordmark.svg') }}" />
+  <meta property="og:image" content="{{ base_url }}/static/gls-avatar-wordmark.svg" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
   <meta property="og:image:alt" content="GLS VPN - Лучший VPN сервис в России" />
@@ -20,7 +20,7 @@
   <meta name="twitter:title" content="Купить VPN в России - GLS VPN">
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:description" content="Купить VPN в России - GLS VPN. VPN который обходит глушилки и DPI. VLESS/Reality протокол. От 100₽." />
-  <meta name="twitter:image" content="{{ url_for('static', path='gls-avatar-wordmark.svg') }}" />
+  <meta name="twitter:image" content="{{ base_url }}/static/gls-avatar-wordmark.svg" />
   <link rel="alternate" hreflang="ru" href="https://swaga.space/" />
   <link rel="alternate" hreflang="ru-RU" href="https://swaga.space/" />
   <link rel="alternate" hreflang="en" href="https://swaga.space/" />
@@ -325,11 +325,11 @@
   <meta name="application-name" content="GLS VPN" />
   <meta name="apple-mobile-web-app-title" content="GLS VPN" />
   <meta name="theme-color" content="#0ea5e9" />
-  <link rel="shortcut icon" href="{{ url_for('static', path='gls-avatar-wordmark.svg') }}" type="image/svg+xml" />
-  <link rel="icon" type="image/svg+xml" href="{{ url_for('static', path='gls-avatar-wordmark.svg') }}" />
-  <link rel="apple-touch-icon" href="{{ url_for('static', path='gls-avatar-wordmark.svg') }}" />
-  <link rel="mask-icon" href="{{ url_for('static', path='gls-avatar-wordmark.svg') }}" color="#0ea5e9" />
-  <link rel="manifest" href="{{ url_for('static', path='site.webmanifest') }}" />
+  <link rel="shortcut icon" href="{{ base_url }}/static/gls-avatar-wordmark.svg" type="image/svg+xml" />
+  <link rel="icon" type="image/svg+xml" href="{{ base_url }}/static/gls-avatar-wordmark.svg" />
+  <link rel="apple-touch-icon" href="{{ base_url }}/static/gls-avatar-wordmark.svg" />
+  <link rel="mask-icon" href="{{ base_url }}/static/gls-avatar-wordmark.svg" color="#0ea5e9" />
+  <link rel="manifest" href="/site.webmanifest" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -1963,7 +1963,7 @@ footer a:hover{color:var(--text)}
   <header class="header">
     <div class="container nav">
       <div class="brand">
-        <img class="logo" src="{{ url_for('static', path='gls-avatar-wordmark.svg') }}" alt="GLS VPN - Быстрый и безопасный VPN сервис для России" width="50" height="50" decoding="async" />
+        <img class="logo" src="{{ base_url }}/static/gls-avatar-wordmark.svg" alt="GLS VPN - Быстрый и безопасный VPN сервис для России" width="50" height="50" decoding="async" />
         <span data-i18n="brand.home">Главная страница</span>
       </div>
       <nav class="menu" id="menu" role="navigation" aria-label="Основное меню">
@@ -2282,7 +2282,7 @@ footer a:hover{color:var(--text)}
   <footer>
     <div class="container inner">
       <div class="brand small">
-        <img class="logo" src="{{ url_for('static', path='gls-avatar-wordmark.svg') }}" alt="GLS VPN - Купить VPN в России, цена от 149₽" width="32" height="32" loading="lazy" decoding="async" />
+        <img class="logo" src="{{ base_url }}/static/gls-avatar-wordmark.svg" alt="GLS VPN - Купить VPN в России, цена от 149₽" width="32" height="32" loading="lazy" decoding="async" />
         <span>GLS VPN</span>
       </div>
       <div class="links">
