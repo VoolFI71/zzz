@@ -3,6 +3,7 @@ from aiogram.fsm.context import FSMContext
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 import logging
 import time
+import asyncio
 import aiohttp
 import aiosqlite
 import os
@@ -26,14 +27,24 @@ async def show_admin_stats(callback: types.CallbackQuery):
         return
     
     try:
-        # Получаем все виды статистики
-        user_stats = await get_user_stats()
-        payment_stats = await get_payment_stats()
-        subscription_stats = await get_subscription_stats()
-        activity_stats = await get_activity_stats()
-        daily_stats = await get_daily_stats()
-        retention_stats = await get_retention_stats()
-        geographic_stats = await get_geographic_stats()
+        # Получаем все виды статистики параллельно
+        (
+            user_stats,
+            payment_stats,
+            subscription_stats,
+            activity_stats,
+            daily_stats,
+            retention_stats,
+            geographic_stats,
+        ) = await asyncio.gather(
+            get_user_stats(),
+            get_payment_stats(),
+            get_subscription_stats(),
+            get_activity_stats(),
+            get_daily_stats(),
+            get_retention_stats(),
+            get_geographic_stats(),
+        )
         
         # Формируем детальную статистику
         stats_text = (
@@ -98,14 +109,24 @@ async def show_detailed_stats(callback: types.CallbackQuery):
         return
     
     try:
-        # Получаем все виды статистики
-        user_stats = await get_user_stats()
-        payment_stats = await get_payment_stats()
-        subscription_stats = await get_subscription_stats()
-        activity_stats = await get_activity_stats()
-        daily_stats = await get_daily_stats()
-        retention_stats = await get_retention_stats()
-        geographic_stats = await get_geographic_stats()
+        # Получаем все виды статистики параллельно
+        (
+            user_stats,
+            payment_stats,
+            subscription_stats,
+            activity_stats,
+            daily_stats,
+            retention_stats,
+            geographic_stats,
+        ) = await asyncio.gather(
+            get_user_stats(),
+            get_payment_stats(),
+            get_subscription_stats(),
+            get_activity_stats(),
+            get_daily_stats(),
+            get_retention_stats(),
+            get_geographic_stats(),
+        )
         
         # Формируем детальную статистику
         stats_text = (
@@ -212,56 +233,27 @@ async def get_users_with_expired_subscription() -> list[str]:
         return []
 
 async def get_users_with_active_subscription() -> list[str]:
-    """Получает список пользователей с активной подпиской через FastAPI API."""
+    """Получает список пользователей с активной подпиской через единый API-запрос."""
     try:
-        # Поскольку /getids возвращает только пользователей с истекающими подписками,
-        # а нам нужны все активные пользователи, используем простой подход:
-        # получаем всех пользователей из bot БД и проверяем их через /usercodes
-        all_bot_users = await get_all_user_ids()
-        active_users = []
         from utils import get_session
         session = await get_session()
-        for user_id in all_bot_users:
-            try:
-                url = f"{API_BASE_URL}/usercodes/{user_id}"
-                headers = {"X-API-Key": AUTH_CODE}
-                async with session.get(url, headers=headers, timeout=15) as resp:
-                    if resp.status == 200:
-                        # Разбираем конфиги и ищем действительно АКТИВНЫЕ (time_end > now)
-                        try:
-                            data = await resp.json()
-                        except Exception as e:
-                            # Ошибка парсинга — НЕ добавляем в активные
-                            logger.warning(f"JSON parse error for user {user_id}: {e}")
-                            continue
-                        now_ts = int(time.time())
-                        def _parse_time_end(raw: object) -> int:
-                            try:
-                                val = int(raw)
-                            except Exception:
-                                return 0
-                            # Защита от миллисекунд
-                            if val > 10**11:
-                                val = val // 1000
-                            return val
-                        has_active = any(_parse_time_end(item.get("time_end", 0)) > now_ts for item in data)
-                        if has_active:
-                            active_users.append(user_id)
-                    else:
-                        # 404 — нет конфигов у пользователя (точно не активный)
-                        if resp.status == 404:
-                            pass
-                        else:
-                            # Любая иная ошибка API — НЕ добавляем в активные
-                            logger.warning(f"API error for user {user_id}: {resp.status}")
-                            pass
-            except Exception as e:
-                # Сетевая ошибка — НЕ добавляем в активные
-                logger.warning(f"Network error for user {user_id}: {e}")
-                continue
-        return active_users
+        url = f"{API_BASE_URL}/active-users/ids"
+        headers = {"X-API-Key": AUTH_CODE}
+        async with session.get(url, headers=headers, timeout=10) as resp:
+            if resp.status == 200:
+                try:
+                    data = await resp.json()
+                except Exception as e:
+                    logger.warning(f"JSON parse error for active users: {e}")
+                    return []
+                ids = data.get("ids", [])
+                # Нормализуем к строкам для согласованности с локальной БД
+                return [str(x) for x in ids if x is not None]
+            else:
+                logger.warning(f"API error for active-users/ids: {resp.status}")
+                return []
     except Exception as e:
-        logger.error(f"Error getting users with active subscription: {e}")
+        logger.error(f"Error getting users with active subscription (bulk): {e}")
         return []
 
 async def get_users_without_any_subscription() -> list[str]:

@@ -79,12 +79,11 @@ def load_country_settings() -> dict[str, dict[str, str]]:
             "urldelete": _env_any("URLDELETE_GE", "urldelete_ge", default=""),
             "host": _env_any("HOST_GE", "host_ge", default=""),
             "pbk": _env_any("PBK_GE", "pbk_ge", default=""),
-            "sni": _env_any("SNI_GE", "sni_ge", default="google.com"),
+            "sni": _env_any("SNI_GE", "sni_ge", default="eh.vk.com"),
             "sid": _env_any("SID_GE", "sid_ge", default=""),
         },
     }
 
-    # Discover variant codes by scanning env for URLCREATE_*, URLUPDATE_* or URLDELETE_*
     variant_codes: set[str] = set()
     for key in os.environ.keys():
         u = key.upper()
@@ -178,32 +177,46 @@ async def verify_api_key(x_api_key: str = Header(...)) -> None:  # noqa: D401
 # Вспомогательные функции
 # ---------------------------------------------------------------------------
 
-def build_payload(uid: str, enable: bool, expiry_time: int = 0, is_trial: bool = False) -> Dict[str, Any]:
-    """Формирует payload для панели управления."""
-    # Лимит трафика: 5ГБ для пробных подписок, 0 (безлимит) для обычных
-    traffic_limit = 5 * 1024 * 1024 * 1024 if is_trial else 0  # 5GB в байтах
+def build_payload(
+    uid: str,
+    enable: bool,
+    expiry_time: int = 0,
+    is_trial: bool = False,
+    traffic_bytes: int | None = None,
+) -> Dict[str, Any]:
+    """Формирует payload для панели управления.
+
+    totalGB выставляется так:
+    - если передан ``traffic_bytes`` — используем его (в байтах);
+    - иначе для пробных подписок (``is_trial=True``) — 10 ГБ;
+    - иначе ключ ``totalGB`` опускается, чтобы не переопределять лимит на панели.
+    """
+    traffic_limit: int | None
+    if traffic_bytes is not None:
+        traffic_limit = traffic_bytes
+    elif is_trial:
+        traffic_limit = 10 * 1024 * 1024 * 1024  # 10GB в байтах
+    else:
+        traffic_limit = None  # не задаём totalGB
+
+    client_obj: dict[str, Any] = {
+        "id": uid,
+        "flow": "xtls-rprx-vision",
+        "email": str(random.randint(10_000_000, 100_000_000)),
+        "limitIp": 1,
+        "expiryTime": expiry_time * 1000 if expiry_time else 0,
+        "enable": enable,
+        "tgId": "",
+        "subId": str(random.randint(10_000_000, 100_000_000)),
+        "comment": "",
+        "reset": 0,
+    }
+    if traffic_limit is not None:
+        client_obj["totalGB"] = traffic_limit
 
     return {
         "id": 1,
-        "settings": json.dumps(
-            {
-                "clients": [
-                    {
-                        "id": uid,
-                        "flow": "xtls-rprx-vision",
-                        "email": str(random.randint(10_000_000, 100_000_000)),
-                        "limitIp": 1,
-                        "totalGB": traffic_limit,
-                        "expiryTime": expiry_time * 1000 if expiry_time else 0,
-                        "enable": enable,
-                        "tgId": "",
-                        "subId": str(random.randint(10_000_000, 100_000_000)),
-                        "comment": "",
-                        "reset": 0,
-                    }
-                ]
-            }
-        ),
+        "settings": json.dumps({"clients": [client_obj]}),
     }
 
 
@@ -383,7 +396,21 @@ async def give_config(
                     )
 
     expiry_unix = int(time.time()) + (60 * 60 * 24 * client_data.time)
-    payload = build_payload(reserved_uid, enable=True, expiry_time=expiry_unix, is_trial=client_data.is_trial)
+
+    # Лимиты трафика только для пробной подписки (10 ГБ), для платных тарифов - безлимит
+    traffic_bytes: int | None = None
+    if client_data.is_trial:
+        traffic_bytes = None  # build_payload сам проставит 10 ГБ для trial
+    else:
+        traffic_bytes = None  # Для платных тарифов не задаём лимит (безлимит)
+
+    payload = build_payload(
+        reserved_uid,
+        enable=True,
+        expiry_time=expiry_unix,
+        is_trial=client_data.is_trial,
+        traffic_bytes=traffic_bytes,
+    )
     url = COUNTRY_SETTINGS[client_data.server]["urlupdate"] + reserved_uid
     logger.info("panel.update URL=%s", url)
 
@@ -459,7 +486,8 @@ async def extend_config(
     base_time = max(current_time_end, int(time.time()))
     new_time_end = base_time + added_seconds
 
-    payload = build_payload(uid, enable=True, expiry_time=new_time_end, is_trial=False)
+    # При продлении не переопределяем лимит трафика (totalGB), только срок
+    payload = build_payload(uid, enable=True, expiry_time=new_time_end, is_trial=False, traffic_bytes=None)
 
     url = f"{COUNTRY_SETTINGS[update_data.server]['urlupdate']}{uid}"
     logger.info("panel.extend URL=%s", url)
@@ -1056,8 +1084,26 @@ async def get_subscription(tg_id: int):
     body_header_lines: list[str] = []
     if SUB_TITLE:
         body_header_lines.append(f'profile-title: "{SUB_TITLE}"')
+    # Подставляем лимит трафика для v2rayTun через subscription-userinfo
+    # Формат: upload=0; download=0; total=<bytes>; expire=<unix>
+    # Лимиты только для пробной подписки (10 ГБ), для платных тарифов - безлимит
     if max_expire_unix > 0:
-        body_header_lines.append(f'subscription-userinfo: "expire={max_expire_unix}"')
+        # Оцениваем тариф по оставшимся дням (приблизительно)
+        seconds_left = max(0, max_expire_unix - current_time)
+        days_left = (seconds_left + 86399) // 86400  # округление вверх
+        plan_total_bytes: int | None
+        # Лимит 10 ГБ только для пробной подписки (3-5 дней)
+        if days_left <= 5 and days_left > 0:
+            plan_total_bytes = 10 * 1024 * 1024 * 1024    # trial ≈ 10 ГБ
+        else:
+            # Для платных тарифов не задаём лимит (безлимит)
+            plan_total_bytes = None
+        if plan_total_bytes is not None:
+            body_header_lines.append(
+                f'subscription-userinfo: "upload=0; download=0; total={plan_total_bytes}; expire={max_expire_unix}"'
+            )
+        else:
+            body_header_lines.append(f'subscription-userinfo: "expire={max_expire_unix}"')
     if SUB_UPDATE_HOURS:
         body_header_lines.append(f'profile-update-interval: "{SUB_UPDATE_HOURS}"')
     # Форсируем обновление профиля при входе в приложение
@@ -1077,7 +1123,21 @@ async def get_subscription(tg_id: int):
     if SUB_TITLE:
         response_headers["profile-title"] = SUB_TITLE
     if max_expire_unix > 0:
-        response_headers["subscription-userinfo"] = f"expire={max_expire_unix}"
+        seconds_left = max(0, max_expire_unix - current_time)
+        days_left = (seconds_left + 86399) // 86400
+        plan_total_bytes: int | None
+        # Лимит 10 ГБ только для пробной подписки (3-5 дней)
+        if days_left <= 5 and days_left > 0:
+            plan_total_bytes = 10 * 1024 * 1024 * 1024  # trial ≈ 10 ГБ
+        else:
+            # Для платных тарифов не задаём лимит (безлимит)
+            plan_total_bytes = None
+        if plan_total_bytes is not None:
+            response_headers["subscription-userinfo"] = (
+                f"upload=0; download=0; total={plan_total_bytes}; expire={max_expire_unix}"
+            )
+        else:
+            response_headers["subscription-userinfo"] = f"expire={max_expire_unix}"
     if SUB_UPDATE_HOURS:
         response_headers["profile-update-interval"] = SUB_UPDATE_HOURS
     # Заголовок для форс-обновления
@@ -1131,10 +1191,13 @@ async def add_config_page(
         # Нечего отдавать
         return PlainTextResponse(content="", status_code=204)
     # Иначе рендерим HTML-страницу для пользователя
-    return templates.TemplateResponse(
+    response = templates.TemplateResponse(
         "subscription.html",
         {"request": request, "config": config, "expiry": expiry, "sub_key": sub_key, "subscription": subscription},
     )
+    # Добавляем X-Robots-Tag для предотвращения индексации
+    response.headers["X-Robots-Tag"] = "noindex, nofollow"
+    return response
 
 @router.get("/sub/{user_id}")
 async def get_sub_key(user_id: str, _: None = Depends(verify_api_key)):
@@ -1174,6 +1237,14 @@ async def get_all_id(_: None = Depends(verify_api_key)):
 async def get_expiring_users(_: None = Depends(verify_api_key)):
     """Возвращает пользователей с истекающими подписками (в течение 5 часов)."""
     return await db.users_with_subscription_expiring_within_5h("users.db")
+
+
+@router.get("/active-users/ids")
+async def get_active_user_ids(_: None = Depends(verify_api_key)):
+    """Возвращает список tg_id пользователей с активными подписками."""
+    users = await db.get_all_active_users()
+    ids = [u["tg_id"] for u in users]
+    return {"count": len(ids), "ids": ids}
 
 
 @router.post(
@@ -1395,6 +1466,7 @@ async def robots_txt() -> PlainTextResponse:
         "Disallow: /api/\n"
         "Disallow: /admin/\n"
         "Disallow: /_internal/\n"
+        "Disallow: /subscription/\n"
         "Disallow: /*.json\n"
         "Disallow: /*?*\n\n"
         "# Разрешаем индексацию основных страниц\n"
@@ -1411,6 +1483,8 @@ async def robots_txt() -> PlainTextResponse:
 @router.get("/sitemap.xml", include_in_schema=False)
 async def sitemap_xml() -> Response:
     """Генерирует карту сайта для поисковых систем."""
+    from datetime import date
+    lastmod = date.today().isoformat()
     urls: list[dict] = [
         {"loc": f"{BASE_URL}/", "changefreq": "weekly", "priority": "1.0"},
         {"loc": f"{BASE_URL}/offer", "changefreq": "monthly", "priority": "0.8"},
@@ -1424,7 +1498,7 @@ async def sitemap_xml() -> Response:
             f"    <loc>{url_info['loc']}</loc>\n"
             f"    <changefreq>{url_info['changefreq']}</changefreq>\n"
             f"    <priority>{url_info['priority']}</priority>\n"
-            "    <lastmod>2024-10-10</lastmod>\n"
+            f"    <lastmod>{lastmod}</lastmod>\n"
             "  </url>"
         )
 

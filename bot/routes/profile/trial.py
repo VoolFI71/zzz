@@ -71,7 +71,7 @@ async def free_trial(message: types.Message):
         session = await get_session()
         async with acquire_action_lock(user_id, "free_trial"):
             for server in servers_to_use:
-                data = {"time": 3, "id": str(user_id), "server": server}
+                data = {"time": 3, "id": str(user_id), "server": server, "is_trial": True}
                 async with session.post(urlupdate, json=data, headers={"X-API-Key": AUTH_CODE}) as resp:
                     if resp.status == 200:
                         success_count += 1
