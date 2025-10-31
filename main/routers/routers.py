@@ -1452,6 +1452,15 @@ async def offer_page(request: Request):  # noqa: D401
 
 
 # ---------------------------------------------------------------------------
+# Favicon
+# ---------------------------------------------------------------------------
+
+@router.get("/favicon.ico", include_in_schema=False)
+async def favicon() -> RedirectResponse:
+    """Редирект на SVG favicon для совместимости с браузерами."""
+    return RedirectResponse(url="/static/gls-avatar-wordmark.svg", status_code=302)
+
+# ---------------------------------------------------------------------------
 # SEO: robots.txt и sitemap.xml
 # ---------------------------------------------------------------------------
 
