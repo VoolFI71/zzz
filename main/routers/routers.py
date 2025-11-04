@@ -88,7 +88,7 @@ def load_country_settings() -> dict[str, dict[str, str]]:
             "urldelete": _env_any("URLDELETE_FI", "urldelete_fi", default=""),
             "host": _env_any("HOST_FI", "host_fi", default=""),
             "pbk": _env_any("PBK_FI", "pbk_fi", default=""),
-            "sni": _env_any("SNI_FI", "sni_fi", default="m.vk.com"),
+            "sni": _env_any("SNI_FI", "sni_fi", default="eh.vk.com"),
             "sid": _env_any("SID_FI", "sid_fi", default=""),
         },
     }
