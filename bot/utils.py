@@ -88,13 +88,13 @@ async def pick_first_available_server(preferred_order: list[str] | None = None) 
 
     Порядок:
     - Если передан preferred_order — используем его.
-    - Иначе читаем из ENV SERVER_ORDER (например, "ge"), иначе дефолт ["ge"].
+    - Иначе читаем из ENV SERVER_ORDER (например, "fi,ge"), иначе дефолт ["fi", "ge"].
     """
     if preferred_order is None:
-        env_order = os.getenv("SERVER_ORDER", "ge")
+        env_order = os.getenv("SERVER_ORDER", "fi,ge")
         preferred_order = [s.strip().lower() for s in env_order.split(",") if s.strip()]
         if not preferred_order:
-            preferred_order = ["ge"]
+            preferred_order = ["fi", "ge"]
 
     # Уникализируем, сохраняем порядок
     seen: set[str] = set()
@@ -115,9 +115,9 @@ async def pick_first_available_server(preferred_order: list[str] | None = None) 
 
 
 def _parse_server_order() -> list[str]:
-    env_order = os.getenv("SERVER_ORDER", "ge")
+    env_order = os.getenv("SERVER_ORDER", "fi,ge")
     order = [s.strip().lower() for s in env_order.split(",") if s.strip()]
-    return order or ["ge"]
+    return order or ["fi", "ge"]
 
 
 def _get_region_variants_map() -> dict[str, list[str]]:

@@ -6,7 +6,7 @@ import os
 import aiohttp
 from aiogram import Router, F, types
 from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
-from utils import should_throttle, acquire_action_lock, check_all_servers_available, get_session
+from utils import should_throttle, acquire_action_lock, check_all_servers_available, get_session, format_server_list
 from keyboards.ui_labels import BTN_TRIAL
 from database import db
 from keyboards import keyboard
@@ -52,7 +52,7 @@ async def free_trial(message: types.Message):
     progress_msg = await message.answer("🔄 Активирую пробную подписку...")
     
     # Выдаем конфиги на всех серверах из SERVER_ORDER (как при покупке подписки)
-    server_order_env = os.getenv("SERVER_ORDER", "ge")
+    server_order_env = os.getenv("SERVER_ORDER", "fi,ge")
     servers_to_use = [s.strip().lower() for s in server_order_env.split(',') if s.strip()]
     # Выбираем по одному варианту на регион (ge*)
     try:
@@ -65,6 +65,7 @@ async def free_trial(message: types.Message):
     AUTH_CODE = os.getenv("AUTH_CODE")
     urlupdate = "http://fastapi:8080/giveconfig"
     success_count = 0
+    successful_servers: list[str] = []
     failed_servers = []
     
     try:
@@ -75,6 +76,7 @@ async def free_trial(message: types.Message):
                 async with session.post(urlupdate, json=data, headers={"X-API-Key": AUTH_CODE}) as resp:
                     if resp.status == 200:
                         success_count += 1
+                        successful_servers.append(server)
                     else:
                         failed_servers.append(server)
             
@@ -103,7 +105,13 @@ async def free_trial(message: types.Message):
                     [InlineKeyboardButton(text="📲 Добавить подписку в V2rayTun", web_app=WebAppInfo(url=web_url))],
                     [InlineKeyboardButton(text="📋 Скопировать ссылку", callback_data="copy_sub")],
                 ])
-                await message.answer(f"🎉 Пробная подписка на 3 дня активирована на {success_count} серверах!", reply_markup=kb)
+                servers_text = format_server_list(successful_servers)
+                await message.answer(
+                    "🎉 Пробная подписка активирована!\n\n"
+                    f"Сервера: {servers_text}.\n"
+                    "Срок: 3 дн.",
+                    reply_markup=kb,
+                )
                 await message.answer("💡 Подписка может быть не добавлена при нажатии на кнопку на сайте, в этом случае необходимо скопировать ссылку на подписку и вставить в V2rayTun вручную.")
 
                 try:
@@ -116,7 +124,12 @@ async def free_trial(message: types.Message):
                 await message.answer("❌ Не удалось активировать пробную подписку. Серверы временно недоступны. Попробуйте через 5-10 минут.", reply_markup=keyboard.create_keyboard())
                 
             if failed_servers:
-                await message.answer(f"⚠️ Частично активировано: не удалось создать конфиги на серверах {', '.join(failed_servers)}. Остальные серверы работают.", reply_markup=keyboard.create_keyboard())
+                failed_text = format_server_list(failed_servers)
+                await message.answer(
+                    "⚠️ Частично активировано: не удалось создать конфиги на серверах "
+                    f"{failed_text}. Остальные серверы работают.",
+                    reply_markup=keyboard.create_keyboard(),
+                )
                 
     except aiohttp.ClientError:
         await message.answer("🌐 Проблемы с подключением к серверам. Проверьте интернет и попробуйте позже.", reply_markup=keyboard.create_keyboard())
