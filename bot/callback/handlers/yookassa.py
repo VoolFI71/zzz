@@ -336,7 +336,7 @@ async def check_yookassa(callback_query: CallbackQuery, state: FSMContext, bot: 
 
 async def give_configs_on_all_servers_yookassa(tg_id: int, days: int, servers: list, bot: Bot) -> None:
     """Выдает конфиги на всех указанных серверах для нового пользователя (YooKassa)."""
-    from utils import get_session
+    from utils import get_session, format_server_list
     import aiohttp
     
     AUTH_CODE = os.getenv("AUTH_CODE")
@@ -344,6 +344,7 @@ async def give_configs_on_all_servers_yookassa(tg_id: int, days: int, servers: l
     session = await get_session()
     
     success_count = 0
+    successful_servers: list[str] = []
     failed_servers = []
     
     for server in servers:
@@ -352,6 +353,7 @@ async def give_configs_on_all_servers_yookassa(tg_id: int, days: int, servers: l
             async with session.post(urlupdate, json=data, headers={"X-API-Key": AUTH_CODE}) as resp:
                 if resp.status == 200:
                     success_count += 1
+                    successful_servers.append(server)
                 else:
                     failed_servers.append(server)
         except Exception as e:
@@ -360,10 +362,17 @@ async def give_configs_on_all_servers_yookassa(tg_id: int, days: int, servers: l
     
     # Уведомляем пользователя о результате
     if success_count > 0:
-        await bot.send_message(tg_id, f"✅ Оплата прошла успешно! \n\nПолучить подписку можно в Личном кабинете → Мои подключения")
+        servers_text = format_server_list(successful_servers)
+        await bot.send_message(
+            tg_id,
+            "✅ Оплата прошла успешно!\n\n"
+            f"Подписка активирована на серверах: {servers_text}.\n\n"
+            "Получить подписку можно в Личном кабинете → Мои подключения",
+        )
     
     if failed_servers:
-        await bot.send_message(tg_id, f"⚠️ Не удалось создать конфиги на серверах: {', '.join(failed_servers)}")
+        failed_text = format_server_list(failed_servers)
+        await bot.send_message(tg_id, f"⚠️ Не удалось создать конфиги на серверах: {failed_text}")
 
 
 async def extend_existing_configs_yookassa(tg_id: int, days: int, bot: Bot) -> None:

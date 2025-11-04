@@ -82,6 +82,15 @@ def load_country_settings() -> dict[str, dict[str, str]]:
             "sni": _env_any("SNI_GE", "sni_ge", default="eh.vk.com"),
             "sid": _env_any("SID_GE", "sid_ge", default=""),
         },
+        "fi": {
+            "urlcreate": _env_any("URLCREATE_FI", "urlcreate_fi", default=""),
+            "urlupdate": _env_any("URLUPDATE_FI", "urlupdate_fi", default=""),
+            "urldelete": _env_any("URLDELETE_FI", "urldelete_fi", default=""),
+            "host": _env_any("HOST_FI", "host_fi", default=""),
+            "pbk": _env_any("PBK_FI", "pbk_fi", default=""),
+            "sni": _env_any("SNI_FI", "sni_fi", default="m.vk.com"),
+            "sid": _env_any("SID_FI", "sid_fi", default=""),
+        },
     }
 
     variant_codes: set[str] = set()
@@ -93,7 +102,7 @@ def load_country_settings() -> dict[str, dict[str, str]]:
                 variant_codes.add(suffix)
 
     # Ensure base codes present
-    variant_codes.update(["ge"])  # keep existing bases
+    variant_codes.update(["ge", "fi"])  # keep existing bases
 
     for code in sorted(variant_codes):
         lc = code.lower()
@@ -121,6 +130,7 @@ COUNTRY_SETTINGS: dict[str, dict[str, str]] = load_country_settings()
 COUNTRY_LABELS: dict[str, str] = {
     "nl": "Netherlands 🇳🇱",
     "ge": "Germany 🇩🇪",
+    "fi": "Finland 🇫🇮",
 }
 
 def _is_browser_request(headers: dict[str, str]) -> bool:

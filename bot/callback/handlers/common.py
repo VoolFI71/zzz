@@ -240,7 +240,7 @@ async def activate_balance(callback_query: CallbackQuery, bot: Bot, state: FSMCo
 
 async def give_configs_on_all_servers_balance(tg_id: int, days: int, servers: list, bot: Bot) -> None:
     """Выдает конфиги на всех указанных серверах для нового пользователя (активация баланса)."""
-    from utils import get_session
+    from utils import get_session, format_server_list
     import aiohttp
     
     AUTH_CODE = os.getenv("AUTH_CODE")
@@ -248,6 +248,7 @@ async def give_configs_on_all_servers_balance(tg_id: int, days: int, servers: li
     session = await get_session()
     
     success_count = 0
+    successful_servers: list[str] = []
     failed_servers = []
     
     for server in servers:
@@ -256,6 +257,7 @@ async def give_configs_on_all_servers_balance(tg_id: int, days: int, servers: li
             async with session.post(urlupdate, json=data, headers={"X-API-Key": AUTH_CODE}) as resp:
                 if resp.status == 200:
                     success_count += 1
+                    successful_servers.append(server)
                 else:
                     failed_servers.append(server)
         except Exception as e:
@@ -271,9 +273,22 @@ async def give_configs_on_all_servers_balance(tg_id: int, days: int, servers: li
             sub_key = await db.get_or_create_sub_key(str(tg_id))
             base = os.getenv("PUBLIC_BASE_URL", "https://swaga.space").rstrip('/')
             sub_url = f"{base}/subscription/{sub_key}"
-            await bot.send_message(tg_id, f"✅ Активировано {days} дн. на {success_count} серверах!\n\nВаша ссылка подписки: {sub_url}")
+            servers_text = format_server_list(successful_servers)
+            await bot.send_message(
+                tg_id,
+                "✅ Активированы бонусные дни!\n\n"
+                f"Подписка действует на серверах: {servers_text}.\n"
+                f"Срок: {days} дн.\n\n"
+                f"Ваша ссылка подписки: {sub_url}",
+            )
         except Exception:
-            await bot.send_message(tg_id, f"✅ Активировано {days} дн. на {success_count} серверах!")
+            servers_text = format_server_list(successful_servers)
+            await bot.send_message(
+                tg_id,
+                "✅ Активированы бонусные дни!\n\n"
+                f"Подписка действует на серверах: {servers_text}.\n"
+                f"Срок: {days} дн.",
+            )
         
         # Уведомляем администратора о активации бонусных дней
         try:
@@ -281,13 +296,14 @@ async def give_configs_on_all_servers_balance(tg_id: int, days: int, servers: li
             username = "—"  # Можно добавить получение username если нужно
             await bot.send_message(
                 admin_id,
-                f"🎁 Активация бонусных дней: user_id={tg_id}, дней={days}, серверов={success_count}"
+                f"🎁 Активация бонусных дней: user_id={tg_id}, дней={days}, серверы={format_server_list(successful_servers)}"
             )
         except Exception:
             pass
     
     if failed_servers:
-        await bot.send_message(tg_id, f"⚠️ Не удалось создать конфиги на серверах: {', '.join(failed_servers)}")
+        failed_text = format_server_list(failed_servers)
+        await bot.send_message(tg_id, f"⚠️ Не удалось создать конфиги на серверах: {failed_text}")
 
 
 async def extend_existing_configs_balance(tg_id: int, days: int, bot: Bot) -> None:

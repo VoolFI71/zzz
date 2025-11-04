@@ -4,6 +4,7 @@ import logging
 import asyncio
 import time
 from contextlib import asynccontextmanager
+from typing import Iterable
 
 _session: aiohttp.ClientSession | None = None
 
@@ -18,6 +19,36 @@ async def get_session() -> aiohttp.ClientSession:
 AUTH_CODE = os.getenv("AUTH_CODE")
 
 logger = logging.getLogger(__name__)
+
+SERVER_DISPLAY_NAMES: dict[str, str] = {
+    "fi": "🇫🇮 Финляндия",
+    "ge": "🇩🇪 Германия",
+    "nl": "🇳🇱 Нидерланды",
+    "us": "🇺🇸 США",
+    "pl": "🇵🇱 Польша",
+    "se": "🇸🇪 Швеция",
+    "fr": "🇫🇷 Франция",
+    "gb": "🇬🇧 Великобритания",
+    "uk": "🇬🇧 Великобритания",
+    "tr": "🇹🇷 Турция",
+}
+
+
+def format_server_name(code: str) -> str:
+    """Возвращает красивое имя сервера с флагом."""
+
+    return SERVER_DISPLAY_NAMES.get(code.lower(), code.upper())
+
+
+def format_server_list(server_codes: Iterable[str]) -> str:
+    """Собирает человекочитаемый список серверов для сообщений."""
+
+    seen: list[str] = []
+    for code in server_codes:
+        label = format_server_name(code)
+        if label not in seen:
+            seen.append(label)
+    return ", ".join(seen) if seen else "—"
 
 async def check_available_configs(server: str | None = None) -> bool:
     """Возвращает True, если есть свободные конфиги.

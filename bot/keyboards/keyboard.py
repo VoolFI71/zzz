@@ -50,6 +50,7 @@ def create_server_keyboard():
 
     # Simple mapping of known titles/flags; unknown codes will be shown uppercased without flag
     titles = {
+        "fi": "Финляндия",
         "nl": "Нидерланды",
         "de": "Германия",
         "ge": "Германия",
