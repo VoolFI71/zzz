@@ -176,7 +176,7 @@ async def get_config_statistics() -> dict:
                     free = len([c for c in configs if not c.get("is_owned", False)])
                     
                     # Подсчет по серверам
-                    fi_count = len([c for c in configs if c.get("server_country") == "fi"])
+                    au_count = len([c for c in configs if c.get("server_country") == "au"])
                     nl_count = len([c for c in configs if c.get("server_country") == "nl"])
                     ge_count = len([c for c in configs if c.get("server_country") == "ge"])
                     
@@ -185,7 +185,7 @@ async def get_config_statistics() -> dict:
                         'active': active,
                         'expired': expired,
                         'free': free,
-                        'fi_count': 0,
+                        'au_count': au_count,
                         'nl_count': nl_count,
                         'ge_count': ge_count
                     }

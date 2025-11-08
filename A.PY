@@ -1,30 +1,36 @@
-n, target = map(int, input().split())
-arr = list(map(int, input().split()))
+import sys
+import bisect
 
-INF = 10 ** 9
-best = [INF] * (target + 1)
-best[0] = 0
-ans = INF
+def main() -> None:
+    data = list(map(int, sys.stdin.buffer.read().split()))
+    n, m = data[:2]
+    ptr = 2
 
-for value in arr:
-    new = [INF] * (target + 1)
-    new[0] = 0
-    for s in range(1, target + 1):
-        prev = best[s]
-        if prev < INF:
-            length = prev + 1
-            if length < new[s]:
-                new[s] = length
-        if s >= value:
-            prev = best[s - value]
-            if prev < INF:
-                length = prev + 1
-                if length < new[s]:
-                    new[s] = length
-    if value <= target and new[value] > 1:
-        new[value] = 1
-    best = new
-    if best[target] < ans:
-        ans = best[target]
+    left = []
+    right = []
+    for _ in range(n):
+        a = data[ptr]
+        b = data[ptr + 1]
+        ptr += 2
+        if a <= b:
+            left.append(a)
+            right.append(b)
+        else:
+            left.append(b)
+            right.append(a)
 
-print(ans if ans < INF else -1)
+    points = data[ptr : ptr + m]
+
+    left.sort()
+    right.sort()
+
+    out_lines = []
+    for x in points:
+        started = bisect.bisect_right(left, x)
+        finished = bisect.bisect_left(right, x)
+        out_lines.append(str(started - finished))
+
+    sys.stdout.write(" ".join(out_lines))
+
+if __name__ == "__main__":
+    main()

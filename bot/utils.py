@@ -21,7 +21,7 @@ AUTH_CODE = os.getenv("AUTH_CODE")
 logger = logging.getLogger(__name__)
 
 SERVER_DISPLAY_NAMES: dict[str, str] = {
-    "fi": "🇫🇮 Финляндия",
+    "au": "🇦🇹 Австрия",
     "ge": "🇩🇪 Германия",
     "nl": "🇳🇱 Нидерланды",
     "us": "🇺🇸 США",
@@ -88,13 +88,13 @@ async def pick_first_available_server(preferred_order: list[str] | None = None) 
 
     Порядок:
     - Если передан preferred_order — используем его.
-    - Иначе читаем из ENV SERVER_ORDER (например, "fi,ge"), иначе дефолт ["fi", "ge"].
+    - Иначе читаем из ENV SERVER_ORDER (например, "au,ge"), иначе дефолт ["au", "ge"].
     """
     if preferred_order is None:
-        env_order = os.getenv("SERVER_ORDER", "fi,ge")
+        env_order = os.getenv("SERVER_ORDER", "au,ge")
         preferred_order = [s.strip().lower() for s in env_order.split(",") if s.strip()]
         if not preferred_order:
-            preferred_order = ["fi", "ge"]
+            preferred_order = ["au", "ge"]
 
     # Уникализируем, сохраняем порядок
     seen: set[str] = set()
@@ -115,9 +115,9 @@ async def pick_first_available_server(preferred_order: list[str] | None = None) 
 
 
 def _parse_server_order() -> list[str]:
-    env_order = os.getenv("SERVER_ORDER", "fi,ge")
+    env_order = os.getenv("SERVER_ORDER", "au,ge")
     order = [s.strip().lower() for s in env_order.split(",") if s.strip()]
-    return order or ["fi", "ge"]
+    return order or ["au", "ge"]
 
 
 def _get_region_variants_map() -> dict[str, list[str]]:

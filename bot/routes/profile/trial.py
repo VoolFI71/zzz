@@ -52,7 +52,7 @@ async def free_trial(message: types.Message):
     progress_msg = await message.answer("🔄 Активирую пробную подписку...")
     
     # Выдаем конфиги на всех серверах из SERVER_ORDER (как при покупке подписки)
-    server_order_env = os.getenv("SERVER_ORDER", "fi,ge")
+    server_order_env = os.getenv("SERVER_ORDER", "au,ge")
     servers_to_use = [s.strip().lower() for s in server_order_env.split(',') if s.strip()]
     # Выбираем по одному варианту на регион (ge*)
     try:

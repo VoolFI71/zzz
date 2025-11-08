@@ -42,7 +42,7 @@ if AUTH_CODE is None:
 def _get_cookie(server_code: str) -> str:
     """Возвращает cookie для панели конкретного сервера.
 
-    Ищет переменную окружения вида ``COOKIE_fi`` или ``cookie_fi`` (регистр ключа не важен).
+    Ищет переменную окружения вида ``COOKIE_au`` или ``cookie_au`` (регистр ключа не важен).
     Возвращает пустую строку, если переменная не найдена.
     """
     target_key = f"cookie_{server_code.lower()}"
@@ -82,14 +82,14 @@ def load_country_settings() -> dict[str, dict[str, str]]:
             "sni": _env_any("SNI_GE", "sni_ge", default="eh.vk.com"),
             "sid": _env_any("SID_GE", "sid_ge", default=""),
         },
-        "fi": {
-            "urlcreate": _env_any("URLCREATE_FI", "urlcreate_fi", default=""),
-            "urlupdate": _env_any("URLUPDATE_FI", "urlupdate_fi", default=""),
-            "urldelete": _env_any("URLDELETE_FI", "urldelete_fi", default=""),
-            "host": _env_any("HOST_FI", "host_fi", default=""),
-            "pbk": _env_any("PBK_FI", "pbk_fi", default=""),
-            "sni": _env_any("SNI_FI", "sni_fi", default="eh.vk.com"),
-            "sid": _env_any("SID_FI", "sid_fi", default=""),
+        "au": {
+            "urlcreate": _env_any("URLCREATE_AU", "urlcreate_au", default=""),
+            "urlupdate": _env_any("URLUPDATE_AU", "urlupdate_au", default=""),
+            "urldelete": _env_any("URLDELETE_AU", "urldelete_au", default=""),
+            "host": _env_any("HOST_AU", "host_au", default=""),
+            "pbk": _env_any("PBK_AU", "pbk_au", default=""),
+            "sni": _env_any("SNI_AU", "sni_au", default="ir.ozone.ru"),
+            "sid": _env_any("SID_AU", "sid_au", default=""),
         },
     }
 
@@ -102,7 +102,7 @@ def load_country_settings() -> dict[str, dict[str, str]]:
                 variant_codes.add(suffix)
 
     # Ensure base codes present
-    variant_codes.update(["ge", "fi"])  # keep existing bases
+    variant_codes.update(["ge", "au"])  # keep existing bases
 
     for code in sorted(variant_codes):
         lc = code.lower()
@@ -130,7 +130,7 @@ COUNTRY_SETTINGS: dict[str, dict[str, str]] = load_country_settings()
 COUNTRY_LABELS: dict[str, str] = {
     "nl": "Netherlands 🇳🇱",
     "ge": "Germany 🇩🇪",
-    "fi": "Finland 🇫🇮",
+    "au": "Austria 🇦🇹",
 }
 
 def _is_browser_request(headers: dict[str, str]) -> bool:
@@ -836,7 +836,7 @@ async def delete_db_configs(
 )
 async def reprovision_all(
     request: Request,
-    server_from: str = Body(..., description="Код исходного сервера (например, fi)"),
+    server_from: str = Body(..., description="Код исходного сервера (например, au)"),
     server_to: str = Body(..., description="Код целевого сервера (например, fi2)"),
     _: None = Depends(verify_api_key),
 ):
@@ -911,7 +911,7 @@ async def reprovision_all(
 @router.post("/reprovision-all-configs")
 async def reprovision_all_configs(
     request: Request,
-    server_from: str = Body(..., description="Код исходного сервера (например, fi)"),
+    server_from: str = Body(..., description="Код исходного сервера (например, au)"),
     server_to: str = Body(..., description="Код целевого сервера (например, fi2)"),
     _: None = Depends(verify_api_key),
 ):
@@ -988,7 +988,7 @@ async def reprovision_all_configs(
 )
 async def check_available_configs(
     server: str | None = Query(
-        default=None, description="Код страны сервера, например `fi`"),
+        default=None, description="Код страны сервера, например `au`"),
     _: None = Depends(verify_api_key),
 ):
     """Проверяет наличие свободных конфигов."""
