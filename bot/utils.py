@@ -123,7 +123,7 @@ def _parse_server_order() -> list[str]:
 def _get_region_variants_map() -> dict[str, list[str]]:
     """Возвращает карту базового кода региона -> список вариантов серверов.
 
-    Читает переменные окружения вида SERVER_VARIANTS_FI, SERVER_VARIANTS_GE.
+    Читает переменные окружения вида SERVER_VARIANTS_AU, SERVER_VARIANTS_GE.
     Если переменная не задана, по умолчанию использует один вариант — сам базовый код.
     """
     region_to_variants: dict[str, list[str]] = {}
@@ -170,7 +170,7 @@ async def pick_servers_one_per_region(order_bases: list[str] | None = None) -> l
 
 async def check_all_servers_available() -> bool:
     """Проверяет доступность по регионам: для каждой базовой страны (из SERVER_ORDER)
-    должен быть доступен хотя бы один вариант (ge/ge2...).
+    должен быть доступен хотя бы один вариант (au/au2, ge/ge2...).
 
     Если у региона нет ни одного доступного варианта — возвращает False.
     """
@@ -180,11 +180,13 @@ async def check_all_servers_available() -> bool:
         region_ok = False
         for code in variants:
             try:
-                if await check_available_configs(code):
+                available = await check_available_configs(code)
+                logger.debug(f"Server {code} availability: {available}")
+                if available:
                     region_ok = True
                     break
             except Exception as e:
-                logger.warning(f"Error checking server {code}: {e}")
+                logger.warning(f"Error checking server {code}: {e}", exc_info=True)
                 continue
         if not region_ok:
             logger.warning(f"No available servers found for region {base} among {variants}")
