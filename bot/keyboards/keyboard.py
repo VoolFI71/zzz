@@ -42,15 +42,14 @@ def create_admin_keyboard():
 
 
 def create_server_keyboard():
-    # Read ordered list of servers from env, e.g., "au,nl,de,us"
-    order_env = os.getenv("SERVER_ORDER", "au,ge").strip()
+    # Read ordered list of servers from env, e.g., "nl,de,us"
+    order_env = os.getenv("SERVER_ORDER", "ge").strip()
     server_codes = [s.strip().lower() for s in order_env.split(',') if s.strip()]
     if not server_codes:
         server_codes = ["ge"]
 
     # Simple mapping of known titles/flags; unknown codes will be shown uppercased without flag
     titles = {
-        "au": "Австрия",
         "nl": "Нидерланды",
         "de": "Германия",
         "ge": "Германия",
@@ -63,7 +62,6 @@ def create_server_keyboard():
         "tr": "Турция",
     }
     flags = {
-        "au": "🇦🇹",
         "nl": "🇳🇱",
         "de": "🇩🇪",
         "ge": "🇩🇪",

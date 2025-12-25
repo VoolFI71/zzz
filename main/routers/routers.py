@@ -82,15 +82,6 @@ def load_country_settings() -> dict[str, dict[str, str]]:
             "sni": _env_any("SNI_GE", "sni_ge", default="eh.vk.com"),
             "sid": _env_any("SID_GE", "sid_ge", default=""),
         },
-        "au": {
-            "urlcreate": _env_any("URLCREATE_AU", "urlcreate_au", default=""),
-            "urlupdate": _env_any("URLUPDATE_AU", "urlupdate_au", default=""),
-            "urldelete": _env_any("URLDELETE_AU", "urldelete_au", default=""),
-            "host": _env_any("HOST_AU", "host_au", default=""),
-            "pbk": _env_any("PBK_AU", "pbk_au", default=""),
-            "sni": _env_any("SNI_AU", "sni_au", default="ir.ozone.ru"),
-            "sid": _env_any("SID_AU", "sid_au", default=""),
-        },
     }
 
     variant_codes: set[str] = set()
@@ -102,7 +93,7 @@ def load_country_settings() -> dict[str, dict[str, str]]:
                 variant_codes.add(suffix)
 
     # Ensure base codes present
-    variant_codes.update(["ge", "au"])  # keep existing bases
+    variant_codes.update(["ge"])  # keep existing bases
 
     for code in sorted(variant_codes):
         lc = code.lower()
@@ -130,7 +121,6 @@ COUNTRY_SETTINGS: dict[str, dict[str, str]] = load_country_settings()
 COUNTRY_LABELS: dict[str, str] = {
     "nl": "Netherlands 🇳🇱",
     "ge": "Germany 🇩🇪",
-    "au": "Austria 🇦🇹",
 }
 
 def _is_browser_request(headers: dict[str, str]) -> bool:
@@ -836,7 +826,7 @@ async def delete_db_configs(
 )
 async def reprovision_all(
     request: Request,
-    server_from: str = Body(..., description="Код исходного сервера (например, au)"),
+    server_from: str = Body(..., description="Код исходного сервера (например, ge)"),
     server_to: str = Body(..., description="Код целевого сервера (например, fi2)"),
     _: None = Depends(verify_api_key),
 ):
@@ -911,7 +901,7 @@ async def reprovision_all(
 @router.post("/reprovision-all-configs")
 async def reprovision_all_configs(
     request: Request,
-    server_from: str = Body(..., description="Код исходного сервера (например, au)"),
+    server_from: str = Body(..., description="Код исходного сервера (например, ge)"),
     server_to: str = Body(..., description="Код целевого сервера (например, fi2)"),
     _: None = Depends(verify_api_key),
 ):
@@ -988,7 +978,7 @@ async def reprovision_all_configs(
 )
 async def check_available_configs(
     server: str | None = Query(
-        default=None, description="Код страны сервера, например `au`"),
+        default=None, description="Код страны сервера, например `ge`"),
     _: None = Depends(verify_api_key),
 ):
     """Проверяет наличие свободных конфигов."""

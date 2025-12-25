@@ -5,7 +5,6 @@ from typing import Dict, Optional
 import uuid
 
 country = {
-    "au": "Австрия",
     "nl": "Нидерланды",
     "ge": "Германия"
 }
@@ -711,7 +710,7 @@ async def get_all_rows_by_server(server_country: str):
     """Получает все записи (активные + свободные) для конкретного сервера.
     
     Args:
-        server_country: Код страны сервера (например, 'au', 'ge')
+        server_country: Код страны сервера (например, 'ge')
         
     Returns:
         List[Tuple]: Список кортежей (tg_id, user_code, time_end, server_country)

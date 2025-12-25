@@ -58,7 +58,6 @@ async def my_configs(message: types.Message):
                         active_configs = []
                         # Map server code -> nice title and flag (synced with keyboard)
                         server_titles = {
-                            'au': 'Австрия',
                             'nl': 'Нидерланды',
                             'ge': 'Германия',
                             'us': 'США',
@@ -70,7 +69,6 @@ async def my_configs(message: types.Message):
                             'tr': 'Турция',
                         }
                         server_flags = {
-                            'au': '🇦🇹',
                             'nl': '🇳🇱',
                             'ge': '🇩🇪',
                             'us': '🇺🇸',

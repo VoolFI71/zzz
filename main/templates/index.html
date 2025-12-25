@@ -1992,21 +1992,30 @@ footer a:hover{color:var(--text)}
           <div class="cta">
             <a class="btn primary" href="#pricing" data-i18n="cta.choose_plan">Выбрать тариф</a>
           </div>
-          <div class="badges">
-            <span>iOS</span><span>Android</span><span>Windows</span><span>macOS</span>
+          <div class="badges" role="list" aria-label="Поддерживаемые платформы">
+            <span role="listitem">iOS</span><span role="listitem">Android</span><span role="listitem">Windows</span><span role="listitem">macOS</span>
           </div>
         </div>
-        <div class="hero__art">
-          <div class="glass card">
-            <h3 data-i18n="hero.card.title">Шифрование Reality</h3>
-            <p data-i18n="hero.card.desc">Скрывает трафик под легитимный TLS, обходя блокировки и DPI.</p>
-            <div class="stats">
-              <div><strong>200+</strong><span data-i18n="stats.connections">соединений</span></div>
-              <div><strong>99.9%</strong><span data-i18n="stats.uptime">аптайм</span></div>
-              <div><strong data-i18n="stats.one_click_num">1 клик</strong><span data-i18n="stats.connection">подключение</span></div>
-            </div>
-          </div>
-        </div>
+        <aside class="hero__art" aria-label="Ключевые преимущества">
+          <article class="glass card" itemscope itemtype="https://schema.org/Service">
+            <h3 data-i18n="hero.card.title" itemprop="name">Шифрование Reality</h3>
+            <p data-i18n="hero.card.desc" itemprop="description">Скрывает трафик под легитимный TLS, обходя блокировки и DPI.</p>
+            <dl class="stats" role="list" aria-label="Статистика сервиса">
+              <div role="listitem">
+                <dt class="sr-only">Количество активных соединений</dt>
+                <dd><strong>200+</strong><span data-i18n="stats.connections">соединений</span></dd>
+              </div>
+              <div role="listitem">
+                <dt class="sr-only">Процент аптайма</dt>
+                <dd><strong>99.9%</strong><span data-i18n="stats.uptime">аптайм</span></dd>
+              </div>
+              <div role="listitem">
+                <dt class="sr-only">Скорость подключения</dt>
+                <dd><strong data-i18n="stats.one_click_num">1 клик</strong><span data-i18n="stats.connection">подключение</span></dd>
+              </div>
+            </dl>
+          </article>
+        </aside>
       </div>
       <div class="blur b1"></div>
       <div class="blur b2"></div>
@@ -2043,46 +2052,49 @@ footer a:hover{color:var(--text)}
     <section id="pricing" class="section" aria-labelledby="pricing-title">
       <div class="container">
         <h2 id="pricing-title" class="section__title" data-i18n="pricing.title">VPN Тарифы - Купить VPN дешево в России</h2>
-        <div class="pricing">
-          <div class="price-card popular">
-            <div class="ribbon" data-i18n="pricing.p2.ribbon">Популярно</div>
-            <h3 data-i18n="pricing.p2.title">1 месяц</h3>
-            <div class="price">149 ₽</div>
-            <ul>
+        <div class="pricing" role="list" aria-label="Тарифные планы VPN">
+          <article class="price-card popular" role="listitem" itemscope itemtype="https://schema.org/Offer">
+            <div class="ribbon" data-i18n="pricing.p2.ribbon" aria-label="Популярный тариф">Популярно</div>
+            <h3 data-i18n="pricing.p2.title" itemprop="name">1 месяц</h3>
+            <div class="price"><span itemprop="price" content="149">149</span> <span itemprop="priceCurrency" content="RUB">₽</span></div>
+            <meta itemprop="availability" content="https://schema.org/InStock" />
+            <ul role="list">
               <li data-i18n="pricing.p2.li1">Доступ на 31 день</li>
               <li data-i18n="pricing.p2.li2">Безлимитный трафик</li>
               <li data-i18n="pricing.p2.li3">Быстрое подключение</li>
             </ul>
-            <a class="btn primary w100" href="https://t.me/glsvpn_bot" target="_blank" rel="noopener noreferrer" data-i18n="pricing.p2.btn">Выбрать</a>
-          </div>
-          <div class="price-card">
-            <div class="ribbon free-ribbon">Бесплатно</div>
-            <h3 data-i18n="pricing.p1.title">Тестовый период</h3>
-            <div class="price">0 ₽</div>
-            <ul>
+            <a class="btn primary w100" href="https://t.me/glsvpn_bot" target="_blank" rel="noopener noreferrer" data-i18n="pricing.p2.btn" itemprop="url">Выбрать</a>
+          </article>
+          <article class="price-card" role="listitem" itemscope itemtype="https://schema.org/Offer">
+            <div class="ribbon free-ribbon" aria-label="Бесплатный тариф">Бесплатно</div>
+            <h3 data-i18n="pricing.p1.title" itemprop="name">Тестовый период</h3>
+            <div class="price"><span itemprop="price" content="0">0</span> <span itemprop="priceCurrency" content="RUB">₽</span></div>
+            <meta itemprop="availability" content="https://schema.org/InStock" />
+            <ul role="list">
               <li data-i18n="pricing.p1.li1">Доступ на 3 дня</li>
               <li data-i18n="pricing.p1.li2">Быстрое подключение</li>
               <li data-i18n="pricing.p1.li3">Работает на всех устройствах</li>
             </ul>
-            <a class="btn primary w100" href="https://t.me/glsvpn_bot" target="_blank" rel="noopener noreferrer" data-i18n="pricing.p1.btn">Активировать</a>
-          </div>
-          <div class="price-card">
-            <div class="ribbon premium-ribbon">Выгодно</div>
-            <h3 data-i18n="pricing.p3.title">3 месяца</h3>
-            <div class="price">299 ₽</div>
-            <ul>
+            <a class="btn primary w100" href="https://t.me/glsvpn_bot" target="_blank" rel="noopener noreferrer" data-i18n="pricing.p1.btn" itemprop="url">Активировать</a>
+          </article>
+          <article class="price-card" role="listitem" itemscope itemtype="https://schema.org/Offer">
+            <div class="ribbon premium-ribbon" aria-label="Выгодный тариф">Выгодно</div>
+            <h3 data-i18n="pricing.p3.title" itemprop="name">3 месяца</h3>
+            <div class="price"><span itemprop="price" content="299">299</span> <span itemprop="priceCurrency" content="RUB">₽</span></div>
+            <meta itemprop="availability" content="https://schema.org/InStock" />
+            <ul role="list">
               <li data-i18n="pricing.p3.li1">Доступ на 93 дня</li>
               <li data-i18n="pricing.p3.li2">Низкий пинг</li>
               <li data-i18n="pricing.p3.li3">Высокая скорость</li>
             </ul>
-            <a class="btn primary w100" href="https://t.me/glsvpn_bot" target="_blank" rel="noopener noreferrer" data-i18n="pricing.p3.btn">Купить</a>
-          </div>
+            <a class="btn primary w100" href="https://t.me/glsvpn_bot" target="_blank" rel="noopener noreferrer" data-i18n="pricing.p3.btn" itemprop="url">Купить</a>
+          </article>
         </div>
-        <div class="countries" id="countries">
-          <h3 class="section__title" data-i18n="countries.title">Страны</h3>
+        <section class="countries" id="countries" aria-labelledby="countries-title">
+          <h3 id="countries-title" class="section__title" data-i18n="countries.title">Страны</h3>
           <p class="section__subtitle" data-i18n="countries.subtitle">Выбирайте оптимальные локации под игры, работу и доступ к сервисам</p>
-          <div class="country-grid">
-            <article class="country-card accent-1">
+          <div class="country-grid" role="list" aria-label="Доступные страны для VPN серверов">
+            <article class="country-card accent-1" role="listitem" itemscope itemtype="https://schema.org/Country">
               <div class="country-flag" aria-hidden="true">
                 <svg class="flag" viewBox="0 0 3 2" role="img" aria-label="Флаг Нидерландов" data-i18n-attr="aria-label" data-i18n="country.nl.flag" focusable="false" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
                   <rect width="3" height="2" fill="#FFFFFF"/>
@@ -2090,10 +2102,10 @@ footer a:hover{color:var(--text)}
                   <rect width="3" height="0.6667" y="1.3333" fill="#21468B"/>
                 </svg>
               </div>
-              <h4 class="country-name" data-i18n="country.nl.name">Нидерланды</h4>
+              <h4 class="country-name" data-i18n="country.nl.name" itemprop="name">Нидерланды</h4>
               <p class="country-desc" data-i18n="country.nl.desc">Узлы с отличной маршрутизацией и стабильной скоростью.</p>
             </article>
-            <article class="country-card accent-2">
+            <article class="country-card accent-2" role="listitem" itemscope itemtype="https://schema.org/Country">
               <div class="country-flag" aria-hidden="true">
                 <svg class="flag" viewBox="0 0 5 3" role="img" aria-label="Флаг Германии" data-i18n-attr="aria-label" data-i18n="country.de.flag" focusable="false" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
                   <rect width="5" height="3" fill="#000000"/>
@@ -2101,72 +2113,65 @@ footer a:hover{color:var(--text)}
                   <rect width="5" height="1" y="2" fill="#FFCE00"/>
                 </svg>
               </div>
-              <h4 class="country-name" data-i18n="country.de.name">Германия</h4>
+              <h4 class="country-name" data-i18n="country.de.name" itemprop="name">Германия</h4>
               <p class="country-desc" data-i18n="country.de.desc">Низкий пинг для Европы, высокая надёжность и приватность.</p>
             </article>
-            <article class="country-card accent-3">
-              <div class="country-flag" aria-hidden="true">
-                <svg class="flag" viewBox="0 0 18 11" role="img" aria-label="Флаг Австрии" data-i18n-attr="aria-label" data-i18n="country.au.flag" focusable="false" xmlns="http://www.w3.org/2000/svg" shape-rendering="crispEdges">
-                  <rect width="18" height="11" fill="#ED2939"/>
-                  <rect x="0" y="3.67" width="18" height="3.67" fill="#FFFFFF"/>
-                </svg>
-              </div>
-              <h4 class="country-name" data-i18n="country.au.name">Австрия</h4>
-              <p class="country-desc" data-i18n="country.au.desc">Стабильные каналы, хороший баланс скорости и латентности.</p>
-            </article>
           </div>
-        </div>
+        </section>
       </div>
     </section>
 
 
     <!-- Секция статистики -->
-    <section id="stats" class="section stats-section">
+    <section id="stats" class="section stats-section" aria-labelledby="stats-title">
       <div class="container">
-        <h2 class="section__title">GLS VPN в цифрах</h2>
-        <div class="stats-grid">
-          <div class="stat-item">
-            <div class="stat-number" data-count="1000">0</div>
-            <div class="stat-label">Довольных клиентов</div>
+        <h2 id="stats-title" class="section__title">GLS VPN в цифрах</h2>
+        <dl class="stats-grid" role="list" aria-label="Статистика GLS VPN">
+          <div class="stat-item" role="listitem">
+            <dt class="sr-only">Количество довольных клиентов</dt>
+            <dd class="stat-number" data-count="1000" aria-label="Более 1000 довольных клиентов">0</dd>
+            <dd class="stat-label">Довольных клиентов</dd>
           </div>
-          <div class="stat-item">
-            <div class="stat-number" data-count="99.9">0</div>
-            <div class="stat-label">% Аптайм серверов</div>
+          <div class="stat-item" role="listitem">
+            <dt class="sr-only">Процент аптайма серверов</dt>
+            <dd class="stat-number" data-count="99.9" aria-label="99.9 процентов аптайм серверов">0</dd>
+            <dd class="stat-label">% Аптайм серверов</dd>
           </div>
-          <div class="stat-item">
-            <div class="stat-number" data-count="24">0</div>
-            <div class="stat-label">Часа поддержки</div>
+          <div class="stat-item" role="listitem">
+            <dt class="sr-only">Часы поддержки</dt>
+            <dd class="stat-number" data-count="24" aria-label="24 часа поддержки">0</dd>
+            <dd class="stat-label">Часа поддержки</dd>
           </div>
-        </div>
+        </dl>
       </div>
     </section>
 
 
     <!-- Секция доверия -->
-    <section id="trust" class="section trust-section">
+    <section id="trust" class="section trust-section" aria-labelledby="trust-title">
       <div class="container">
-        <h2 class="section__title">Почему нам доверяют</h2>
-        <div class="trust-grid">
-          <div class="trust-item">
-            <div class="trust-icon">🔒</div>
-            <h3>Полная анонимность</h3>
-            <p>Не ведем логи, не отслеживаем активность. Ваша приватность под защитой.</p>
-          </div>
-          <div class="trust-item">
-            <div class="trust-icon">⚡</div>
-            <h3>Мгновенная поддержка</h3>
-            <p>Отвечаем в Telegram в течение минуты. Решаем любые вопросы быстро.</p>
-          </div>
-          <div class="trust-item">
-            <div class="trust-icon">🛡️</div>
-            <h3>Военная безопасность</h3>
-            <p>Современные протоколы шифрования. Защита на уровне банков.</p>
-          </div>
-          <div class="trust-item">
-            <div class="trust-icon">💰</div>
-            <h3>Честные цены</h3>
-            <p>Никаких скрытых платежей. Прозрачные тарифы без подводных камней.</p>
-          </div>
+        <h2 id="trust-title" class="section__title">Почему нам доверяют</h2>
+        <div class="trust-grid" role="list" aria-label="Преимущества GLS VPN">
+          <article class="trust-item" role="listitem" itemscope itemtype="https://schema.org/Service">
+            <div class="trust-icon" aria-hidden="true">🔒</div>
+            <h3 itemprop="name">Полная анонимность</h3>
+            <p itemprop="description">Не ведем логи, не отслеживаем активность. Ваша приватность под защитой.</p>
+          </article>
+          <article class="trust-item" role="listitem" itemscope itemtype="https://schema.org/Service">
+            <div class="trust-icon" aria-hidden="true">⚡</div>
+            <h3 itemprop="name">Мгновенная поддержка</h3>
+            <p itemprop="description">Отвечаем в Telegram в течение минуты. Решаем любые вопросы быстро.</p>
+          </article>
+          <article class="trust-item" role="listitem" itemscope itemtype="https://schema.org/Service">
+            <div class="trust-icon" aria-hidden="true">🛡️</div>
+            <h3 itemprop="name">Военная безопасность</h3>
+            <p itemprop="description">Современные протоколы шифрования. Защита на уровне банков.</p>
+          </article>
+          <article class="trust-item" role="listitem" itemscope itemtype="https://schema.org/Service">
+            <div class="trust-icon" aria-hidden="true">💰</div>
+            <h3 itemprop="name">Честные цены</h3>
+            <p itemprop="description">Никаких скрытых платежей. Прозрачные тарифы без подводных камней.</p>
+          </article>
         </div>
       </div>
     </section>
@@ -2174,42 +2179,62 @@ footer a:hover{color:var(--text)}
     <section id="faq" class="section" aria-labelledby="faq-title">
       <div class="container">
         <h2 id="faq-title" class="section__title" data-i18n="faq.title">VPN FAQ - Часто задаваемые вопросы о VPN</h2>
-        <details class="faq">
-          <summary>Где купить VPN в России?</summary>
-          <p>Купить VPN в России можно у GLS VPN через Telegram-бота @glsvpn_bot. Мы предлагаем VPN который обходит глушилки, с протоколом VLESS/Reality. Цена от 100₽ за месяц, есть бесплатный пробный период на 3 дня. Простое подключение в один клик — получите конфигурацию в боте и импортируйте её в приложение V2rayTun/AlphaNet/Shadowrocket.</p>
-        </details>
-        <details class="faq">
-          <summary>Как купить VPN в России дешево?</summary>
-          <p>Купить VPN в России дешево можно у GLS VPN - цена от 100₽ за месяц, одна из самых низких на рынке. Тариф на 3 месяца - 299₽ (экономия 148₽). Есть бесплатный пробный период на 3 дня. VPN который обходит глушилки по доступной цене.</p>
-        </details>
-        <details class="faq">
-          <summary data-i18n="faq.q2">Ведёте ли вы логи?</summary>
-          <p data-i18n="faq.a2">Нет. Мы не храним историю посещений и не отслеживаем активность пользователей. Полная анонимность и приватность.</p>
-        </details>
-        <details class="faq">
-          <summary data-i18n="faq.q3">Поддержка устройств?</summary>
-          <p data-i18n="faq.a3">Наш VPN поддерживает iOS, Android, Windows, macOS. Главное установить клиент для подключения. Работает на всех устройствах.</p>
-        </details>
-        <details class="faq">
-          <summary>Какой VPN лучше купить в России?</summary>
-          <p>GLS VPN - лучший выбор для России. Высокая скорость, обход блокировок, стабильные сервера, низкая цена от 149₽. Без логов, с шифрованием.</p>
-        </details>
-        <details class="faq">
-          <summary>Сколько стоит VPN в России?</summary>
-          <p>Цена VPN в России от 149₽ за месяц. Тариф на 3 месяца - 299₽. Есть бесплатный пробный период на 3 дня. Дешевле конкурентов.</p>
-        </details>
-        <details class="faq">
-          <summary>VPN который обходит глушилки - какой выбрать?</summary>
-          <p>GLS VPN — это VPN который обходит глушилки и DPI-фильтрацию. Мы используем протокол VLESS/Reality, который маскирует VPN-трафик под обычный HTTPS, что позволяет обходить все виды глушилок и блокировок. В отличие от обычных VPN, наш сервис не определяется глушилками.</p>
-        </details>
-        <details class="faq">
-          <summary>Как VPN обходит глушилки и блокировки?</summary>
-          <p>Наш VPN обходит глушилки благодаря технологии VLESS/Reality, которая делает VPN-трафик неотличимым от обычного HTTPS-трафика. Глушилки и DPI-системы не могут определить, что вы используете VPN, поэтому блокировки не срабатывают. Протокол постоянно обновляется для обхода новых видов глушилок.</p>
-        </details>
-        <details class="faq">
-          <summary>Работает ли VPN при включенных глушилках?</summary>
-          <p>Да, GLS VPN работает даже при активных глушилках и DPI-фильтрации. Протокол VLESS/Reality специально разработан для обхода всех видов глушилок, поэтому соединение остается стабильным и быстрым даже при блокировках.</p>
-        </details>
+        <div itemscope itemtype="https://schema.org/FAQPage">
+          <details class="faq" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+            <summary itemprop="name">Где купить VPN в России?</summary>
+            <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+              <p itemprop="text">Купить VPN в России можно у GLS VPN через Telegram-бота @glsvpn_bot. Мы предлагаем VPN который обходит глушилки, с протоколом VLESS/Reality. Цена от 100₽ за месяц, есть бесплатный пробный период на 3 дня. Простое подключение в один клик — получите конфигурацию в боте и импортируйте её в приложение V2rayTun/AlphaNet/Shadowrocket.</p>
+            </div>
+          </details>
+          <details class="faq" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+            <summary itemprop="name">Как купить VPN в России дешево?</summary>
+            <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+              <p itemprop="text">Купить VPN в России дешево можно у GLS VPN - цена от 100₽ за месяц, одна из самых низких на рынке. Тариф на 3 месяца - 299₽ (экономия 148₽). Есть бесплатный пробный период на 3 дня. VPN который обходит глушилки по доступной цене.</p>
+            </div>
+          </details>
+          <details class="faq" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+            <summary data-i18n="faq.q2" itemprop="name">Ведёте ли вы логи?</summary>
+            <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+              <p data-i18n="faq.a2" itemprop="text">Нет. Мы не храним историю посещений и не отслеживаем активность пользователей. Полная анонимность и приватность.</p>
+            </div>
+          </details>
+          <details class="faq" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+            <summary data-i18n="faq.q3" itemprop="name">Поддержка устройств?</summary>
+            <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+              <p data-i18n="faq.a3" itemprop="text">Наш VPN поддерживает iOS, Android, Windows, macOS. Главное установить клиент для подключения. Работает на всех устройствах.</p>
+            </div>
+          </details>
+          <details class="faq" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+            <summary itemprop="name">Какой VPN лучше купить в России?</summary>
+            <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+              <p itemprop="text">GLS VPN - лучший выбор для России. Высокая скорость, обход блокировок, стабильные сервера, низкая цена от 149₽. Без логов, с шифрованием.</p>
+            </div>
+          </details>
+          <details class="faq" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+            <summary itemprop="name">Сколько стоит VPN в России?</summary>
+            <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+              <p itemprop="text">Цена VPN в России от 149₽ за месяц. Тариф на 3 месяца - 299₽. Есть бесплатный пробный период на 3 дня. Дешевле конкурентов.</p>
+            </div>
+          </details>
+          <details class="faq" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+            <summary itemprop="name">VPN который обходит глушилки - какой выбрать?</summary>
+            <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+              <p itemprop="text">GLS VPN — это VPN который обходит глушилки и DPI-фильтрацию. Мы используем протокол VLESS/Reality, который маскирует VPN-трафик под обычный HTTPS, что позволяет обходить все виды глушилок и блокировок. В отличие от обычных VPN, наш сервис не определяется глушилками.</p>
+            </div>
+          </details>
+          <details class="faq" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+            <summary itemprop="name">Как VPN обходит глушилки и блокировки?</summary>
+            <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+              <p itemprop="text">Наш VPN обходит глушилки благодаря технологии VLESS/Reality, которая делает VPN-трафик неотличимым от обычного HTTPS-трафика. Глушилки и DPI-системы не могут определить, что вы используете VPN, поэтому блокировки не срабатывают. Протокол постоянно обновляется для обхода новых видов глушилок.</p>
+            </div>
+          </details>
+          <details class="faq" itemscope itemprop="mainEntity" itemtype="https://schema.org/Question">
+            <summary itemprop="name">Работает ли VPN при включенных глушилках?</summary>
+            <div itemprop="acceptedAnswer" itemscope itemtype="https://schema.org/Answer">
+              <p itemprop="text">Да, GLS VPN работает даже при активных глушилках и DPI-фильтрации. Протокол VLESS/Reality специально разработан для обхода всех видов глушилок, поэтому соединение остается стабильным и быстрым даже при блокировках.</p>
+            </div>
+          </details>
+        </div>
       </div>
     </section>
 
@@ -2278,19 +2303,19 @@ footer a:hover{color:var(--text)}
     <span aria-hidden="true">↑</span>
   </button>
   
-  <footer>
+  <footer role="contentinfo" itemscope itemtype="https://schema.org/WPFooter">
     <div class="container inner">
-      <div class="brand small">
-        <img class="logo" src="{{ base_url }}/static/gls-avatar-wordmark.svg" alt="GLS VPN - Купить VPN в России, цена от 149₽" width="32" height="32" loading="lazy" decoding="async" />
-        <span>GLS VPN</span>
+      <div class="brand small" itemscope itemtype="https://schema.org/Organization">
+        <img class="logo" src="{{ base_url }}/static/gls-avatar-wordmark.svg" alt="GLS VPN - Купить VPN в России, цена от 149₽" width="32" height="32" loading="lazy" decoding="async" itemprop="logo" />
+        <span itemprop="name">GLS VPN</span>
       </div>
-      <div class="links">
+      <nav class="links" role="navigation" aria-label="Навигация в подвале сайта">
         <a href="#features" data-i18n="footer.features">Возможности</a>
         <a href="#pricing" data-i18n="footer.pricing">Тарифы</a>
         <a href="#faq" data-i18n="footer.faq">FAQ</a>
         <a href="/offer">Договор оферты</a>
-        <a href="https://t.me/glsvpn_bot" target="_blank" rel="noopener noreferrer">Telegram</a>
-      </div>
+        <a href="https://t.me/glsvpn_bot" target="_blank" rel="noopener noreferrer" itemprop="sameAs">Telegram</a>
+      </nav>
     </div>
   </footer>
 
@@ -2355,9 +2380,6 @@ document.addEventListener('DOMContentLoaded', () => {
       'country.de.flag': 'Флаг Германии',
       'country.de.name': 'Германия',
       'country.de.desc': 'Низкий пинг для Европы, высокая надёжность и приватность.',
-      'country.au.flag': 'Флаг Австрии',
-      'country.au.name': 'Австрия',
-      'country.au.desc': 'Стабильные каналы, хороший баланс скорости и латентности.',
       'faq.title': 'Частые вопросы',
       'faq.q1': 'Как подключиться?',
       'faq.a1': 'Получите конфигурацию в нашем боте и импортируйте её в приложение V2rayTun/AlphaNet/Shadowrocket.',
@@ -2424,9 +2446,6 @@ document.addEventListener('DOMContentLoaded', () => {
       'country.de.flag': 'Flag of Germany',
       'country.de.name': 'Germany',
       'country.de.desc': 'Low latency for Europe, high reliability and privacy.',
-      'country.au.flag': 'Flag of Austria',
-      'country.au.name': 'Austria',
-      'country.au.desc': 'Stable channels, a good balance of speed and latency.',
       'faq.title': 'FAQ',
       'faq.q1': 'How to connect?',
       'faq.a1': 'Get a configuration in our bot and import it into V2rayTun/AlphaNet/Shadowrocket.',
